@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - EduConnect India</title>
+    
+    <link rel="icon" href="/images/favicon-32x32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="/images/favicon-16x16.png" sizes="16x16" type="image/png">
+    <link rel="icon" href="/images/android-chrome-512x512.png" sizes="512x512" type="image/png">
+    <link rel="manifest" href="/images/site.webmanifest">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/student.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>EduConnect</span>
+                </div>
+                <div class="user-profile" id="userProfile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <h3 id="userName" class="student-name">Loading...</h3>
+                        <p id="userStudentId" class="student-id">Student ID: Loading...</p>
+                        <p id="userDepartment" class="student-department">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active" data-section="overview"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="#" data-section="classes"><i class="fas fa-video"></i> My Classes</a></li>
+                <li><a href="#" data-section="assignments"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="#" data-section="grades"><i class="fas fa-chart-line"></i> Grades</a></li>
+                <li><a href="#" data-section="resources"><i class="fas fa-book"></i> Resources</a></li>
+                <li><a href="#" data-section="attendance"><i class="fas fa-user-check"></i> Attendance</a></li>
+                <li><a href="#" data-section="calendar"><i class="fas fa-calendar-alt"></i> Calendar</a></li>
+                <li><a href="#" data-section="messages"><i class="fas fa-envelope"></i> Messages</a></li>
+                <li><a href="#" data-section="achievements"><i class="fas fa-trophy"></i> Achievements</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <button class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <div class="page-title">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1>Student Dashboard</h1>
+                    <p>Welcome back, <span class="student-name">Student</span>! Here's what's happening today.</p>
+                </div>
+                <div class="header-actions">
+                    <div class="notification-icon" id="notificationIcon">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">0</span>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Overview Section -->
+            <section class="content-section active" id="overview">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Enrolled Courses</div>
+                            <div class="stat-card-icon cyan">
+                                <i class="fas fa-book-open"></i>
+                            </div>
+                        </div>
+                        <div class="stat-card-value" id="enrolledCoursesCount">0</div>
+                        <div class="stat-card-change positive">
+                            <i class="fas fa-arrow-up"></i> <span id="coursesChange">0</span> from last semester
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Attendance Rate</div>
+                            <div class="stat-card-icon green">
+                                <i class="fas fa-percentage"></i>
+                            </div>
+                        </div>
+                        <div class="stat-card-value" id="attendanceRate">0%</div>
+                        <div class="stat-card-change positive">
+                            <i class="fas fa-arrow-up"></i> <span id="attendanceChange">0%</span> from last month
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Pending Assignments</div>
+                            <div class="stat-card-icon orange">
+                                <i class="fas fa-clipboard-list"></i>
+                            </div>
+                        </div>
+                        <div class="stat-card-value" id="pendingAssignmentsCount">0</div>
+                        <div class="stat-card-change negative">
+                            <i class="fas fa-arrow-up"></i> <span id="assignmentsChange">0</span> new this week
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Average Grade</div>
+                            <div class="stat-card-icon red">
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <div class="stat-card-value" id="averageGrade">-</div>
+                        <div class="stat-card-change positive">
+                            <i class="fas fa-arrow-up"></i> Improved from last term
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Upcoming Classes</h2>
+                        <a href="#" class="btn btn-outline btn-sm">View All</a>
+                    </div>
+                    <div class="card-body">
+                        <ul class="class-list">
+                            <!-- Classes will be populated dynamically -->
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Recent Announcements</h2>
+                        <a href="#" class="btn btn-outline btn-sm">View All</a>
+                    </div>
+                    <div class="card-body">
+                        <ul class="announcement-list">
+                            <!-- Announcements will be populated dynamically -->
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- My Classes Section -->
+            <section class="content-section" id="classes">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">My Classes</h2>
+                        <div class="card-actions">
+                            <input type="text" id="joinClassCode" placeholder="Enter class code to join" class="form-control">
+                            <button id="joinClassBtn" class="btn btn-primary btn-sm">Join Class</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <ul class="class-list">
+                            <!-- Classes will be populated dynamically -->
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Assignments Section -->
+            <section class="content-section" id="assignments">
+                <div class="assignment-tabs">
+                    <button class="tab-btn active" data-tab="pending">Pending Assignments</button>
+                    <button class="tab-btn" data-tab="completed">Completed Assignments</button>
+                </div>
+                
+                <div class="tab-content active" id="pending">
+                    <div class="card">
+                        <div class="card-body">
+                            <ul class="assignment-list">
+                                <!-- Pending assignments will be populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="completed">
+                    <div class="card">
+                        <div class="card-body">
+                            <ul class="assignment-list">
+                                <!-- Completed assignments will be populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Grades Section -->
+            <section class="content-section" id="grades">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Current Grades</h2>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Course</th>
+                                    <th>Instructor</th>
+                                    <th>Assignments</th>
+                                    <th>Midterm</th>
+                                    <th>Final</th>
+                                    <th>Overall Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gradesTableBody">
+                                <!-- Grades will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Grade History</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="grade-summary">
+                            <div class="summary-card">
+                                <div class="summary-title">Current Semester GPA</div>
+                                <div class="summary-value" id="currentGPA">0.00</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-title">Overall GPA</div>
+                                <div class="summary-value" id="overallGPA">0.00</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-title">Credits Completed</div>
+                                <div class="summary-value" id="creditsCompleted">0</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-title">Class Standing</div>
+                                <div class="summary-value" id="classStanding">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Resources Section -->
+            <section class="content-section" id="resources">
+                <div class="resource-tabs">
+                    <button class="tab-btn active" data-tab="all">All Resources</button>
+                    <button class="tab-btn" data-tab="documents">Documents</button>
+                    <button class="tab-btn" data-tab="videos">Videos</button>
+                    <button class="tab-btn" data-tab="links">Links</button>
+                </div>
+                
+                <div class="tab-content active" id="all">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="resource-grid">
+                                <!-- Resources will be populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="documents">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="resource-grid">
+                                <!-- Document resources will be populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="videos">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="resource-grid">
+                                <!-- Video resources will be populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="links">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="resource-grid">
+                                <!-- Link resources will be populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Attendance Section -->
+            <section class="content-section" id="attendance">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Attendance Summary</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="attendance-summary">
+                            <div class="summary-card">
+                                <div class="summary-title">Overall Attendance</div>
+                                <div class="summary-value" id="overallAttendance">0%</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-title">Classes Attended</div>
+                                <div class="summary-value" id="classesAttended">0</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-title">Absences</div>
+                                <div class="summary-value" id="absences">0</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-title">Late Arrivals</div>
+                                <div class="summary-value" id="lateArrivals">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Attendance by Course</h2>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Course</th>
+                                    <th>Instructor</th>
+                                    <th>Classes Held</th>
+                                    <th>Classes Attended</th>
+                                    <th>Attendance Rate</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTableBody">
+                                <!-- Attendance data will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Calendar Section -->
+            <section class="content-section" id="calendar">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Academic Calendar</h2>
+                        <div class="calendar-controls">
+                            <button id="prevMonth" class="btn btn-outline btn-sm"><i class="fas fa-chevron-left"></i></button>
+                            <span id="currentMonth">Loading...</span>
+                            <button id="nextMonth" class="btn btn-outline btn-sm"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="calendar-container">
+                            <div class="calendar-grid">
+                                <div class="calendar-day-header">Sun</div>
+                                <div class="calendar-day-header">Mon</div>
+                                <div class="calendar-day-header">Tue</div>
+                                <div class="calendar-day-header">Wed</div>
+                                <div class="calendar-day-header">Thu</div>
+                                <div class="calendar-day-header">Fri</div>
+                                <div class="calendar-day-header">Sat</div>
+                                
+                                <!-- Calendar days will be generated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Messages Section -->
+            <section class="content-section" id="messages">
+                <div class="message-tabs">
+                    <button class="tab-btn active" data-tab="inbox">Inbox</button>
+                    <button class="tab-btn" data-tab="sent">Sent</button>
+                    <button class="tab-btn" data-tab="drafts">Drafts</button>
+                </div>
+                
+                <div class="tab-content active" id="inbox">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Inbox</h2>
+                            <a href="#" class="btn btn-primary btn-sm compose-message">Compose New</a>
+                        </div>
+                        <div class="card-body">
+                            <ul class="message-list">
+                                <!-- Messages will be populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="sent">
+                    <div class="card">
+                        <div class="card-body">
+                            <ul class="message-list">
+                                <!-- Sent messages will be populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="drafts">
+                    <div class="card">
+                        <div class="card-body">
+                            <ul class="message-list">
+                                <!-- Draft messages will be populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Achievements Section -->
+            <section class="content-section" id="achievements">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">My Achievements</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="achievement-grid">
+                            <!-- Achievements will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Assignment Submission Modal -->
+    <div id="assignmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Submit Assignment</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="assignmentForm">
+                    <div class="form-group">
+                        <label for="assignmentTitle">Assignment Title</label>
+                        <input type="text" id="assignmentTitle" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentName">Student Name</label>
+                        <input type="text" id="studentName" class="form-control student-name" value="" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentDepartment">Department</label>
+                        <input type="text" id="studentDepartment" class="form-control student-department" value="" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="submissionFile">Upload File</label>
+                        <input type="file" id="submissionFile" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="submissionNotes">Additional Notes (Optional)</label>
+                        <textarea id="submissionNotes" class="form-control" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit Assignment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message View Modal -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Message</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="message-header">
+                    <div class="message-from">
+                        <strong>From:</strong> <span id="messageFrom"></span>
+                    </div>
+                    <div class="message-date">
+                        <strong>Date:</strong> <span id="messageDate"></span>
+                    </div>
+                </div>
+                <div class="message-subject">
+                    <strong>Subject:</strong> <span id="messageSubject"></span>
+                </div>
+                <div class="message-content" id="messageContent"></div>
+                <div class="message-actions">
+                    <button id="replyMessage" class="btn btn-primary">Reply</button>
+                    <button id="deleteMessage" class="btn btn-outline">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Join Modal -->
+    <div id="joinClassModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Join Live Class</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="class-info">
+                    <div class="class-name"><strong>Class:</strong> <span id="joinClassName"></span></div>
+                    <div class="class-instructor"><strong>Instructor:</strong> <span id="joinClassInstructor"></span></div>
+                    <div class="class-time"><strong>Time:</strong> <span id="joinClassTime"></span></div>
+                    <div class="class-department"><strong>Department:</strong> <span id="joinClassDepartment" class="student-department"></span></div>
+                </div>
+                <div class="class-join-options">
+                    <p>This class is being conducted online. Please choose how you want to join:</p>
+                    <div class="start-options">
+                        <div>
+                            <button id="joinViaBrowser" class="btn btn-primary">Join via Browser</button>
+                        </div>
+                        <div>
+                            <button id="joinViaApp" class="btn btn-outline">Join via App</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Details Modal -->
+    <div id="classDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Class Details</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="class-details-container">
+                    <div class="class-header-card">
+                        <div class="class-title-section">
+                            <h3 id="modalClassName">Loading...</h3>
+                            <p id="modalClassInstructor">Loading...</p>
+                        </div>
+                        <div class="class-meta-section">
+                            <div class="meta-item">
+                                <i class="fas fa-clock"></i>
+                                <span id="modalClassSchedule">Loading...</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span id="modalClassRoom">Loading...</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-tag"></i>
+                                <span id="modalClassType">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="class-tabs">
+                        <button class="tab-btn active" data-tab="overview">Overview</button>
+                        <button class="tab-btn" data-tab="assignments">Assignments</button>
+                        <button class="tab-btn" data-tab="resources">Resources</button>
+                    </div>
+                    
+                    <div class="tab-content active" id="overview">
+                        <div class="class-description-card">
+                            <h4>Course Description</h4>
+                            <p>This course covers fundamental concepts. Detailed description will be loaded dynamically.</p>
+                        </div>
+                        
+                        <div class="class-stats-card">
+                            <div class="stat-item">
+                                <div class="stat-value" id="classAttendanceStat">0%</div>
+                                <div class="stat-label">Attendance</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="classGradeStat">-</div>
+                                <div class="stat-label">Current Grade</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="classAssignmentsStat">0%</div>
+                                <div class="stat-label">Assignments</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content" id="assignments">
+                        <div class="assignment-list">
+                            <!-- Assignments will be populated dynamically -->
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content" id="resources">
+                        <div class="resource-list">
+                            <!-- Resources will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Sidebar -->
+    <div class="notification-sidebar" id="notificationSidebar">
+        <div class="notification-header">
+            <h2>Notifications</h2>
+            <button class="close-notifications" id="closeNotifications">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notification-content">
+            <div class="notification-filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="unread">Unread</button>
+            </div>
+            <div class="notification-list" id="notificationList">
+                <!-- Notifications will be dynamically added here -->
+            </div>
+            <div class="notification-actions">
+                <button class="btn btn-outline btn-sm" id="markAllRead">Mark all as read</button>
+                <button class="btn btn-outline btn-sm" id="clearNotifications">Clear all</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/student.js"></script>
+    <script>
+        // Check if user is logged in and fetch user data from backend
+        document.addEventListener('DOMContentLoaded', function() {
+            const authToken = localStorage.getItem('authToken');
+            
+            if (!authToken) {
+                // Redirect to login if not authenticated
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // The main functionality is now handled by student.js
+            // This script just handles basic authentication checks
+        });
+    </script>
+</body>
+</html>
+
+                                    <div class="resource-title">Data Structures Textbook</div>
+                                    <div class="resource-meta">PDF • 15.2 MB</div>
+                                </div>
+                                <div class="resource-actions">
+                                    <a href="#" class="btn btn-primary btn-sm">Download</a>
+                                </div>
+                            </div>
+                            <div class="resource-item">
+                                <div class="resource-icon">
+                                    <i class="fas fa-file-powerpoint"></i>
+                                </div>
+                                <div class="resource-details">
+                                    <div class="resource-title">Lecture Slides</div>
+                                    <div class="resource-meta">PPTX • 8.7 MB</div>
+                                </div>
+                                <div class="resource-actions">
+                                    <a href="#" class="btn btn-primary btn-sm">Download</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Sidebar -->
+    <div class="notification-sidebar" id="notificationSidebar">
+        <div class="notification-header">
+            <h2>Notifications</h2>
+            <button class="close-notifications" id="closeNotifications">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notification-content">
+            <div class="notification-filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="unread">Unread</button>
+            </div>
+            <div class="notification-list" id="notificationList">
+                <!-- Notifications will be dynamically added here -->
+            </div>
+            <div class="notification-actions">
+                <button class="btn btn-outline btn-sm" id="markAllRead">Mark all as read</button>
+                <button class="btn btn-outline btn-sm" id="clearNotifications">Clear all</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/student.js"></script>
+    <script>
+        // Check if user is logged in and fetch user data from backend
+        document.addEventListener('DOMContentLoaded', function() {
+            const authToken = localStorage.getItem('authToken');
+            
+            if (!authToken) {
+                // Redirect to login if not authenticated
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Fetch current user data from backend
+            fetch('http://localhost:5001/api/auth/me', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const user = data.data;
+                    
+                    // Update user profile in sidebar
+                    document.getElementById('userName').textContent = user.name;
+                    document.getElementById('userStudentId').textContent = `Student ID: ${user.studentId || 'N/A'}`;
+                    document.getElementById('userDepartment').textContent = user.department || 'Not specified';
+                    
+                    // Store user data in localStorage
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+                } else {
+                    // If token is invalid, redirect to login
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'login.html';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching user data:', error);
+                // If there's an error, redirect to login
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+                window.location.href = 'login.html';
+            });
+            
+            // Add mobile menu toggle
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const sidebar = document.getElementById('sidebar');
+            if (mobileMenuToggle && sidebar) {
+                mobileMenuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                });
+            }
+            
+            // Add notification icon functionality
+            const notificationIcon = document.getElementById('notificationIcon');
+            if (notificationIcon) {
+                notificationIcon.addEventListener('click', function() {
+                    // Handle notification click
+                    alert('Notifications feature coming soon!');
+                });
+            }
+            
+            // Add sidebar menu item functionality
+            const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Remove active class from all links
+                    sidebarLinks.forEach(l => l.classList.remove('active'));
+                    
+                    // Add active class to clicked link
+                    this.classList.add('active');
+                    
+                    // Get section ID
+                    const sectionId = this.getAttribute('data-section');
+                    
+                    // Hide all content sections
+                    const contentSections = document.querySelectorAll('.content-section');
+                    contentSections.forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    // Show selected section
+                    if (sectionId) {
+                        const targetSection = document.getElementById(sectionId);
+                        if (targetSection) {
+                            targetSection.classList.add('active');
+                        }
+                    }
+                });
+            });
+            
+            // Add form step navigation for any forms
+            const nextBtns = document.querySelectorAll('.next-btn');
+            const prevBtns = document.querySelectorAll('.prev-btn');
+            
+            nextBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Handle next button logic
+                    const currentStep = this.closest('.form-step.active');
+                    const nextStep = currentStep.nextElementSibling;
+                    
+                    if (nextStep && nextStep.classList.contains('form-step')) {
+                        currentStep.classList.remove('active');
+                        nextStep.classList.add('active');
+                    }
+                });
+            });
+            
+            prevBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Handle previous button logic
+                    const currentStep = this.closest('.form-step.active');
+                    const prevStep = currentStep.previousElementSibling;
+                    
+                    if (prevStep && prevStep.classList.contains('form-step')) {
+                        currentStep.classList.remove('active');
+                        prevStep.classList.add('active');
+                    }
+                });
+            });
+            
+            // Add tab functionality
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove active class from all tab buttons
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Get tab ID
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Hide all tab content
+                    const tabContents = this.closest('.card-body') ? 
+                        this.closest('.card-body').querySelectorAll('.tab-content') :
+                        document.querySelectorAll('.tab-content');
+                        
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // Show selected tab content
+                    if (tabId) {
+                        const targetContent = document.getElementById(tabId) || 
+                            (this.closest('.card-body') ? 
+                                this.closest('.card-body').querySelector(`#${tabId}`) :
+                                document.querySelector(`#${tabId}`));
+                        if (targetContent) {
+                            targetContent.classList.add('active');
+                        }
+                    }
+                });
+            });
+            
+            // Add join class functionality
+            const joinClassBtn = document.getElementById('joinClassBtn');
+            if (joinClassBtn) {
+                joinClassBtn.addEventListener('click', function() {
+                    const classCode = document.getElementById('joinClassCode').value;
+                    if (classCode) {
+                        alert(`Joining class with code: ${classCode}`);
+                        // Here you would make an API call to join the class
+                    } else {
+                        alert('Please enter a class code');
+                    }
+                });
+            }
+            
+            // Add submit assignment functionality
+            const submitAssignmentBtns = document.querySelectorAll('.submit-assignment');
+            submitAssignmentBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const assignmentId = this.getAttribute('data-assignment-id');
+                    alert(`Submitting assignment: ${assignmentId}`);
+                    // Here you would show a modal or form to submit the assignment
+                });
+            });
+            
+            // Add view class functionality
+            const viewClassBtns = document.querySelectorAll('.view-class');
+            viewClassBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const classId = this.getAttribute('data-class-id');
+                    alert(`Viewing class: ${classId}`);
+                    // Here you would navigate to the class details page
+                });
+            });
+            
+            // Add join class functionality
+            const joinClassBtns = document.querySelectorAll('.join-class');
+            joinClassBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const classId = this.getAttribute('data-class-id');
+                    alert(`Joining class: ${classId}`);
+                    // Here you would make an API call to join the class
+                });
+            });
+            
+            // Add calendar functionality
+            const prevMonthBtn = document.getElementById('prevMonth');
+            const nextMonthBtn = document.getElementById('nextMonth');
+            const currentMonthElement = document.getElementById('currentMonth');
+            
+            if (prevMonthBtn && nextMonthBtn && currentMonthElement) {
+                let currentDate = new Date();
+                
+                function updateCalendar() {
+                    const monthNames = ["January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December"];
+                    currentMonthElement.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+                    
+                    // Here you would generate the calendar days
+                    // For now, we'll just show a simple placeholder
+                }
+                
+                updateCalendar();
+                
+                prevMonthBtn.addEventListener('click', function() {
+                    currentDate.setMonth(currentDate.getMonth() - 1);
+                    updateCalendar();
+                });
+                
+                nextMonthBtn.addEventListener('click', function() {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                    updateCalendar();
+                });
+            }
+        });
+    </script>
+</body>
+</html>

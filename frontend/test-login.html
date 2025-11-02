@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login - EduConnect India</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/login.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-logo {
+            margin-bottom: 30px;
+        }
+        .login-logo i {
+            font-size: 48px;
+            color: #667eea;
+        }
+        .login-logo h1 {
+            margin: 10px 0 0;
+            color: #333;
+            font-size: 24px;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #5a6fd8;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-logo">
+            <i class="fas fa-graduation-cap"></i>
+            <h1>EduConnect India</h1>
+        </div>
+        <h2>Test Login</h2>
+        <p>Click the button below to simulate login and access the student dashboard.</p>
+        <button id="simulateLogin" class="btn">
+            <i class="fas fa-sign-in-alt"></i> Simulate Login
+        </button>
+    </div>
+
+    <script>
+        document.getElementById('simulateLogin').addEventListener('click', function() {
+            // Simulate successful login by storing the auth token
+            const authToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MDZmOWRlYjYwYjBjMDBlNzI5OGI5NSIsImVtYWlsIjoiYW51cmFnQHN0dWRlbnQuY29tIiwicm9sZSI6InN0dWRlbnQiLCJpYXQiOjE3NjIwNjUwMzksImV4cCI6MTc2NDY1NzAzOX0.LfpAEm0YpuqTChqggILXNkdoCuUy8n12cR3FEt0KBVQ';
+            const currentUser = {
+                "_id": "6906f9deb60b0c00e7298b95",
+                "name": "Anurag Ray",
+                "email": "anurag@student.com",
+                "role": "student",
+                "department": "Computer Science & Engineering",
+                "studentId": "STU12345",
+                "isActive": true
+            };
+            
+            // Store in localStorage
+            localStorage.setItem('authToken', authToken);
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Redirect to student dashboard
+            window.location.href = 'student-dashboard.html';
+        });
+    </script>
+</body>
+</html>

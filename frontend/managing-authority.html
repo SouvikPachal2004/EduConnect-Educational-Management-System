@@ -1,0 +1,2059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Principal Dashboard - EduConnect</title>
+    <link rel="icon" href="/images/favicon-32x32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="/images/favicon-16x16.png" sizes="16x16" type="image/png">
+    <link rel="icon" href="/images/android-chrome-512x512.png" sizes="512x512" type="image/png">
+    <link rel="manifest" href="/images/site.webmanifest">
+    
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/managing-authority.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>EduConnect</span>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="user-info">
+                        <h3>Dr. Sanjay Reddy</h3>
+                        <p>Principal</p>
+                    </div>
+                </div>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active" data-section="overview"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="#" data-section="departments"><i class="fas fa-building"></i> Departments</a></li>
+                <li><a href="#" data-section="faculty"><i class="fas fa-chalkboard-teacher"></i> Faculty</a></li>
+                <li><a href="#" data-section="students"><i class="fas fa-user-graduate"></i> Students</a></li>
+                <li><a href="#" data-section="academics"><i class="fas fa-book"></i> Academics</a></li>
+                <li><a href="#" data-section="finance"><i class="fas fa-rupee-sign"></i> Finance</a></li>
+                <li><a href="#" data-section="approvals"><i class="fas fa-check-circle"></i> Approvals</a></li>
+                <li><a href="#" data-section="reports"><i class="fas fa-chart-line"></i> Reports</a></li>
+                <li><a href="#" data-section="announcements"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <button class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <div class="page-title">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1>Principal Dashboard</h1>
+                    <p>Welcome back, Dr. Reddy! Here's what's happening at the college.</p>
+                </div>
+                <div class="header-actions">
+                    <div class="notification-icon" id="notificationIcon">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">12</span>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                </div>
+                
+                <!-- Notifications Dropdown -->
+                <div class="notifications-dropdown" id="notificationsDropdown">
+                    <div class="notifications-header">
+                        <h3>Notifications</h3>
+                        <span class="notification-count">12</span>
+                    </div>
+                    <div class="notifications-list">
+                        <div class="notification-item">
+                            <div class="notification-icon">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-title">Course Status Update</div>
+                                <div class="notification-desc">B.Tech AI program pending approval from board</div>
+                                <div class="notification-time">2 hours ago</div>
+                            </div>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-icon">
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-title">Resource Upload</div>
+                                <div class="notification-desc">New lab equipment uploaded by Dr. Priya Singh</div>
+                                <div class="notification-time">5 hours ago</div>
+                            </div>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-title">Report Generated</div>
+                                <div class="notification-desc">Q3 performance report is ready for review</div>
+                                <div class="notification-time">1 day ago</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="notifications-footer">
+                        <button class="btn btn-outline btn-sm" id="viewAllNotificationsBtn">View All Notifications</button>
+                        <button class="btn btn-primary btn-sm" id="archiveNotificationsBtn">Archive</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Overview Section -->
+            <section class="content-section active" id="overview">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Total Students</div>
+                            <div class="stat-card-icon coral">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                        </div>
+                        <div class="stat-card-value">2,845</div>
+                        <div class="stat-card-change positive">
+                            <i class="fas fa-arrow-up"></i> 215 new this year
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Faculty Members</div>
+                            <div class="stat-card-icon terracotta">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                            </div>
+                        </div>
+                        <div class="stat-card-value">156</div>
+                        <div class="stat-card-change positive">
+                            <i class="fas fa-arrow-up"></i> 12 new this year
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Departments</div>
+                            <div class="stat-card-icon sand">
+                                <i class="fas fa-building"></i>
+                            </div>
+                        </div>
+                        <div class="stat-card-value">8</div>
+                        <div class="stat-card-change">
+                            <i class="fas fa-info-circle"></i> All operational
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Placement Rate</div>
+                            <div class="stat-card-icon peach">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                        </div>
+                        <div class="stat-card-value">92%</div>
+                        <div class="stat-card-change positive">
+                            <i class="fas fa-arrow-up"></i> 5% from last year
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">College Performance Overview</h2>
+                        <a href="#" class="btn btn-outline btn-sm">View Full Report</a>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th>Students</th>
+                                    <th>Faculty</th>
+                                    <th>Avg. GPA</th>
+                                    <th>Placement %</th>
+                                    <th>Research Output</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Computer Engineering</td>
+                                    <td>342</td>
+                                    <td>24</td>
+                                    <td>3.42</td>
+                                    <td>95%</td>
+                                    <td>18</td>
+                                </tr>
+                                <tr>
+                                    <td>Mechanical Engineering</td>
+                                    <td>285</td>
+                                    <td>18</td>
+                                    <td>3.25</td>
+                                    <td>90%</td>
+                                    <td>12</td>
+                                </tr>
+                                <tr>
+                                    <td>Electrical Engineering</td>
+                                    <td>310</td>
+                                    <td>20</td>
+                                    <td>3.38</td>
+                                    <td>92%</td>
+                                    <td>15</td>
+                                </tr>
+                                <tr>
+                                    <td>Civil Engineering</td>
+                                    <td>275</td>
+                                    <td>16</td>
+                                    <td>3.30</td>
+                                    <td>88%</td>
+                                    <td>10</td>
+                                </tr>
+                                <tr>
+                                    <td>Chemical Engineering</td>
+                                    <td>195</td>
+                                    <td>14</td>
+                                    <td>3.28</td>
+                                    <td>85%</td>
+                                    <td>8</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Upcoming College Events</h2>
+                        <a href="#" class="btn btn-outline btn-sm">View Calendar</a>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Location</th>
+                                    <th>Organizer</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>College Annual Day</td>
+                                    <td>Nov 15, 2025</td>
+                                    <td>10:00 AM</td>
+                                    <td>Main Auditorium</td>
+                                    <td>Cultural Committee</td>
+                                </tr>
+                                <tr>
+                                    <td>Board of Governors Meeting</td>
+                                    <td>Nov 20, 2025</td>
+                                    <td>2:00 PM</td>
+                                    <td>Conference Hall</td>
+                                    <td>Principal's Office</td>
+                                </tr>
+                                <tr>
+                                    <td>Industry-Academia Conclave</td>
+                                    <td>Dec 5, 2025</td>
+                                    <td>9:00 AM</td>
+                                    <td>Convention Center</td>
+                                    <td>Placement Cell</td>
+                                </tr>
+                                <tr>
+                                    <td>Semester Exams</td>
+                                    <td>Dec 10-20, 2025</td>
+                                    <td>9:30 AM</td>
+                                    <td>Various Halls</td>
+                                    <td>Examination Dept.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Departments Section -->
+            <section class="content-section" id="departments">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Department Management</h2>
+                        <a href="#" class="btn btn-primary btn-sm" id="addDepartmentBtn">Add Department</a>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th>HOD</th>
+                                    <th>Faculty Count</th>
+                                    <th>Student Count</th>
+                                    <th>Budget Allocation</th>
+                                    <th>Performance</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Computer Engineering</td>
+                                    <td>Dr. Priya Singh</td>
+                                    <td>24</td>
+                                    <td>342</td>
+                                    <td>₹85 Lakhs</td>
+                                    <td><span class="status-badge success">Excellent</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-department" data-id="1">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline edit-department" data-id="1">Edit</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Mechanical Engineering</td>
+                                    <td>Dr. Anil Verma</td>
+                                    <td>18</td>
+                                    <td>285</td>
+                                    <td>₹75 Lakhs</td>
+                                    <td><span class="status-badge success">Good</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-department" data-id="2">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline edit-department" data-id="2">Edit</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Electrical Engineering</td>
+                                    <td>Dr. Suresh Iyer</td>
+                                    <td>20</td>
+                                    <td>310</td>
+                                    <td>₹80 Lakhs</td>
+                                    <td><span class="status-badge success">Good</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-department" data-id="3">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline edit-department" data-id="3">Edit</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Civil Engineering</td>
+                                    <td>Dr. Meena Reddy</td>
+                                    <td>16</td>
+                                    <td>275</td>
+                                    <td>₹70 Lakhs</td>
+                                    <td><span class="status-badge warning">Average</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-department" data-id="4">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline edit-department" data-id="4">Edit</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Chemical Engineering</td>
+                                    <td>Dr. Rajesh Gupta</td>
+                                    <td>14</td>
+                                    <td>195</td>
+                                    <td>₹65 Lakhs</td>
+                                    <td><span class="status-badge warning">Needs Improvement</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-department" data-id="5">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline edit-department" data-id="5">Edit</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Faculty Section -->
+            <section class="content-section" id="faculty">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Faculty Overview</h2>
+                        <div>
+                            <select class="form-control" style="width: auto; display: inline-block; margin-right: 10px;" id="facultyDepartmentFilter">
+                                <option>All Departments</option>
+                                <option>Computer Engineering</option>
+                                <option>Mechanical Engineering</option>
+                                <option>Electrical Engineering</option>
+                                <option>Civil Engineering</option>
+                                <option>Chemical Engineering</option>
+                            </select>
+                            <a href="#" class="btn btn-primary btn-sm" id="addFacultyBtn">Add Faculty</a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Total Faculty</div>
+                                    <div class="stat-card-icon coral">
+                                        <i class="fas fa-chalkboard-teacher"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">156</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 12 new this year
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">PhD Holders</div>
+                                    <div class="stat-card-icon terracotta">
+                                        <i class="fas fa-user-graduate"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">68</div>
+                                <div class="stat-card-change">
+                                    <i class="fas fa-info-circle"></i> 43.6% of faculty
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Publications</div>
+                                    <div class="stat-card-icon sand">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">124</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 18 this quarter
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Research Grants</div>
+                                    <div class="stat-card-icon peach">
+                                        <i class="fas fa-rupee-sign"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">₹2.4 Cr</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> ₹45 Lakhs this year
+                                </div>
+                            </div>
+                        </div>
+
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Department</th>
+                                    <th>Position</th>
+                                    <th>Experience</th>
+                                    <th>Publications</th>
+                                    <th>Performance</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Dr. Priya Singh</td>
+                                    <td>Computer Engineering</td>
+                                    <td>Professor & HOD</td>
+                                    <td>15 years</td>
+                                    <td>32</td>
+                                    <td><span class="status-badge success">Excellent</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-faculty" data-id="1">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline evaluate-faculty" data-id="1">Evaluate</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Dr. Anil Verma</td>
+                                    <td>Mechanical Engineering</td>
+                                    <td>Professor & HOD</td>
+                                    <td>18 years</td>
+                                    <td>28</td>
+                                    <td><span class="status-badge success">Excellent</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-faculty" data-id="2">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline evaluate-faculty" data-id="2">Evaluate</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Dr. Suresh Iyer</td>
+                                    <td>Electrical Engineering</td>
+                                    <td>Professor & HOD</td>
+                                    <td>12 years</td>
+                                    <td>24</td>
+                                    <td><span class="status-badge success">Good</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-faculty" data-id="3">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline evaluate-faculty" data-id="3">Evaluate</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Prof. Amit Patel</td>
+                                    <td>Computer Engineering</td>
+                                    <td>Senior Professor</td>
+                                    <td>10 years</td>
+                                    <td>18</td>
+                                    <td><span class="status-badge success">Good</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-faculty" data-id="4">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline evaluate-faculty" data-id="4">Evaluate</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Dr. Meena Reddy</td>
+                                    <td>Civil Engineering</td>
+                                    <td>Professor & HOD</td>
+                                    <td>8 years</td>
+                                    <td>15</td>
+                                    <td><span class="status-badge warning">Average</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-faculty" data-id="5">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline evaluate-faculty" data-id="5">Evaluate</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Students Section -->
+            <section class="content-section" id="students">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Student Overview</h2>
+                        <div>
+                            <select class="form-control" style="width: auto; display: inline-block; margin-right: 10px;" id="studentDepartmentFilter">
+                                <option>All Departments</option>
+                                <option>Computer Engineering</option>
+                                <option>Mechanical Engineering</option>
+                                <option>Electrical Engineering</option>
+                                <option>Civil Engineering</option>
+                                <option>Chemical Engineering</option>
+                            </select>
+                            <a href="#" class="btn btn-outline btn-sm" id="exportStudentReportBtn">Export Report</a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Total Students</div>
+                                    <div class="stat-card-icon coral">
+                                        <i class="fas fa-user-graduate"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">2,845</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 215 new this year
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Avg. GPA</div>
+                                    <div class="stat-card-icon terracotta">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">3.35</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 0.12 from last year
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Placement Rate</div>
+                                    <div class="stat-card-icon sand">
+                                        <i class="fas fa-briefcase"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">92%</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 5% from last year
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Graduation Rate</div>
+                                    <div class="stat-card-icon peach">
+                                        <i class="fas fa-graduation-cap"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">89%</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 3% from last year
+                                </div>
+                            </div>
+                        </div>
+
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th>Total Students</th>
+                                    <th>1st Year</th>
+                                    <th>2nd Year</th>
+                                    <th>3rd Year</th>
+                                    <th>4th Year</th>
+                                    <th>Avg. GPA</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Computer Engineering</td>
+                                    <td>342</td>
+                                    <td>85</td>
+                                    <td>88</td>
+                                    <td>87</td>
+                                    <td>82</td>
+                                    <td>3.42</td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-student-dept" data-id="1">View Details</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Mechanical Engineering</td>
+                                    <td>285</td>
+                                    <td>72</td>
+                                    <td>73</td>
+                                    <td>72</td>
+                                    <td>68</td>
+                                    <td>3.25</td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-student-dept" data-id="2">View Details</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Electrical Engineering</td>
+                                    <td>310</td>
+                                    <td>78</td>
+                                    <td>80</td>
+                                    <td>78</td>
+                                    <td>74</td>
+                                    <td>3.38</td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-student-dept" data-id="3">View Details</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Civil Engineering</td>
+                                    <td>275</td>
+                                    <td>70</td>
+                                    <td>71</td>
+                                    <td>69</td>
+                                    <td>65</td>
+                                    <td>3.30</td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-student-dept" data-id="4">View Details</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Chemical Engineering</td>
+                                    <td>195</td>
+                                    <td>50</td>
+                                    <td>51</td>
+                                    <td>49</td>
+                                    <td>45</td>
+                                    <td>3.28</td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-student-dept" data-id="5">View Details</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Academics Section -->
+            <section class="content-section" id="academics">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Academic Overview</h2>
+                        <a href="#" class="btn btn-primary btn-sm" id="addNewProgramBtn">Add New Program</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Total Programs</div>
+                                    <div class="stat-card-icon coral">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">18</div>
+                                <div class="stat-card-change">
+                                    <i class="fas fa-info-circle"></i> UG: 12, PG: 6
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Total Courses</div>
+                                    <div class="stat-card-icon terracotta">
+                                        <i class="fas fa-list"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">342</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 24 new this year
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">NAAC Accreditation</div>
+                                    <div class="stat-card-icon sand">
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">A+</div>
+                                <div class="stat-card-change">
+                                    <i class="fas fa-info-circle"></i> CGPA: 3.65
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Industry Collaborations</div>
+                                    <div class="stat-card-icon peach">
+                                        <i class="fas fa-handshake"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">24</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 6 new this year
+                                </div>
+                            </div>
+                        </div>
+
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Program</th>
+                                    <th>Department</th>
+                                    <th>Duration</th>
+                                    <th>Students</th>
+                                    <th>Placement %</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>B.Tech Computer Engineering</td>
+                                    <td>Computer Engineering</td>
+                                    <td>4 Years</td>
+                                    <td>342</td>
+                                    <td>95%</td>
+                                    <td><span class="status-badge success">Active</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-program" data-id="1">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline edit-program" data-id="1">Edit</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>B.Tech Mechanical Engineering</td>
+                                    <td>Mechanical Engineering</td>
+                                    <td>4 Years</td>
+                                    <td>285</td>
+                                    <td>90%</td>
+                                    <td><span class="status-badge success">Active</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-program" data-id="2">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline edit-program" data-id="2">Edit</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>M.Tech Computer Science</td>
+                                    <td>Computer Engineering</td>
+                                    <td>2 Years</td>
+                                    <td>45</td>
+                                    <td>98%</td>
+                                    <td><span class="status-badge success">Active</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-program" data-id="3">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline edit-program" data-id="3">Edit</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>B.Tech Electrical Engineering</td>
+                                    <td>Electrical Engineering</td>
+                                    <td>4 Years</td>
+                                    <td>310</td>
+                                    <td>92%</td>
+                                    <td><span class="status-badge success">Active</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-program" data-id="4">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline edit-program" data-id="4">Edit</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>B.Tech Artificial Intelligence</td>
+                                    <td>Computer Engineering</td>
+                                    <td>4 Years</td>
+                                    <td>0</td>
+                                    <td>-</td>
+                                    <td><span class="status-badge warning">Pending Approval</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-program" data-id="5">View</a>
+                                        <a href="#" class="btn btn-sm btn-outline edit-program" data-id="5">Edit</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Finance Section -->
+            <section class="content-section" id="finance">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Financial Overview</h2>
+                        <a href="#" class="btn btn-outline btn-sm" id="viewDetailedReportBtn">View Detailed Report</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Total Budget</div>
+                                    <div class="stat-card-icon coral">
+                                        <i class="fas fa-rupee-sign"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">₹48 Cr</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 8% from last year
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Expenses</div>
+                                    <div class="stat-card-icon terracotta">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">₹36 Cr</div>
+                                <div class="stat-card-change">
+                                    <i class="fas fa-info-circle"></i> 75% of budget
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Revenue</div>
+                                    <div class="stat-card-icon sand">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">₹52 Cr</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 12% from last year
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Surplus</div>
+                                    <div class="stat-card-icon peach">
+                                        <i class="fas fa-piggy-bank"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">₹16 Cr</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 20% from last year
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Budget Allocation</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="progress-container">
+                                    <div class="progress-label">
+                                        <span>Academic Programs</span>
+                                        <span>₹18 Cr (37.5%)</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 37.5%;"></div>
+                                    </div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-label">
+                                        <span>Research & Development</span>
+                                        <span>₹8 Cr (16.7%)</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 16.7%;"></div>
+                                    </div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-label">
+                                        <span>Infrastructure</span>
+                                        <span>₹10 Cr (20.8%)</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 20.8%;"></div>
+                                    </div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-label">
+                                        <span>Student Welfare</span>
+                                        <span>₹6 Cr (12.5%)</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 12.5%;"></div>
+                                    </div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-label">
+                                        <span>Faculty Development</span>
+                                        <span>₹4 Cr (8.3%)</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 8.3%;"></div>
+                                    </div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-label">
+                                        <span>Administrative Expenses</span>
+                                        <span>₹2 Cr (4.2%)</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 4.2%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Approvals Section -->
+            <section class="content-section" id="approvals">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Pending Approvals</h2>
+                        <div>
+                            <select class="form-control" style="width: auto; display: inline-block; margin-right: 10px;" id="approvalTypeFilter">
+                                <option>All Types</option>
+                                <option>New Courses</option>
+                                <option>Faculty Appointments</option>
+                                <option>Research Grants</option>
+                                <option>Student Requests</option>
+                                <option>Events</option>
+                            </select>
+                            <button class="btn btn-outline btn-sm" id="filterApprovalsBtn">Filter</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Department</th>
+                                    <th>Requested By</th>
+                                    <th>Date</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>New Course: Artificial Intelligence</td>
+                                    <td>Computer Engineering</td>
+                                    <td>Dr. Priya Singh</td>
+                                    <td>Oct 10, 2023</td>
+                                    <td><span class="priority-badge high">High</span></td>
+                                    <td><span class="status-badge warning">Pending Review</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-approval" data-id="1">View Details</a>
+                                        <a href="#" class="btn btn-sm btn-primary approve-approval" data-id="1">Approve</a>
+                                        <a href="#" class="btn btn-sm btn-danger reject-approval" data-id="1">Reject</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Faculty Appointment: Dr. Vikram Mehta</td>
+                                    <td>Electrical Engineering</td>
+                                    <td>Dr. Suresh Iyer</td>
+                                    <td>Oct 12, 2023</td>
+                                    <td><span class="priority-badge medium">Medium</span></td>
+                                    <td><span class="status-badge warning">Pending Review</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-approval" data-id="2">View Details</a>
+                                        <a href="#" class="btn btn-sm btn-primary approve-approval" data-id="2">Approve</a>
+                                        <a href="#" class="btn btn-sm btn-danger reject-approval" data-id="2">Reject</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Research Grant: Smart Grid Technology</td>
+                                    <td>Electrical Engineering</td>
+                                    <td>Dr. Suresh Iyer</td>
+                                    <td>Oct 5, 2023</td>
+                                    <td><span class="priority-badge high">High</span></td>
+                                    <td><span class="status-badge success">Approved</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-approval" data-id="3">View Details</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Student Event: TechFest 2023</td>
+                                    <td>Computer Engineering</td>
+                                    <td>Prof. Amit Patel</td>
+                                    <td>Oct 8, 2023</td>
+                                    <td><span class="priority-badge low">Low</span></td>
+                                    <td><span class="status-badge warning">Pending Review</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-approval" data-id="4">View Details</a>
+                                        <a href="#" class="btn btn-sm btn-primary approve-approval" data-id="4">Approve</a>
+                                        <a href="#" class="btn btn-sm btn-danger reject-approval" data-id="4">Reject</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Lab Equipment Upgrade</td>
+                                    <td>Mechanical Engineering</td>
+                                    <td>Dr. Anil Verma</td>
+                                    <td>Oct 3, 2023</td>
+                                    <td><span class="priority-badge medium">Medium</span></td>
+                                    <td><span class="status-badge success">Approved</span></td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline view-approval" data-id="5">View Details</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section class="content-section" id="reports">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">College Reports</h2>
+                        <a href="#" class="btn btn-primary btn-sm" id="generateNewReportBtn">Generate New Report</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Student Satisfaction</div>
+                                    <div class="stat-card-icon coral">
+                                        <i class="fas fa-smile"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">4.3/5</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 0.2 from last year
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Faculty Satisfaction</div>
+                                    <div class="stat-card-icon terracotta">
+                                        <i class="fas fa-user-tie"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">4.1/5</div>
+                                    <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 0.3 from last year
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Research Output</div>
+                                    <div class="stat-card-icon sand">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">124</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 18 this quarter
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Industry Partnerships</div>
+                                    <div class="stat-card-icon peach">
+                                        <i class="fas fa-handshake"></i>
+                                    </div>
+                                </div>
+                                <div class="stat-card-value">24</div>
+                                <div class="stat-card-change positive">
+                                    <i class="fas fa-arrow-up"></i> 6 this year
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Report Generation</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="reportForm">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="reportType">Report Type</label>
+                                            <select id="reportType" class="form-control">
+                                                <option value="college">College Performance</option>
+                                                <option value="department">Department-wise Analysis</option>
+                                                <option value="academic">Academic Excellence</option>
+                                                <option value="research">Research Output</option>
+                                                <option value="placement">Placement Statistics</option>
+                                                <option value="financial">Financial Summary</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="reportFormat">Format</label>
+                                            <select id="reportFormat" class="form-control">
+                                                <option value="pdf">PDF</option>
+                                                <option value="excel">Excel</option>
+                                                <option value="csv">CSV</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="reportDateRange">Date Range</label>
+                                            <select id="reportDateRange" class="form-control">
+                                                <option value="quarter">This Quarter</option>
+                                                <option value="semester">This Semester</option>
+                                                <option value="year">This Year</option>
+                                                <option value="custom">Custom Range</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <button type="submit" class="btn btn-primary">Generate Report</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Announcements Section -->
+            <section class="content-section" id="announcements">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">College Announcements</h2>
+                        <a href="#" class="btn btn-primary btn-sm" id="newAnnouncementBtn">New Announcement</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="announcement-list">
+                            <div class="announcement-item">
+                                <div class="announcement-header">
+                                    <div class="announcement-title">Annual Day Celebrations</div>
+                                    <div class="announcement-date">Oct 15, 2023</div>
+                                </div>
+                                <div class="announcement-content">
+                                    <p>The college annual day celebrations will be held on November 15, 2023. All students and faculty are requested to participate actively. For more details, please contact the cultural committee.</p>
+                                </div>
+                                <div class="announcement-footer">
+                                    <div class="announcement-priority">
+                                        <span class="priority-badge high">High Priority</span>
+                                    </div>
+                                    <div class="announcement-actions">
+                                        <button class="btn btn-sm btn-outline edit-announcement" data-id="1">Edit</button>
+                                        <button class="btn btn-sm btn-danger delete-announcement" data-id="1">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="announcement-item">
+                                <div class="announcement-header">
+                                    <div class="announcement-title">Semester Examination Schedule</div>
+                                    <div class="announcement-date">Oct 10, 2023</div>
+                                </div>
+                                <div class="announcement-content">
+                                    <p>The semester examinations are scheduled from December 10, 2023 to December 20, 2023. Students are advised to prepare well and follow the examination guidelines strictly.</p>
+                                </div>
+                                <div class="announcement-footer">
+                                    <div class="announcement-priority">
+                                        <span class="priority-badge medium">Medium Priority</span>
+                                    </div>
+                                    <div class="announcement-actions">
+                                        <button class="btn btn-sm btn-outline edit-announcement" data-id="2">Edit</button>
+                                        <button class="btn btn-sm btn-danger delete-announcement" data-id="2">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="announcement-item">
+                                <div class="announcement-header">
+                                    <div class="announcement-title">Industry-Academia Conclave</div>
+                                    <div class="announcement-date">Oct 5, 2023</div>
+                                </div>
+                                <div class="announcement-content">
+                                    <p>The college is organizing an Industry-Academia Conclave on December 5, 2023. Industry experts from leading companies will be participating. Students are encouraged to register for the event.</p>
+                                </div>
+                                <div class="announcement-footer">
+                                    <div class="announcement-priority">
+                                        <span class="priority-badge low">Low Priority</span>
+                                    </div>
+                                    <div class="announcement-actions">
+                                        <button class="btn btn-sm btn-outline edit-announcement" data-id="3">Edit</button>
+                                        <button class="btn btn-sm btn-danger delete-announcement" data-id="3">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Department Modal -->
+    <div class="modal" id="addDepartmentModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Add New Department</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addDepartmentForm">
+                    <div class="form-group">
+                        <label for="deptName">Department Name</label>
+                        <input type="text" id="deptName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="deptHod">Head of Department</label>
+                        <input type="text" id="deptHod" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="deptFaculty">Faculty Count</label>
+                        <input type="number" id="deptFaculty" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="deptStudents">Student Count</label>
+                        <input type="number" id="deptStudents" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="deptBudget">Budget Allocation</label>
+                        <input type="text" id="deptBudget" class="form-control" placeholder="e.g. ₹50 Lakhs" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="deptEstablished">Established Year</label>
+                        <input type="number" id="deptEstablished" class="form-control" min="1950" max="2025" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Add Department</button>
+                        <button type="button" class="btn btn-outline modal-close">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Department Modal -->
+    <div class="modal" id="viewDepartmentModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Department Details</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-view">
+                    <div class="detail-row">
+                        <div class="detail-label">Department Name:</div>
+                        <div class="detail-value" id="viewDeptName">Computer Engineering</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Head of Department:</div>
+                        <div class="detail-value" id="viewDeptHod">Dr. Priya Singh</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Faculty Count:</div>
+                        <div class="detail-value" id="viewDeptFaculty">24</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Student Count:</div>
+                        <div class="detail-value" id="viewDeptStudents">342</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Budget Allocation:</div>
+                        <div class="detail-value" id="viewDeptBudget">₹85 Lakhs</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Established Year:</div>
+                        <div class="detail-value" id="viewDeptEstablished">2010</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Performance:</div>
+                        <div class="detail-value" id="viewDeptPerformance"><span class="status-badge success">Excellent</span></div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-outline modal-close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Department Modal -->
+    <div class="modal" id="editDepartmentModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Edit Department</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editDepartmentForm">
+                    <input type="hidden" id="editDeptId">
+                    <div class="form-group">
+                        <label for="editDeptName">Department Name</label>
+                        <input type="text" id="editDeptName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDeptHod">Head of Department</label>
+                        <input type="text" id="editDeptHod" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDeptFaculty">Faculty Count</label>
+                        <input type="number" id="editDeptFaculty" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDeptStudents">Student Count</label>
+                        <input type="number" id="editDeptStudents" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDeptBudget">Budget Allocation</label>
+                        <input type="text" id="editDeptBudget" class="form-control" placeholder="e.g. ₹50 Lakhs" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDeptPerformance">Performance</label>
+                        <select id="editDeptPerformance" class="form-control">
+                            <option value="excellent">Excellent</option>
+                            <option value="good">Good</option>
+                            <option value="average">Average</option>
+                            <option value="needs improvement">Needs Improvement</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="button" class="btn btn-outline modal-close">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Faculty Modal -->
+    <div class="modal" id="addFacultyModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Add New Faculty</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addFacultyForm">
+                    <div class="form-group">
+                        <label for="facultyName">Full Name</label>
+                        <input type="text" id="facultyName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="facultyDepartment">Department</label>
+                        <select id="facultyDepartment" class="form-control" required>
+                            <option value="">Select Department</option>
+                            <option value="Computer Engineering">Computer Engineering</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Chemical Engineering">Chemical Engineering</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="facultyPosition">Position</label>
+                        <select id="facultyPosition" class="form-control" required>
+                            <option value="">Select Position</option>
+                            <option value="Professor & HOD">Professor & HOD</option>
+                            <option value="Senior Professor">Senior Professor</option>
+                            <option value="Professor">Professor</option>
+                            <option value="Associate Professor">Associate Professor</option>
+                            <option value="Assistant Professor">Assistant Professor</option>
+                            <option value="Lecturer">Lecturer</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="facultyExperience">Experience (years)</label>
+                        <input type="number" id="facultyExperience" class="form-control" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="facultyEmail">Email</label>
+                        <input type="email" id="facultyEmail" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="facultyPhone">Phone</label>
+                        <input type="tel" id="facultyPhone" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="facultyQualification">Highest Qualification</label>
+                        <input type="text" id="facultyQualification" class="form-control" placeholder="e.g. PhD in Computer Science" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Add Faculty</button>
+                        <button type="button" class="btn btn-outline modal-close">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Faculty Modal -->
+    <div class="modal" id="viewFacultyModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Faculty Details</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-view">
+                    <div class="detail-row">
+                        <div class="detail-label">Name:</div>
+                        <div class="detail-value" id="viewFacultyName">Dr. Priya Singh</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Department:</div>
+                        <div class="detail-value" id="viewFacultyDepartment">Computer Engineering</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Position:</div>
+                        <div class="detail-value" id="viewFacultyPosition">Professor & HOD</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Experience:</div>
+                        <div class="detail-value" id="viewFacultyExperience">15 years</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Email:</div>
+                        <div class="detail-value" id="viewFacultyEmail">priya.singh@educonnect.edu</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Phone:</div>
+                        <div class="detail-value" id="viewFacultyPhone">+91 9876543210</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Publications:</div>
+                        <div class="detail-value" id="viewFacultyPublications">32</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Performance:</div>
+                        <div class="detail-value" id="viewFacultyPerformance"><span class="status-badge success">Excellent</span></div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-outline modal-close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evaluate Faculty Modal -->
+    <div class="modal" id="evaluateFacultyModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Evaluate Faculty</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="evaluateFacultyForm">
+                    <input type="hidden" id="evaluateFacultyId">
+                    <div class="form-group">
+                        <label for="evaluateFacultyName">Faculty Name</label>
+                        <input type="text" id="evaluateFacultyName" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="teachingPerformance">Teaching Performance (1-5)</label>
+                        <select id="teachingPerformance" class="form-control" required>
+                            <option value="">Select Rating</option>
+                            <option value="5">5 - Excellent</option>
+                            <option value="4">4 - Very Good</option>
+                            <option value="3">3 - Good</option>
+                            <option value="2">2 - Average</option>
+                            <option value="1">1 - Poor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="researchOutput">Research Output (1-5)</label>
+                        <select id="researchOutput" class="form-control" required>
+                            <option value="">Select Rating</option>
+                            <option value="5">5 - Excellent</option>
+                            <option value="4">4 - Very Good</option>
+                            <option value="3">3 - Good</option>
+                            <option value="2">2 - Average</option>
+                            <option value="1">1 - Poor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentFeedback">Student Feedback (1-5)</label>
+                        <select id="studentFeedback" class="form-control" required>
+                            <option value="">Select Rating</option>
+                            <option value="5">5 - Excellent</option>
+                            <option value="4">4 - Very Good</option>
+                            <option value="3">3 - Good</option>
+                            <option value="2">2 - Average</option>
+                            <option value="1">1 - Poor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminContribution">Administrative Contribution (1-5)</label>
+                        <select id="adminContribution" class="form-control" required>
+                            <option value="">Select Rating</option>
+                            <option value="5">5 - Excellent</option>
+                            <option value="4">4 - Very Good</option>
+                            <option value="3">3 - Good</option>
+                            <option value="2">2 - Average</option>
+                            <option value="1">1 - Poor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="evaluationComments">Comments</label>
+                        <textarea id="evaluationComments" class="form-control" rows="4" placeholder="Enter your evaluation comments"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Submit Evaluation</button>
+                        <button type="button" class="btn btn-outline modal-close">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Student Department Modal -->
+    <div class="modal" id="viewStudentDeptModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Department Student Details</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-view">
+                    <div class="detail-row">
+                        <div class="detail-label">Department:</div>
+                        <div class="detail-value" id="viewStudentDeptName">Computer Engineering</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Total Students:</div>
+                        <div class="detail-value" id="viewStudentDeptTotal">342</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">1st Year:</div>
+                        <div class="detail-value" id="viewStudentDeptFirstYear">85</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">2nd Year:</div>
+                        <div class="detail-value" id="viewStudentDeptSecondYear">88</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">3rd Year:</div>
+                        <div class="detail-value" id="viewStudentDeptThirdYear">87</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">4th Year:</div>
+                        <div class="detail-value" id="viewStudentDeptFourthYear">82</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Average GPA:</div>
+                        <div class="detail-value" id="viewStudentDeptGPA">3.42</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Placement Rate:</div>
+                        <div class="detail-value" id="viewStudentDeptPlacement">95%</div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-outline modal-close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Program Modal -->
+    <div class="modal" id="addNewProgramModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Add New Program</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addNewProgramForm">
+                    <div class="form-group">
+                        <label for="programName">Program Name</label>
+                        <input type="text" id="programName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="programDepartment">Department</label>
+                        <select id="programDepartment" class="form-control" required>
+                            <option value="">Select Department</option>
+                            <option value="Computer Engineering">Computer Engineering</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Chemical Engineering">Chemical Engineering</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="programDuration">Duration</label>
+                        <select id="programDuration" class="form-control" required>
+                            <option value="">Select Duration</option>
+                            <option value="2 Years">2 Years</option>
+                            <option value="3 Years">3 Years</option>
+                            <option value="4 Years">4 Years</option>
+                            <option value="5 Years">5 Years</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="programType">Program Type</label>
+                        <select id="programType" class="form-control" required>
+                            <option value="">Select Type</option>
+                            <option value="Undergraduate">Undergraduate</option>
+                            <option value="Postgraduate">Postgraduate</option>
+                            <option value="Doctoral">Doctoral</option>
+                            <option value="Diploma">Diploma</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="programSeats">Available Seats</label>
+                        <input type="number" id="programSeats" class="form-control" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="programDescription">Description</label>
+                        <textarea id="programDescription" class="form-control" rows="4" required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Add Program</button>
+                        <button type="button" class="btn btn-outline modal-close">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Program Modal -->
+    <div class="modal" id="viewProgramModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Program Details</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-view">
+                    <div class="detail-row">
+                        <div class="detail-label">Program Name:</div>
+                        <div class="detail-value" id="viewProgramName">B.Tech Computer Engineering</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Department:</div>
+                        <div class="detail-value" id="viewProgramDepartment">Computer Engineering</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Duration:</div>
+                        <div class="detail-value" id="viewProgramDuration">4 Years</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Students:</div>
+                        <div class="detail-value" id="viewProgramStudents">342</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Placement Rate:</div>
+                        <div class="detail-value" id="viewProgramPlacement">95%</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Status:</div>
+                        <div class="detail-value" id="viewProgramStatus"><span class="status-badge success">Active</span></div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Description:</div>
+                        <div class="detail-value" id="viewProgramDescription">The B.Tech Computer Engineering program provides students with a strong foundation in computer science and engineering principles, preparing them for careers in software development, system analysis, and research.</div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-outline modal-close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Program Modal -->
+    <div class="modal" id="editProgramModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Edit Program</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editProgramForm">
+                    <input type="hidden" id="editProgramId">
+                    <div class="form-group">
+                        <label for="editProgramName">Program Name</label>
+                        <input type="text" id="editProgramName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editProgramDepartment">Department</label>
+                        <select id="editProgramDepartment" class="form-control" required>
+                            <option value="">Select Department</option>
+                            <option value="Computer Engineering">Computer Engineering</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Chemical Engineering">Chemical Engineering</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editProgramDuration">Duration</label>
+                        <select id="editProgramDuration" class="form-control" required>
+                            <option value="">Select Duration</option>
+                            <option value="2 Years">2 Years</option>
+                            <option value="3 Years">3 Years</option>
+                            <option value="4 Years">4 Years</option>
+                            <option value="5 Years">5 Years</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editProgramStatus">Status</label>
+                        <select id="editProgramStatus" class="form-control">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="pending">Pending Approval</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editProgramDescription">Description</label>
+                        <textarea id="editProgramDescription" class="form-control" rows="4" required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="button" class="btn btn-outline modal-close">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Approval Modal -->
+    <div class="modal" id="viewApprovalModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Approval Details</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-view">
+                    <div class="detail-row">
+                        <div class="detail-label">Title:</div>
+                        <div class="detail-value" id="viewApprovalTitle">New Course: Artificial Intelligence</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Department:</div>
+                        <div class="detail-value" id="viewApprovalDepartment">Computer Engineering</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Requested By:</div>
+                        <div class="detail-value" id="viewApprovalRequestedBy">Dr. Priya Singh</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Date:</div>
+                        <div class="detail-value" id="viewApprovalDate">Oct 10, 2023</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Priority:</div>
+                        <div class="detail-value" id="viewApprovalPriority"><span class="priority-badge high">High</span></div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Status:</div>
+                        <div class="detail-value" id="viewApprovalStatus"><span class="status-badge warning">Pending Review</span></div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Description:</div>
+                        <div class="detail-value" id="viewApprovalDescription">Proposal to introduce a new course on Artificial Intelligence for the upcoming semester. The course will cover fundamental concepts of AI, machine learning, neural networks, and practical applications.</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Justification:</div>
+                        <div class="detail-value" id="viewApprovalJustification">AI is a rapidly growing field with increasing industry demand. Adding this course will enhance our curriculum and improve placement opportunities for students.</div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-primary approve-approval" data-id="1">Approve</button>
+                    <button class="btn btn-danger reject-approval" data-id="1">Reject</button>
+                    <button class="btn btn-outline modal-close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Announcement Modal -->
+    <div class="modal" id="newAnnouncementModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>New Announcement</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="newAnnouncementForm">
+                    <div class="form-group">
+                        <label for="announcementTitle">Title</label>
+                        <input type="text" id="announcementTitle" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="announcementContent">Content</label>
+                        <textarea id="announcementContent" class="form-control" rows="5" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="announcementPriority">Priority</label>
+                        <select id="announcementPriority" class="form-control" required>
+                            <option value="">Select Priority</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="announcementTargetAudience">Target Audience</label>
+                        <select id="announcementTargetAudience" class="form-control" required>
+                            <option value="">Select Audience</option>
+                            <option value="all">All</option>
+                            <option value="students">Students Only</option>
+                            <option value="faculty">Faculty Only</option>
+                            <option value="administration">Administration Only</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="announcementExpiry">Expiry Date</label>
+                        <input type="date" id="announcementExpiry" class="form-control" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Post Announcement</button>
+                        <button type="button" class="btn btn-outline modal-close">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Announcement Modal -->
+    <div class="modal" id="editAnnouncementModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Edit Announcement</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editAnnouncementForm">
+                    <input type="hidden" id="editAnnouncementId">
+                    <div class="form-group">
+                        <label for="editAnnouncementTitle">Title</label>
+                        <input type="text" id="editAnnouncementTitle" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editAnnouncementContent">Content</label>
+                        <textarea id="editAnnouncementContent" class="form-control" rows="5" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editAnnouncementPriority">Priority</label>
+                        <select id="editAnnouncementPriority" class="form-control" required>
+                            <option value="">Select Priority</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editAnnouncementTargetAudience">Target Audience</label>
+                        <select id="editAnnouncementTargetAudience" class="form-control" required>
+                            <option value="">Select Audience</option>
+                            <option value="all">All</option>
+                            <option value="students">Students Only</option>
+                            <option value="faculty">Faculty Only</option>
+                            <option value="administration">Administration Only</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editAnnouncementExpiry">Expiry Date</label>
+                        <input type="date" id="editAnnouncementExpiry" class="form-control" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Update Announcement</button>
+                        <button type="button" class="btn btn-outline modal-close">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generate Report Modal -->
+    <div class="modal" id="generateReportModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Generate New Report</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="generateReportForm">
+                    <div class="form-group">
+                        <label for="generateReportType">Report Type</label>
+                        <select id="generateReportType" class="form-control" required>
+                            <option value="">Select Report Type</option>
+                            <option value="college">College Performance</option>
+                            <option value="department">Department-wise Analysis</option>
+                            <option value="academic">Academic Excellence</option>
+                            <option value="research">Research Output</option>
+                            <option value="placement">Placement Statistics</option>
+                            <option value="financial">Financial Summary</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="generateReportFormat">Format</label>
+                        <select id="generateReportFormat" class="form-control" required>
+                            <option value="">Select Format</option>
+                            <option value="pdf">PDF</option>
+                            <option value="excel">Excel</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="generateReportDateRange">Date Range</label>
+                        <select id="generateReportDateRange" class="form-control" required>
+                            <option value="">Select Date Range</option>
+                            <option value="quarter">This Quarter</option>
+                            <option value="semester">This Semester</option>
+                            <option value="year">This Year</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+                    <div id="customDateRange" class="form-row" style="display: none;">
+                        <div class="form-group">
+                            <label for="generateReportStartDate">Start Date</label>
+                            <input type="date" id="generateReportStartDate" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="generateReportEndDate">End Date</label>
+                            <input type="date" id="generateReportEndDate" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="generateReportDepartment">Department (Optional)</label>
+                        <select id="generateReportDepartment" class="form-control">
+                            <option value="">All Departments</option>
+                            <option value="Computer Engineering">Computer Engineering</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Chemical Engineering">Chemical Engineering</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Generate Report</button>
+                        <button type="button" class="btn btn-outline modal-close">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View All Notifications Modal -->
+    <div class="modal" id="viewAllNotificationsModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>All Notifications</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="notifications-list">
+                    <div class="notification-item">
+                        <div class="notification-icon">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">Course Status Update</div>
+                            <div class="notification-desc">B.Tech AI program pending approval from board</div>
+                            <div class="notification-time">2 hours ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon">
+                            <i class="fas fa-upload"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">Resource Upload</div>
+                            <div class="notification-desc">New lab equipment uploaded by Dr. Priya Singh</div>
+                            <div class="notification-time">5 hours ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">Report Generated</div>
+                            <div class="notification-desc">Q3 performance report is ready for review</div>
+                            <div class="notification-time">1 day ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">New Student Registration</div>
+                            <div class="notification-desc">15 new students registered for Computer Engineering</div>
+                            <div class="notification-time">2 days ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">Event Reminder</div>
+                            <div class="notification-desc">Board of Governors meeting scheduled for next week</div>
+                            <div class="notification-time">3 days ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon">
+                            <i class="fas fa-rupee-sign"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">Budget Allocation</div>
+                            <div class="notification-desc">Department budget allocations have been updated</div>
+                            <div class="notification-time">4 days ago</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-primary modal-close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Notification -->
+    <div class="notification" id="successNotification">
+        <div class="notification-content">
+            <div class="notification-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="notification-message">
+                <span id="successMessage">Operation completed successfully!</span>
+            </div>
+        </div>
+        <button class="notification-close">&times;</button>
+    </div>
+
+    <!-- Error Notification -->
+    <div class="notification error" id="errorNotification">
+        <div class="notification-content">
+            <div class="notification-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="notification-message">
+                <span id="errorMessage">An error occurred. Please try again.</span>
+            </div>
+        </div>
+        <button class="notification-close">&times;</button>
+    </div>
+
+    <script src="js/managing-authority.js"></script>
+</body>
+</html>
