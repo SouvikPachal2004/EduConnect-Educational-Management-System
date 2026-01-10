@@ -42,6 +42,7 @@
                 <li><a href="#" data-section="resources"><i class="fas fa-book"></i> Resources</a></li>
                 <li><a href="#" data-section="attendance"><i class="fas fa-user-check"></i> Attendance</a></li>
                 <li><a href="#" data-section="grades"><i class="fas fa-chart-line"></i> Grades</a></li>
+                <li><a href="#" data-section="prediction"><i class="fas fa-brain"></i> Predictions</a></li>
                 <li><a href="#" data-section="calendar"><i class="fas fa-calendar-alt"></i> Calendar</a></li>
                 <li><a href="#" data-section="messages"><i class="fas fa-envelope"></i> Messages</a></li>
             </ul>
@@ -438,94 +439,67 @@
 
             <!-- Students Section -->
             <section class="content-section" id="students">
+                <div class="student-list-card">
+                    <div class="card-header">
+                        <h4>Enrolled Students</h4>
+                        <div class="search-box">
+                            <input type="text" placeholder="Search students..." class="form-control" id="studentSearch">
+                        </div>
+                    </div>
+                    <div class="student-grid" id="studentGrid">
+                        <!-- Dynamic student cards will be inserted here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Prediction Section -->
+            <section class="content-section" id="prediction">
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="card-title">Students</h2>
+                        <h2 class="card-title">Student Performance Prediction</h2>
                         <div class="card-actions">
-                            <select id="classFilter" class="form-control">
-                                <option value="all">All Classes</option>
+                            <select id="predictionClassFilter" class="form-control">
                                 <option value="ds201">Data Structures</option>
                                 <option value="algo301">Algorithms</option>
                                 <option value="db301">Database Systems</option>
                                 <option value="se401">Software Engineering</option>
                             </select>
-                            <input type="text" id="studentSearch" placeholder="Search students..." class="form-control">
+                            <button id="refreshPredictionsBtn" class="btn btn-outline btn-sm">Refresh Predictions</button>
                         </div>
                     </div>
                     <div class="card-body">
+                        <div class="prediction-summary">
+                            <div class="summary-card">
+                                <div class="summary-title">At-Risk Students</div>
+                                <div class="summary-value">2</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-title">High Performers</div>
+                                <div class="summary-value">18</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-title">Avg. Actual Score</div>
+                                <div class="summary-value">82%</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-title">Intervention Needed</div>
+                                <div class="summary-value">5</div>
+                            </div>
+                        </div>
+                        
                         <table class="data-table">
                             <thead>
                                 <tr>
                                     <th>Student ID</th>
                                     <th>Name</th>
-                                    <th>Class</th>
-                                    <th>Email</th>
-                                    <th>Attendance</th>
-                                    <th>Performance</th>
+                                    <th>Actual Score</th>
+                                    <th>Predicted Score</th>
+                                    <th>Risk Level</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>CS2021001</td>
-                                    <td>Anurag Ray</td>
-                                    <td>Data Structures</td>
-                                    <td>anurag.ray@college.edu</td>
-                                    <td>92%</td>
-                                    <td><span class="badge badge-success">Excellent</span></td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline view-student" data-student-id="cs2021001">View</a>
-                                        <a href="#" class="btn btn-sm btn-outline message-student" data-student-id="cs2021001">Message</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021002</td>
-                                    <td>Priya Sharma</td>
-                                    <td>Data Structures</td>
-                                    <td>priya.sharma@college.edu</td>
-                                    <td>88%</td>
-                                    <td><span class="badge badge-success">Good</span></td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline view-student" data-student-id="cs2021002">View</a>
-                                        <a href="#" class="btn btn-sm btn-outline message-student" data-student-id="cs2021002">Message</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021003</td>
-                                    <td>Rahul Verma</td>
-                                    <td>Algorithms</td>
-                                    <td>rahul.verma@college.edu</td>
-                                    <td>85%</td>
-                                    <td><span class="badge badge-warning">Average</span></td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline view-student" data-student-id="cs2021003">View</a>
-                                        <a href="#" class="btn btn-sm btn-outline message-student" data-student-id="cs2021003">Message</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021004</td>
-                                    <td>Ananya Patel</td>
-                                    <td>Database Systems</td>
-                                    <td>ananya.patel@college.edu</td>
-                                    <td>95%</td>
-                                    <td><span class="badge badge-success">Excellent</span></td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline view-student" data-student-id="cs2021004">View</a>
-                                        <a href="#" class="btn btn-sm btn-outline message-student" data-student-id="cs2021004">Message</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021005</td>
-                                    <td>Vikram Singh</td>
-                                    <td>Software Engineering</td>
-                                    <td>vikram.singh@college.edu</td>
-                                    <td>78%</td>
-                                    <td><span class="badge badge-danger">Needs Improvement</span></td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline view-student" data-student-id="cs2021005">View</a>
-                                        <a href="#" class="btn btn-sm btn-outline message-student" data-student-id="cs2021005">Message</a>
-                                    </td>
-                                </tr>
+                            <tbody id="predictionTableBody">
+                                <!-- Dynamic content will be populated by JavaScript -->
                             </tbody>
                         </table>
                     </div>
@@ -681,13 +655,10 @@
                         <h2 class="card-title">Attendance</h2>
                         <div class="card-actions">
                             <select id="attendanceClassFilter" class="form-control">
-                                <option value="ds201">Data Structures</option>
-                                <option value="algo301">Algorithms</option>
-                                <option value="db301">Database Systems</option>
-                                <option value="se401">Software Engineering</option>
+                                <!-- Options will be populated dynamically -->
                             </select>
                             <input type="date" id="attendanceDate" class="form-control">
-                            <button id="markAttendanceBtn" class="btn btn-primary btn-sm">Mark Attendance</button>
+                            <button id="markAttendanceBtn" class="btn btn-primary btn-sm">Take Attendance</button>
                         </div>
                     </div>
                     <div class="card-body">
@@ -715,56 +686,12 @@
                                 <tr>
                                     <th>Student ID</th>
                                     <th>Name</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th>Total Attendance</th>
+                                    <th>Today's Attendance</th>
                                 </tr>
                             </thead>
                             <tbody id="attendanceTableBody">
-                                <tr>
-                                    <td>CS2021001</td>
-                                    <td>Anurag Ray</td>
-                                    <td><span class="badge badge-success">Present</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline mark-present" data-student-id="cs2021001">Mark Present</button>
-                                        <button class="btn btn-sm btn-outline mark-absent" data-student-id="cs2021001">Mark Absent</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021002</td>
-                                    <td>Priya Sharma</td>
-                                    <td><span class="badge badge-success">Present</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline mark-present" data-student-id="cs2021002">Mark Present</button>
-                                        <button class="btn btn-sm btn-outline mark-absent" data-student-id="cs2021002">Mark Absent</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021003</td>
-                                    <td>Rahul Verma</td>
-                                    <td><span class="badge badge-danger">Absent</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline mark-present" data-student-id="cs2021003">Mark Present</button>
-                                        <button class="btn btn-sm btn-outline mark-absent" data-student-id="cs2021003">Mark Absent</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021004</td>
-                                    <td>Ananya Patel</td>
-                                    <td><span class="badge badge-success">Present</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline mark-present" data-student-id="cs2021004">Mark Present</button>
-                                        <button class="btn btn-sm btn-outline mark-absent" data-student-id="cs2021004">Mark Absent</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021005</td>
-                                    <td>Vikram Singh</td>
-                                    <td><span class="badge badge-danger">Absent</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline mark-present" data-student-id="cs2021005">Mark Present</button>
-                                        <button class="btn btn-sm btn-outline mark-absent" data-student-id="cs2021005">Mark Absent</button>
-                                    </td>
-                                </tr>
+                                <!-- Data will be populated dynamically -->
                             </tbody>
                         </table>
                     </div>
@@ -777,103 +704,22 @@
                     <div class="card-header">
                         <h2 class="card-title">Grade Management</h2>
                         <div class="card-actions">
-                            <select id="gradeClassFilter" class="form-control">
-                                <option value="ds201">Data Structures</option>
-                                <option value="algo301">Algorithms</option>
-                                <option value="db301">Database Systems</option>
-                                <option value="se401">Software Engineering</option>
-                            </select>
                             <button id="exportGradesBtn" class="btn btn-outline btn-sm">Export Grades</button>
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="grade-summary">
-                            <div class="summary-card">
-                                <div class="summary-title">Class Average</div>
-                                <div class="summary-value">B+</div>
-                            </div>
-                            <div class="summary-card">
-                                <div class="summary-title">Highest Grade</div>
-                                <div class="summary-value">A</div>
-                            </div>
-                            <div class="summary-card">
-                                <div class="summary-title">Lowest Grade</div>
-                                <div class="summary-value">C</div>
-                            </div>
-                            <div class="summary-card">
-                                <div class="summary-title">Grades Submitted</div>
-                                <div class="summary-value">85%</div>
-                            </div>
-                        </div>
-                        
                         <table class="data-table">
                             <thead>
                                 <tr>
                                     <th>Student ID</th>
                                     <th>Name</th>
-                                    <th>Assignments</th>
-                                    <th>Midterm</th>
-                                    <th>Final</th>
-                                    <th>Overall Grade</th>
+                                    <th>Email</th>
+                                    <th>CGPA</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="gradesTableBody">
-                                <tr>
-                                    <td>CS2021001</td>
-                                    <td>Anurag Ray</td>
-                                    <td>85%</td>
-                                    <td>88%</td>
-                                    <td>-</td>
-                                    <td><span class="badge badge-success">B+</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline edit-grade" data-student-id="cs2021001">Edit</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021002</td>
-                                    <td>Priya Sharma</td>
-                                    <td>92%</td>
-                                    <td>90%</td>
-                                    <td>-</td>
-                                    <td><span class="badge badge-success">A-</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline edit-grade" data-student-id="cs2021002">Edit</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021003</td>
-                                    <td>Rahul Verma</td>
-                                    <td>78%</td>
-                                    <td>82%</td>
-                                    <td>-</td>
-                                    <td><span class="badge badge-warning">B</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline edit-grade" data-student-id="cs2021003">Edit</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021004</td>
-                                    <td>Ananya Patel</td>
-                                    <td>95%</td>
-                                    <td>92%</td>
-                                    <td>-</td>
-                                    <td><span class="badge badge-success">A</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline edit-grade" data-student-id="cs2021004">Edit</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS2021005</td>
-                                    <td>Vikram Singh</td>
-                                    <td>65%</td>
-                                    <td>70%</td>
-                                    <td>-</td>
-                                    <td><span class="badge badge-danger">C+</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline edit-grade" data-student-id="cs2021005">Edit</button>
-                                    </td>
-                                </tr>
+                                <!-- Dynamic content will be populated by JavaScript -->
                             </tbody>
                         </table>
                     </div>
@@ -884,12 +730,12 @@
             <section class="content-section" id="calendar">
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="card-title">Academic Calendar</h2>
+                        <h2 class="card-title">Attendance Calendar</h2>
                         <div class="calendar-controls">
                             <button id="prevMonth" class="btn btn-outline btn-sm"><i class="fas fa-chevron-left"></i></button>
                             <span id="currentMonth">October 2025</span>
                             <button id="nextMonth" class="btn btn-outline btn-sm"><i class="fas fa-chevron-right"></i></button>
-                            <button id="addEventBtn" class="btn btn-primary btn-sm">Add Event</button>
+                            <button id="refreshCalendarBtn" class="btn btn-primary btn-sm">Refresh</button>
                         </div>
                     </div>
                     <div class="card-body">
@@ -904,6 +750,26 @@
                                 <div class="calendar-day-header">Sat</div>
                                 
                                 <!-- Calendar days will be generated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <!-- Calendar Legend -->
+                        <div class="calendar-legend">
+                            <div class="legend-item">
+                                <div class="legend-color present"></div>
+                                <span>Present</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color absent"></div>
+                                <span>Absent</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color late"></div>
+                                <span>Late</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color no-data"></div>
+                                <span>No Data</span>
                             </div>
                         </div>
                     </div>
@@ -1102,12 +968,14 @@
                     <div class="form-group">
                         <label for="assignmentFile">Attachment (Optional)</label>
                         <input type="file" id="assignmentFile" class="form-control">
+                        <label for="assignmentFile" class="file-label">Choose file</label>
                     </div>
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="saveAsDraft"> Save as Draft
                         </label>
                     </div>
+                    <button type="button" class="btn btn-secondary" onclick="showAssignmentPreview()">Preview</button>
                     <button type="submit" class="btn btn-primary">Create Assignment</button>
                 </form>
             </div>
@@ -1424,83 +1292,7 @@
                         </div>
                     </div>
                     
-                    <div class="tab-content" id="students">
-                        <div class="student-list-card">
-                            <div class="card-header">
-                                <h4>Enrolled Students</h4>
-                                <div class="search-box">
-                                    <input type="text" placeholder="Search students..." class="form-control">
-                                </div>
-                            </div>
-                            <div class="student-grid">
-                                <div class="student-card">
-                                    <div class="student-avatar">
-                                        <i class="fas fa-user-graduate"></i>
-                                    </div>
-                                    <div class="student-info">
-                                        <div class="student-name">Anurag Ray</div>
-                                        <div class="student-id">CS2021001</div>
-                                    </div>
-                                    <div class="student-actions">
-                                        <button class="btn btn-sm btn-outline view-student-btn">View</button>
-                                        <button class="btn btn-sm btn-outline message-student-btn">Message</button>
-                                    </div>
-                                </div>
-                                <div class="student-card">
-                                    <div class="student-avatar">
-                                        <i class="fas fa-user-graduate"></i>
-                                    </div>
-                                    <div class="student-info">
-                                        <div class="student-name">Priya Sharma</div>
-                                        <div class="student-id">CS2021002</div>
-                                    </div>
-                                    <div class="student-actions">
-                                        <button class="btn btn-sm btn-outline view-student-btn">View</button>
-                                        <button class="btn btn-sm btn-outline message-student-btn">Message</button>
-                                    </div>
-                                </div>
-                                <div class="student-card">
-                                    <div class="student-avatar">
-                                        <i class="fas fa-user-graduate"></i>
-                                    </div>
-                                    <div class="student-info">
-                                        <div class="student-name">Rahul Verma</div>
-                                        <div class="student-id">CS2021003</div>
-                                    </div>
-                                    <div class="student-actions">
-                                        <button class="btn btn-sm btn-outline view-student-btn">View</button>
-                                        <button class="btn btn-sm btn-outline message-student-btn">Message</button>
-                                    </div>
-                                </div>
-                                <div class="student-card">
-                                    <div class="student-avatar">
-                                        <i class="fas fa-user-graduate"></i>
-                                    </div>
-                                    <div class="student-info">
-                                        <div class="student-name">Ananya Patel</div>
-                                        <div class="student-id">CS2021004</div>
-                                    </div>
-                                    <div class="student-actions">
-                                        <button class="btn btn-sm btn-outline view-student-btn">View</button>
-                                        <button class="btn btn-sm btn-outline message-student-btn">Message</button>
-                                    </div>
-                                </div>
-                                <div class="student-card">
-                                    <div class="student-avatar">
-                                        <i class="fas fa-user-graduate"></i>
-                                    </div>
-                                    <div class="student-info">
-                                        <div class="student-name">Vikram Singh</div>
-                                        <div class="student-id">CS2021005</div>
-                                    </div>
-                                    <div class="student-actions">
-                                        <button class="btn btn-sm btn-outline view-student-btn">View</button>
-                                        <button class="btn btn-sm btn-outline message-student-btn">Message</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
                     
                     <div class="tab-content" id="resources">
                         <div class="resource-list-card">
@@ -1814,53 +1606,30 @@
     <div id="editGradeModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Edit Student Grade</h2>
+                <h2>Edit Student CGPA</h2>
                 <span class="close">&times;</span>
             </div>
             <div class="modal-body">
                 <div class="student-info">
                     <div class="student-name"><strong>Student:</strong> <span id="editGradeStudentName"></span></div>
                     <div class="student-id"><strong>ID:</strong> <span id="editGradeStudentId"></span></div>
-                    <div class="student-class"><strong>Class:</strong> <span id="editGradeStudentClass"></span></div>
+                    <div class="student-email"><strong>Email:</strong> <span id="editGradeStudentEmail"></span></div>
+                    <div class="student-current-cgpa"><strong>Current CGPA:</strong> <span id="editGradeCurrentCGPA"></span></div>
                 </div>
                 
                 <div class="grade-edit-form">
                     <div class="form-group">
-                        <label for="assignmentGrade">Assignments Grade</label>
-                        <input type="number" id="assignmentGrade" class="form-control" min="0" max="100" placeholder="Enter assignment grade">
+                        <label for="newCGPA">New CGPA (0-10)</label>
+                        <input type="number" id="newCGPA" class="form-control" min="0" max="10" step="0.01" placeholder="Enter new CGPA">
                     </div>
                     <div class="form-group">
-                        <label for="midtermGrade">Midterm Grade</label>
-                        <input type="number" id="midtermGrade" class="form-control" min="0" max="100" placeholder="Enter midterm grade">
-                    </div>
-                    <div class="form-group">
-                        <label for="finalGrade">Final Grade</label>
-                        <input type="number" id="finalGrade" class="form-control" min="0" max="100" placeholder="Enter final grade">
-                    </div>
-                    <div class="form-group">
-                        <label for="overallGrade">Overall Grade</label>
-                        <select id="overallGrade" class="form-control">
-                            <option value="">Select grade</option>
-                            <option value="A">A</option>
-                            <option value="A-">A-</option>
-                            <option value="B+">B+</option>
-                            <option value="B">B</option>
-                            <option value="B-">B-</option>
-                            <option value="C+">C+</option>
-                            <option value="C">C</option>
-                            <option value="C-">C-</option>
-                            <option value="D">D</option>
-                            <option value="F">F</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="gradeComments">Comments</label>
-                        <textarea id="gradeComments" class="form-control" rows="3" placeholder="Add comments about student performance"></textarea>
+                        <label for="gradeNotes">Notes (Optional)</label>
+                        <textarea id="gradeNotes" class="form-control" rows="3" placeholder="Add notes about the grade change"></textarea>
                     </div>
                 </div>
                 
                 <div class="modal-actions">
-                    <button id="saveGradeBtn" class="btn btn-primary">Save Grade</button>
+                    <button id="saveGradeBtn" class="btn btn-primary">Save CGPA</button>
                     <button id="cancelGradeBtn" class="btn btn-outline">Cancel</button>
                 </div>
             </div>
@@ -1903,6 +1672,60 @@
 
     <script src="js/teacher.js"></script>
     <script>
+        // Initialize modal functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup close button for edit grade modal
+            const editGradeModal = document.getElementById('editGradeModal');
+            const closeButtons = document.querySelectorAll('.modal .close');
+            
+            closeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    modal.style.display = 'none';
+                });
+            });
+            
+            // Setup cancel button for edit grade modal
+            const cancelGradeBtn = document.getElementById('cancelGradeBtn');
+            if (cancelGradeBtn) {
+                cancelGradeBtn.addEventListener('click', function() {
+                    if (editGradeModal) {
+                        editGradeModal.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Setup save button for edit grade modal
+            const saveGradeBtn = document.getElementById('saveGradeBtn');
+            if (saveGradeBtn) {
+                saveGradeBtn.addEventListener('click', function() {
+                    const studentId = document.getElementById('editGradeStudentId').getAttribute('data-student-id');
+                    const newCGPA = document.getElementById('newCGPA').value;
+                    const notes = document.getElementById('gradeNotes').value;
+                    
+                    if (newCGPA === '' || isNaN(newCGPA)) {
+                        alert('Please enter a valid CGPA');
+                        return;
+                    }
+                    
+                    const cgpa = parseFloat(newCGPA);
+                    if (cgpa < 0 || cgpa > 10) {
+                        alert('CGPA must be between 0 and 10');
+                        return;
+                    }
+                    
+                    // Call the function to update CGPA
+                    updateStudentCGPA(studentId, cgpa, notes);
+                    
+                    // Close the modal
+                    if (editGradeModal) {
+                        editGradeModal.style.display = 'none';
+                    }
+                });
+            }
+        });
+    </script>
+    <script>
         // Check if user is logged in and fetch user data from backend
         document.addEventListener('DOMContentLoaded', function() {
             const authToken = localStorage.getItem('authToken');
@@ -1914,7 +1737,7 @@
             }
             
             // Fetch current user data from backend
-            fetch('http://localhost:5001/api/auth/me', {
+            fetch('http://localhost:5002/api/auth/me', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${authToken}`,

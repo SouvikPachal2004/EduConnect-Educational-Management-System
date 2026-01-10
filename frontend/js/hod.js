@@ -55,6 +55,9 @@ const hodData = {
 
 // Initialize the HOD dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Check authentication
+    checkAuthentication();
+    
     // Initialize all event listeners
     initializeEventListeners();
     
@@ -112,11 +115,6 @@ function initializeEventListeners() {
         }
     });
 
-    // Add faculty button
-    document.getElementById('addFacultyBtn').addEventListener('click', function() {
-        openFacultyModal();
-    });
-
     // Add course button
     document.getElementById('addCourseBtn').addEventListener('click', function() {
         openCourseModal();
@@ -140,12 +138,6 @@ function initializeEventListeners() {
     // Generate report button
     document.getElementById('generateReportBtn').addEventListener('click', function() {
         generateReport();
-    });
-
-    // Faculty form submission
-    document.getElementById('facultyForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        saveFaculty();
     });
 
     // Course form submission
@@ -237,8 +229,8 @@ function initializeNotificationDropdown() {
 
 // Initialize dashboard
 function initializeDashboard() {
-    // Update faculty list
-    updateFacultyList();
+    // Load faculty data from API
+    loadFacultyDataFromAPI();
     
     // Update courses list
     updateCoursesList();
@@ -280,6 +272,66 @@ function saveHodDataToStorage() {
     localStorage.setItem('hodData', JSON.stringify(hodData));
 }
 
+// Load faculty data from API
+function loadFacultyDataFromAPI() {
+    // Get current user's department from localStorage
+    const currentUser = localStorage.getItem('currentUser');
+    if (!currentUser) return;
+    
+    try {
+        const user = JSON.parse(currentUser);
+        const department = user.department;
+        
+        if (!department) return;
+        
+        // Get auth token
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) return;
+        
+        // Fetch faculty from API filtered by department
+        fetch(`http://localhost:5001/api/users?role=teacher&limit=100`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data && data.data.users) {
+                // Filter users by department
+                const departmentFaculty = data.data.users.filter(user => user.department === department);
+                
+                // Update hodData with real faculty
+                hodData.faculty = departmentFaculty.map(user => ({
+                    id: user._id,
+                    name: user.name,
+                    position: user.role === 'hod' ? 'Head of Department' : 'Faculty',
+                    specialization: user.department || 'N/A',
+                    courses: 0, // Will be updated when courses are loaded
+                    email: user.email,
+                    status: user.isActive ? 'Active' : 'Inactive'
+                }));
+                
+                // Update faculty list in UI
+                updateFacultyList();
+                
+                // Save to localStorage
+                saveHodDataToStorage();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading faculty data:', error);
+            // Fallback to static data
+            updateFacultyList();
+        });
+    } catch (error) {
+        console.error('Error parsing user data:', error);
+        // Fallback to static data
+        updateFacultyList();
+    }
+}
+
 // Update faculty list
 function updateFacultyList() {
     const facultyList = document.querySelector('.faculty-list');
@@ -297,24 +349,16 @@ function updateFacultyList() {
             <td>${faculty.email}</td>
             <td>
                 <button class="btn btn-sm btn-outline view-faculty" data-id="${faculty.id}">View</button>
-                <button class="btn btn-sm btn-primary edit-faculty" data-id="${faculty.id}">Edit</button>
             </td>
         `;
         facultyList.appendChild(row);
     });
     
-    // Add event listeners to view and edit buttons
+    // Add event listeners to view buttons
     document.querySelectorAll('.view-faculty').forEach(button => {
-        button.addEventListener('click', function() {
-            const facultyId = this.getAttribute('data-id');
-            viewFaculty(facultyId);
-        });
-    });
-    
-    document.querySelectorAll('.edit-faculty').forEach(button => {
-        button.addEventListener('click', function() {
-            const facultyId = this.getAttribute('data-id');
-            editFaculty(facultyId);
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            showNotification('Faculty details are managed by Admin panel');
         });
     });
 }
@@ -652,104 +696,10 @@ function markAllNotificationsAsRead() {
     updateNotificationBadge();
 }
 
-// Open faculty modal
-function openFacultyModal() {
-    document.getElementById('modalTitle').textContent = 'Add New Faculty';
-    document.getElementById('facultyForm').reset();
-    document.getElementById('facultyId').value = '';
-    document.getElementById('facultyModal').style.display = 'block';
-}
-
-// Edit faculty
-function editFaculty(facultyId) {
-    const faculty = hodData.faculty.find(f => f.id === facultyId);
-    if (!faculty) return;
-    
-    document.getElementById('modalTitle').textContent = 'Edit Faculty';
-    document.getElementById('facultyId').value = faculty.id;
-    document.getElementById('facultyName').value = faculty.name;
-    document.getElementById('facultyPosition').value = faculty.position;
-    document.getElementById('facultySpecialization').value = faculty.specialization;
-    document.getElementById('facultyCourses').value = faculty.courses;
-    document.getElementById('facultyEmail').value = faculty.email;
-    document.getElementById('facultyStatus').value = faculty.status;
-    document.getElementById('facultyModal').style.display = 'block';
-}
-
 // View faculty
 function viewFaculty(facultyId) {
-    const faculty = hodData.faculty.find(f => f.id === facultyId);
-    if (!faculty) return;
-    
-    // Populate faculty details
-    document.getElementById('detailFacultyName').textContent = faculty.name;
-    document.getElementById('detailFacultyPosition').textContent = faculty.position;
-    document.getElementById('detailFacultySpecialization').textContent = faculty.specialization;
-    document.getElementById('detailFacultyCourses').textContent = faculty.courses;
-    document.getElementById('detailFacultyEmail').textContent = faculty.email;
-    document.getElementById('detailFacultyStatus').textContent = faculty.status;
-    
-    // Populate faculty courses
-    const coursesList = document.querySelector('#facultyCoursesList .courses-list-detail');
-    if (coursesList) {
-        coursesList.innerHTML = '';
-        
-        const facultyCourses = hodData.courses.filter(course => course.instructor === faculty.name);
-        facultyCourses.forEach(course => {
-            const courseItem = document.createElement('li');
-            courseItem.textContent = `${course.code} - ${course.name}`;
-            coursesList.appendChild(courseItem);
-        });
-    }
-    
-    // Add event listener to edit button
-    document.querySelector('.edit-faculty-detail').setAttribute('data-id', facultyId);
-    document.querySelector('.edit-faculty-detail').addEventListener('click', function() {
-        document.getElementById('facultyDetailModal').style.display = 'none';
-        editFaculty(facultyId);
-    });
-    
-    // Show modal
-    document.getElementById('facultyDetailModal').style.display = 'block';
-}
-
-// Save faculty
-function saveFaculty() {
-    const facultyId = document.getElementById('facultyId').value;
-    const facultyData = {
-        name: document.getElementById('facultyName').value,
-        position: document.getElementById('facultyPosition').value,
-        specialization: document.getElementById('facultySpecialization').value,
-        courses: parseInt(document.getElementById('facultyCourses').value),
-        email: document.getElementById('facultyEmail').value,
-        status: document.getElementById('facultyStatus').value
-    };
-    
-    if (facultyId) {
-        // Update existing faculty
-        const index = hodData.faculty.findIndex(f => f.id === facultyId);
-        if (index !== -1) {
-            hodData.faculty[index] = { ...hodData.faculty[index], ...facultyData };
-        }
-    } else {
-        // Add new faculty
-        facultyData.id = 'fac' + Date.now();
-        hodData.faculty.push(facultyData);
-    }
-    
-    // Save to localStorage
-    saveHodDataToStorage();
-    
-    // Update UI
-    updateFacultyList();
-    populateInstructorDropdowns();
-    populateRecipientDropdowns();
-    
-    // Close modal
-    document.getElementById('facultyModal').style.display = 'none';
-    
-    // Show notification
-    showNotification(facultyId ? 'Faculty updated successfully' : 'Faculty added successfully');
+    // This function is no longer needed as faculty data is loaded from API
+    showNotification('Faculty details are managed by Admin panel');
 }
 
 // Open course modal
@@ -1115,7 +1065,13 @@ function replyToMessage(messageId) {
     // Open message modal with pre-filled data
     document.getElementById('messageTo').value = message.from;
     document.getElementById('messageSubject').value = `Re: ${message.subject}`;
-    document.getElementById('messageContent').value = `\n\n--- Original Message ---\nFrom: ${message.from}\nSubject: ${message.subject}\n\n${message.content}`;
+    document.getElementById('messageContent').value = `
+
+--- Original Message ---
+From: ${message.from}
+Subject: ${message.subject}
+
+${message.content}`;
     document.getElementById('messageModal').style.display = 'block';
 }
 
@@ -1127,7 +1083,13 @@ function forwardMessage(messageId) {
     // Open message modal with pre-filled data
     document.getElementById('messageTo').value = '';
     document.getElementById('messageSubject').value = `Fwd: ${message.subject}`;
-    document.getElementById('messageContent').value = `\n\n--- Forwarded Message ---\nFrom: ${message.from}\nSubject: ${message.subject}\n\n${message.content}`;
+    document.getElementById('messageContent').value = `
+
+--- Forwarded Message ---
+From: ${message.from}
+Subject: ${message.subject}
+
+${message.content}`;
     document.getElementById('messageModal').style.display = 'block';
 }
 
@@ -1183,7 +1145,13 @@ function contactStudent(studentId) {
     // Open message modal with pre-filled data
     document.getElementById('messageTo').value = student.name;
     document.getElementById('messageSubject').value = 'Regarding Your Academic Performance';
-    document.getElementById('messageContent').value = `Dear ${student.name},\n\nI would like to discuss your academic performance and progress in the department.\n\nBest regards,\nDr. Priya Singh\nHOD, Computer Engineering`;
+    document.getElementById('messageContent').value = `Dear ${student.name},
+
+I would like to discuss your academic performance and progress in the department.
+
+Best regards,
+Dr. Priya Singh
+HOD, Computer Engineering`;
     document.getElementById('messageModal').style.display = 'block';
 }
 

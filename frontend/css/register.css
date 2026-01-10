@@ -189,17 +189,19 @@ header {
 .user-type {
     display: flex;
     flex-wrap: wrap;
-    margin-bottom: 2rem;
+    justify-content: center;
+    margin-bottom: 1rem;
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    gap: 5px;
+    gap: 15px;
 }
 
 .user-type-option {
-    flex: 1 1 calc(33.333% - 5px);
-    min-width: 100px;
-    padding: 1rem;
+    flex: 1 1 calc(50% - 10px);
+    max-width: 250px;
+    min-width: 200px;
+    padding: 1.5rem 1rem;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -207,18 +209,40 @@ header {
     color: #666;
     font-weight: 500;
     position: relative;
-    border-radius: 8px;
+    border-radius: 12px;
+    border: 2px solid transparent;
 }
 
-.user-type-option.active {
+.user-type-option:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    border-color: rgba(74, 107, 223, 0.3);
+}
+
+.user-type-option.selected {
     background: var(--gradient-1);
     color: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
 }
 
 .user-type-option i {
     display: block;
-    font-size: 1.5rem;
+    font-size: 2.5rem;
+    margin-bottom: 0.8rem;
+}
+
+.user-type-option h3 {
+    font-size: 1.1rem;
     margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.user-type-option p {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin: 0;
+    line-height: 1.4;
 }
 
 .form-group {
@@ -397,6 +421,40 @@ header {
     background-color: rgba(76, 175, 80, 0.1);
     color: var(--success-color);
     border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+/* Info Message */
+.info-message {
+    margin-top: 1.5rem;
+    padding: 1rem 1.5rem;
+    background-color: rgba(74, 107, 223, 0.1);
+    border: 1px solid rgba(74, 107, 223, 0.2);
+    border-radius: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+}
+
+.info-message i {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+}
+
+.info-message p {
+    margin: 0;
+    color: #555;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Form Text */
+.form-text {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #999;
 }
 
 /* Social Login */

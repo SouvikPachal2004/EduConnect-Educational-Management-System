@@ -58,31 +58,20 @@
                         <div class="form-group">
                             <label>Select your user type</label>
                             <div class="user-type">
-                                <div class="user-type-option" data-type="student">
-                                    <i class="fas fa-user-graduate"></i>
-                                    <h3>Student</h3>
-                                    <p>Enroll in courses and access learning materials</p>
-                                </div>
-                                <div class="user-type-option" data-type="teacher">
-                                    <i class="fas fa-chalkboard-teacher"></i>
-                                    <h3>Teacher</h3>
-                                    <p>Create courses and manage student progress</p>
-                                </div>
                                 <div class="user-type-option" data-type="admin">
                                     <i class="fas fa-user-shield"></i>
                                     <h3>Admin</h3>
                                     <p>Manage the entire system and users</p>
-                                </div>
-                                <div class="user-type-option" data-type="hod">
-                                    <i class="fas fa-user-tie"></i>
-                                    <h3>HOD</h3>
-                                    <p>Manage department faculty and courses</p>
                                 </div>
                                 <div class="user-type-option" data-type="managing_authority">
                                     <i class="fas fa-landmark"></i>
                                     <h3>Managing Authority</h3>
                                     <p>Oversee institution operations</p>
                                 </div>
+                            </div>
+                            <div class="info-message">
+                                <i class="fas fa-info-circle"></i>
+                                <p>Only administrators and managing authorities can self-register. Other users (Students, Teachers, HODs) must be added by an administrator.</p>
                             </div>
                         </div>
                     </div>
@@ -111,33 +100,12 @@
                                 <input type="password" class="form-control" id="password" placeholder="Create a password" required>
                                 <i class="fas fa-lock"></i>
                             </div>
-                        </div>
-                        
-                        <div class="form-group" id="department-group" style="display: none;">
-                            <label for="department">Department</label>
-                            <div class="form-group-with-icon">
-                                <select class="form-control" id="department">
-                                    <option value="">-- Select Department --</option>
-                                    <option value="Computer Science">Computer Science</option>
-                                    <option value="Electrical Engineering">Electrical Engineering</option>
-                                    <option value="Mechanical Engineering">Mechanical Engineering</option>
-                                    <option value="Civil Engineering">Civil Engineering</option>
-                                </select>
-                                <i class="fas fa-building"></i>
-                            </div>
+                            <small class="form-text">Password must be at least 8 characters long</small>
                         </div>
                     </div>
 
                     <!-- Step 3: Account Setup -->
                     <div class="form-step" id="form-step-3">
-                        <div class="form-group">
-                            <label for="username">Username</label>
-                            <div class="form-group-with-icon">
-                                <input type="text" class="form-control" id="username" placeholder="Choose a username" required>
-                                <i class="fas fa-user"></i>
-                            </div>
-                        </div>
-                        
                         <div class="form-group">
                             <label for="confirm-password">Confirm Password</label>
                             <div class="form-group-with-icon">
@@ -178,7 +146,6 @@
             const registerBtn = document.getElementById('register-btn');
             const registerForm = document.getElementById('register-form');
             const alertContainer = document.getElementById('alert-container');
-            const departmentGroup = document.getElementById('department-group');
             
             let currentStep = 1;
             let selectedUserType = '';
@@ -194,13 +161,6 @@
                     
                     // Update selected user type
                     selectedUserType = this.getAttribute('data-type');
-                    
-                    // Show department field for HOD and teachers
-                    if (selectedUserType === 'hod' || selectedUserType === 'teacher') {
-                        departmentGroup.style.display = 'block';
-                    } else {
-                        departmentGroup.style.display = 'none';
-                    }
                 });
             });
             
@@ -257,8 +217,6 @@
                     const fullName = document.getElementById('full-name').value;
                     const email = document.getElementById('email').value;
                     const password = document.getElementById('password').value;
-                    const department = document.getElementById('department').value;
-                    const username = document.getElementById('username').value;
                     const confirmPassword = document.getElementById('confirm-password').value;
                     
                     // Check if passwords match
@@ -268,27 +226,23 @@
                     }
                     
                     // Register user with backend API
-                    registerUser(fullName, email, password, department, username);
+                    registerUser(fullName, email, password);
                 }
             });
             
             // Function to register user with backend API
-            function registerUser(fullName, email, password, department, username) {
+            function registerUser(fullName, email, password) {
                 // Prepare user data
                 const userData = {
                     name: fullName,
                     email: email,
                     password: password,
-                    role: selectedUserType
+                    role: selectedUserType,
+                    department: selectedUserType === 'admin' ? 'Administration' : 'Management'
                 };
                 
-                // Add department if applicable
-                if (department) {
-                    userData.department = department;
-                }
-                
                 // Make API call to backend
-                fetch('http://localhost:5001/api/auth/register', {
+                fetch('http://localhost:5002/api/auth/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -348,26 +302,13 @@
                         showAlert('Password must be at least 8 characters long', 'danger');
                         return false;
                     }
-                    
-                    // Validate department selection for HOD and teachers
-                    if ((selectedUserType === 'hod' || selectedUserType === 'teacher') && !department) {
-                        showAlert('Please select a department', 'danger');
-                        return false;
-                    }
                 } else if (step === 3) {
                     // Validate account setup
-                    const username = document.getElementById('username').value;
                     const confirmPassword = document.getElementById('confirm-password').value;
                     const terms = document.getElementById('terms').checked;
                     
-                    if (!username || !confirmPassword) {
-                        showAlert('Please fill in all required fields', 'danger');
-                        return false;
-                    }
-                    
-                    // Validate username length
-                    if (username.length < 4) {
-                        showAlert('Username must be at least 4 characters long', 'danger');
+                    if (!confirmPassword) {
+                        showAlert('Please confirm your password', 'danger');
                         return false;
                     }
                     

@@ -2,6 +2,8 @@ const Assignment = require('../models/Assignment');
 const Submission = require('../models/Submission');
 const Class = require('../models/Class');
 const { successResponse, errorResponse } = require('../utils/response.utils');
+const path = require('path');
+const fs = require('fs');
 
 // Create assignment
 const createAssignment = async (req, res) => {
@@ -27,6 +29,16 @@ const createAssignment = async (req, res) => {
       dueDate: new Date(dueDate),
       maxPoints,
     });
+    
+    // If file was uploaded, add file info
+    if (req.file) {
+      assignment.attachments.push({
+        fileName: req.file.originalname,
+        filePath: req.file.path,
+        fileType: req.file.mimetype,
+        fileSize: req.file.size,
+      });
+    }
     
     await assignment.save();
     
@@ -85,6 +97,30 @@ const getAllAssignments = async (req, res) => {
 // Get assignment by ID
 const getAssignmentById = async (req, res) => {
   try {
+    // Check if this is a download request
+    if (req.params.filename) {
+      const assignment = await Assignment.findById(req.params.id);
+      if (!assignment) {
+        return errorResponse(res, 'Assignment not found', 404);
+      }
+      
+      // Find the attachment with the matching filename
+      const attachment = assignment.attachments.find(att => att.fileName === req.params.filename);
+      if (!attachment) {
+        return errorResponse(res, 'File not found', 404);
+      }
+      
+      // Serve the file
+      const filePath = path.resolve(attachment.filePath);
+      if (fs.existsSync(filePath)) {
+        res.setHeader('Content-Disposition', `attachment; filename="${attachment.fileName}"`);
+        res.setHeader('Content-Type', attachment.fileType);
+        return res.sendFile(filePath);
+      } else {
+        return errorResponse(res, 'File not found on server', 404);
+      }
+    }
+    
     const assignment = await Assignment.findById(req.params.id)
       .populate([
         { path: 'class', select: 'name code' },
@@ -123,6 +159,16 @@ const updateAssignment = async (req, res) => {
     if (maxPoints) assignment.maxPoints = maxPoints;
     if (status) assignment.status = status;
     
+    // If file was uploaded, add file info
+    if (req.file) {
+      assignment.attachments.push({
+        fileName: req.file.originalname,
+        filePath: req.file.path,
+        fileType: req.file.mimetype,
+        fileSize: req.file.size,
+      });
+    }
+    
     await assignment.save();
     
     // Populate class and teacher details
@@ -149,6 +195,13 @@ const deleteAssignment = async (req, res) => {
     if (assignment.teacher.toString() !== req.user.id) {
       return errorResponse(res, 'Not authorized to delete this assignment', 403);
     }
+    
+    // Delete associated files
+    assignment.attachments.forEach(attachment => {
+      if (fs.existsSync(attachment.filePath)) {
+        fs.unlinkSync(attachment.filePath);
+      }
+    });
     
     await Assignment.findByIdAndDelete(req.params.id);
     
@@ -201,6 +254,16 @@ const submitAssignment = async (req, res) => {
       content,
     });
     
+    // If file was uploaded, add file info
+    if (req.file) {
+      submission.attachments.push({
+        fileName: req.file.originalname,
+        filePath: req.file.path,
+        fileType: req.file.mimetype,
+        fileSize: req.file.size,
+      });
+    }
+    
     await submission.save();
     
     // Populate references
@@ -219,6 +282,30 @@ const submitAssignment = async (req, res) => {
 // Get submissions for assignment (teacher only)
 const getSubmissionsForAssignment = async (req, res) => {
   try {
+    // Check if this is a download request
+    if (req.params.filename) {
+      const submission = await Submission.findById(req.params.id);
+      if (!submission) {
+        return errorResponse(res, 'Submission not found', 404);
+      }
+      
+      // Find the attachment with the matching filename
+      const attachment = submission.attachments.find(att => att.fileName === req.params.filename);
+      if (!attachment) {
+        return errorResponse(res, 'File not found', 404);
+      }
+      
+      // Serve the file
+      const filePath = path.resolve(attachment.filePath);
+      if (fs.existsSync(filePath)) {
+        res.setHeader('Content-Disposition', `attachment; filename="${attachment.fileName}"`);
+        res.setHeader('Content-Type', attachment.fileType);
+        return res.sendFile(filePath);
+      } else {
+        return errorResponse(res, 'File not found on server', 404);
+      }
+    }
+    
     const assignment = await Assignment.findById(req.params.id);
     if (!assignment) {
       return errorResponse(res, 'Assignment not found', 404);

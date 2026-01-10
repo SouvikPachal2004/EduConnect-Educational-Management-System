@@ -769,6 +769,75 @@ body {
     margin-top: 0.3rem;
 }
 
+.day-number {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.attendance-indicators {
+    display: flex;
+    gap: 0.2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.indicator-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.indicator-dot.present {
+    background-color: #4CAF50;
+}
+
+.indicator-dot.absent {
+    background-color: #f44336;
+}
+
+.indicator-dot.late {
+    background-color: #FF9800;
+}
+
+/* Calendar Legend */
+.calendar-legend {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}
+
+.legend-color.present {
+    background-color: #4CAF50;
+}
+
+.legend-color.absent {
+    background-color: #f44336;
+}
+
+.legend-color.late {
+    background-color: #FF9800;
+}
+
+.legend-color.no-data {
+    background-color: #9E9E9E;
+}
+
 /* Message List */
 .message-list {
     list-style: none;
@@ -1798,7 +1867,169 @@ th:hover .sort-indicator {
     }
 }
 
-/* Mobile responsiveness */
+/* Custom styles for attendance button */
+#markAttendanceBtn {
+    min-width: 150px;
+    padding: 0.6rem 1.5rem;
+}
+
+/* File input styling */
+.file-label {
+    display: inline-block;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 5px;
+    font-size: 14px;
+    color: #495057;
+}
+
+.file-label:hover {
+    background-color: #e9ecef;
+}
+
+#assignmentFile {
+    display: none;
+}
+
+/* Additional styles for assignment attachments */
+.assignment-attachments {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+.attachment-item {
+    margin-bottom: 5px;
+}
+
+.attachment-item:last-child {
+    margin-bottom: 0;
+}
+
+.attachment-item a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.attachment-item a:hover {
+    text-decoration: underline;
+}
+
+/* Assignment Preview Card Styles */
+.assignment-preview-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin: 20px 0;
+}
+
+.assignment-preview-card .card-header {
+    background: #f8f9fa;
+    padding: 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.assignment-preview-card .card-header h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+.assignment-preview-card .assignment-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.assignment-preview-card .class-tag {
+    background: #007bff;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.assignment-preview-card .points {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.assignment-preview-card .card-body {
+    padding: 20px;
+}
+
+.assignment-preview-card .assignment-description {
+    color: #495057;
+    line-height: 1.6;
+    margin: 0 0 20px 0;
+}
+
+.assignment-preview-card .assignment-details {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.assignment-preview-card .detail-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.assignment-preview-card .detail-item:last-child {
+    margin-bottom: 0;
+}
+
+.assignment-preview-card .detail-item i {
+    width: 20px;
+    color: #007bff;
+    margin-right: 10px;
+}
+
+.assignment-preview-card .card-footer {
+    padding: 20px;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.assignment-preview-card .btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.assignment-preview-card .btn-primary {
+    background: #007bff;
+    color: white;
+    border: 1px solid #007bff;
+}
+
+.assignment-preview-card .btn-primary:hover {
+    background: #0069d9;
+    border-color: #0062cc;
+}
+
+.assignment-preview-card .btn-outline {
+    background: transparent;
+    color: #6c757d;
+    border: 1px solid #6c757d;
+}
+
+.assignment-preview-card .btn-outline:hover {
+    background: #6c757d;
+    color: white;
+}
+
 @media (max-width: 768px) {
     .notification-container {
         left: 20px;

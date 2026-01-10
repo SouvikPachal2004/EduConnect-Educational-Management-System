@@ -21,6 +21,83 @@ let studentData = {
 let eventListeners = [];
 let notificationInterval = null;
 
+// Update dashboard stats with fetched data
+function updateDashboardStats() {
+    // Update enrolled courses count
+    const enrolledCoursesElement = document.getElementById('enrolledCoursesCount');
+    if (enrolledCoursesElement && studentData.classes) {
+        enrolledCoursesElement.textContent = studentData.classes.length;
+    }
+    
+    // Update pending assignments count
+    const pendingAssignmentsElement = document.getElementById('pendingAssignmentsCount');
+    if (pendingAssignmentsElement && studentData.assignments && studentData.assignments.pending) {
+        pendingAssignmentsElement.textContent = studentData.assignments.pending.length;
+    }
+    
+    // Update attendance rate
+    const attendanceRateElement = document.getElementById('attendanceRate');
+    if (attendanceRateElement && studentData.attendance && studentData.attendance.length > 0) {
+        attendanceRateElement.textContent = studentData.attendance[0].rate;
+    }
+    
+    // Update average grade (Overall GPA)
+    const averageGradeElement = document.getElementById('averageGrade');
+    const overallGPAElement = document.getElementById('overallGPA');
+    
+    // Get grade from user profile data
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (currentUser && currentUser.grade) {
+        const grade = parseFloat(currentUser.grade).toFixed(2);
+        if (averageGradeElement) {
+            averageGradeElement.textContent = grade;
+        }
+        if (overallGPAElement) {
+            overallGPAElement.textContent = grade;
+        }
+    } else {
+        // Fallback to N/A if no grade data available
+        if (averageGradeElement) {
+            averageGradeElement.textContent = '-';
+        }
+        if (overallGPAElement) {
+            overallGPAElement.textContent = '0.00';
+        }
+    }
+    
+    // Update grades table
+    updateGradesTable();
+}
+
+// Update grades table with student data
+function updateGradesTable() {
+    const gradesTableBody = document.getElementById('gradesTableBody');
+    if (!gradesTableBody) return;
+    
+    // Clear existing content
+    gradesTableBody.innerHTML = '';
+    
+    // Check if we have grades data
+    if (!studentData.grades || studentData.grades.length === 0) {
+        gradesTableBody.innerHTML = '<tr><td colspan="6" class="text-center">No grades available</td></tr>';
+        return;
+    }
+    
+    // Add each grade to the table
+    studentData.grades.forEach(grade => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${grade.course}</td>
+            <td>${grade.instructor}</td>
+            <td>${grade.assignments}</td>
+            <td>${grade.midterm}</td>
+            <td>${grade.final}</td>
+            <td>${grade.overall}</td>
+        `;
+        gradesTableBody.appendChild(row);
+    });
+}
+
 // Initialize the dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Load data from localStorage if available
@@ -61,6 +138,9 @@ document.addEventListener('DOMContentLoaded', function() {
         clearInterval(notificationInterval);
     }
     notificationInterval = setInterval(simulateRealTimeUpdates, 60000); // Check for updates every minute
+    
+    // Also refresh user data periodically to get updated grades
+    setInterval(fetchAllStudentData, 30000); // Refresh every 30 seconds
 });
 
 // Fetch all student data from backend API
@@ -74,7 +154,7 @@ function fetchAllStudentData() {
     }
     
     // Fetch current user data
-    fetch('http://localhost:5001/api/auth/me', {
+    fetch('http://localhost:5002/api/auth/me', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -119,7 +199,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch classes data from backend
-    fetch('http://localhost:5001/api/classes', {
+    fetch('http://localhost:5002/api/classes', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -151,7 +231,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch assignments data from backend
-    fetch('http://localhost:5001/api/assignments', {
+    fetch('http://localhost:5002/api/assignments', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -161,9 +241,12 @@ function fetchAllStudentData() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // Separate assignments into pending and completed based on submission status
+            const allAssignments = data.data.assignments;
+            
             // For now, we'll put all assignments in pending
             // In a real implementation, we would separate based on submission status
-            studentData.assignments.pending = data.data.assignments.map(assignment => ({
+            studentData.assignments.pending = allAssignments.map(assignment => ({
                 id: assignment._id,
                 title: assignment.title,
                 course: assignment.class ? assignment.class.name : 'Unknown Class',
@@ -178,6 +261,7 @@ function fetchAllStudentData() {
                     minute: '2-digit'
                 }),
                 description: assignment.description,
+                attachments: assignment.attachments || [],
                 submitted: false // Default to not submitted
             }));
             
@@ -192,7 +276,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch resources data from backend
-    fetch('http://localhost:5001/api/resources', {
+    fetch('http://localhost:5002/api/resources', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -223,7 +307,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch attendance data from backend
-    fetch('http://localhost:5001/api/attendance/summary/student', {
+    fetch('http://localhost:5002/api/attendance/summary/student', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -254,7 +338,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch grades data from backend
-    fetch('http://localhost:5001/api/grades/student', {
+    fetch('http://localhost:5002/api/grades/student', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -273,6 +357,9 @@ function fetchAllStudentData() {
                 final: '-', // Not available in current data structure
                 overall: grade.letterGrade || 'N/A'
             }));
+            
+            // Update grades table
+            updateGradesTable();
         } else {
             console.error('Failed to fetch grades data:', data.message);
         }
@@ -282,7 +369,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch messages data from backend
-    fetch('http://localhost:5001/api/messages?folder=inbox', {
+    fetch('http://localhost:5002/api/messages?folder=inbox', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -315,6 +402,10 @@ function fetchAllStudentData() {
     })
     .catch(error => {
         console.error('Error fetching messages data:', error);
+    })
+    .finally(() => {
+        // Update dashboard stats after all data is fetched
+        updateDashboardStats();
     });
 }
 
@@ -759,13 +850,26 @@ function initializeEventListeners() {
             e.preventDefault();
             
             const fileInput = document.getElementById('submissionFile');
-            if (fileInput.files.length === 0) {
-                showNotification('Please select a file to upload', 'error');
-                return;
-            }
-            
             const assignmentId = this.getAttribute('data-assignment-id');
             const notes = document.getElementById('submissionNotes').value;
+            
+            // Validate file if provided
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                
+                // Validate file type
+                const allowedTypes = ['application/pdf'];
+                if (!allowedTypes.includes(file.type)) {
+                    showNotification('Only PDF files are allowed', 'error');
+                    return;
+                }
+                
+                // Validate file size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    showNotification('File size must be less than 10MB', 'error');
+                    return;
+                }
+            }
             
             // Submit assignment
             submitAssignment(assignmentId, fileInput.files[0], notes);
@@ -1319,6 +1423,23 @@ function updateAssignments() {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const isUrgent = diffDays <= 3;
         
+        // Build attachments HTML if attachments exist
+        let attachmentsHtml = '';
+        if (assignment.attachments && assignment.attachments.length > 0) {
+            attachmentsHtml = `
+                <div class="assignment-attachments">
+                    <strong>Attachments:</strong>
+                    ${assignment.attachments.map(att => `
+                        <div class="attachment-item">
+                            <i class="fas fa-paperclip"></i>
+                            <a href="#" onclick="downloadAssignmentFile('${assignment.id}', '${att.fileName}')">${att.fileName}</a>
+                            <small>(${(att.fileSize / 1024).toFixed(1)} KB)</small>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
         assignmentItem.innerHTML = `
             <div class="assignment-icon">
                 <i class="fas ${getAssignmentIcon(assignment.course)}"></i>
@@ -1329,6 +1450,7 @@ function updateAssignments() {
                     <i class="fas fa-book"></i> ${assignment.course}
                     <i class="fas fa-user ml-3"></i> ${assignment.instructor}
                 </div>
+                ${attachmentsHtml}
             </div>
             <div class="assignment-deadline">
                 <div class="deadline-date ${isUrgent ? 'deadline-urgent' : ''}">${assignment.deadline}</div>
@@ -1352,6 +1474,23 @@ function updateAssignments() {
         const assignmentItem = document.createElement('li');
         assignmentItem.className = 'assignment-item';
         
+        // Build submission attachments HTML if attachments exist
+        let submissionAttachmentsHtml = '';
+        if (assignment.submissionAttachments && assignment.submissionAttachments.length > 0) {
+            submissionAttachmentsHtml = `
+                <div class="assignment-attachments">
+                    <strong>Submitted Files:</strong>
+                    ${assignment.submissionAttachments.map(att => `
+                        <div class="attachment-item">
+                            <i class="fas fa-paperclip"></i>
+                            <a href="#" onclick="downloadSubmissionFile('${assignment.submissionId}', '${att.fileName}')">${att.fileName}</a>
+                            <small>(${(att.fileSize / 1024).toFixed(1)} KB)</small>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
         assignmentItem.innerHTML = `
             <div class="assignment-icon">
                 <i class="fas ${getAssignmentIcon(assignment.course)}"></i>
@@ -1362,6 +1501,7 @@ function updateAssignments() {
                     <i class="fas fa-book"></i> ${assignment.course}
                     <i class="fas fa-user ml-3"></i> ${assignment.instructor}
                 </div>
+                ${submissionAttachmentsHtml}
             </div>
             <div class="assignment-deadline">
                 <div class="deadline-date">Grade: ${assignment.grade}</div>
@@ -1984,50 +2124,53 @@ function showClassDetailsModal(classData) {
 
 // Submit assignment
 function submitAssignment(assignmentId, file, notes) {
-    // Find assignment in pending list
-    const assignmentIndex = studentData.assignments.pending.findIndex(a => a.id === assignmentId);
-    
-    if (assignmentIndex === -1) {
-        showNotification('Assignment not found', 'error');
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+        showNotification('Authentication required', 'error');
         return;
     }
     
-    const assignment = studentData.assignments.pending[assignmentIndex];
+    // Validate assignment ID
+    if (!assignmentId) {
+        showNotification('Assignment ID is required', 'error');
+        return;
+    }
     
-    // Simulate submission
-    showNotification(`Submitting ${assignment.title}...`, 'info');
+    // Create FormData object
+    const formData = new FormData();
+    formData.append('content', notes || 'Assignment submission');
     
-    setTimeout(() => {
-        // Move assignment from pending to completed
-        studentData.assignments.pending.splice(assignmentIndex, 1);
-        
-        // Add to completed with a grade (simulated)
-        const grade = generateRandomGrade();
-        studentData.assignments.completed.push({
-            id: assignment.id,
-            title: assignment.title,
-            course: assignment.course,
-            instructor: assignment.instructor,
-            grade: grade,
-            date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-            description: assignment.description,
-            submissionNotes: notes,
-            fileName: file.name,
-            fileSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`
-        });
-        
-        // Save to localStorage
-        saveStudentDataToStorage();
-        
-        // Update UI
-        updateAssignments();
-        
-        // Show success message
-        showNotification(`${assignment.title} submitted successfully!`, 'success');
-        
-        // Add notification
-        addNotification(`Assignment submitted: ${assignment.title}`);
-    }, 2000);
+    // Append file if provided
+    if (file) {
+        formData.append('file', file);
+    }
+    
+    // Show loading state
+    showNotification('Submitting assignment...', 'info');
+    
+    // Send request to submit assignment
+    fetch(`http://localhost:5002/api/assignments/${assignmentId}/submit`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${authToken}`
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Assignment submitted successfully!', 'success');
+            
+            // Refresh assignments list
+            fetchAssignmentsData();
+        } else {
+            showNotification(data.message || 'Failed to submit assignment', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting assignment:', error);
+        showNotification('Failed to submit assignment', 'error');
+    });
 }
 
 // Generate random grade
@@ -2121,4 +2264,50 @@ function openReplyModal(messageData) {
 function openComposeMessageModal() {
     // In a real implementation, this would open a compose modal
     showNotification('Compose message functionality would open here', 'info');
+}
+
+// Download assignment file
+function downloadAssignmentFile(assignmentId, filename) {
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+        showNotification('Authentication required', 'error');
+        return;
+    }
+    
+    // Create download link
+    const downloadUrl = `http://localhost:5002/api/assignments/${assignmentId}/download/${filename}`;
+    
+    // Create temporary link element
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    link.style.display = 'none';
+    
+    // Add to document, click, and remove
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Download submission file
+function downloadSubmissionFile(submissionId, filename) {
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+        showNotification('Authentication required', 'error');
+        return;
+    }
+    
+    // Create download link
+    const downloadUrl = `http://localhost:5002/api/assignments/submissions/${submissionId}/download/${filename}`;
+    
+    // Create temporary link element
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    link.style.display = 'none';
+    
+    // Add to document, click, and remove
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }

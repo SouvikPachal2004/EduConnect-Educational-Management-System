@@ -18,13 +18,18 @@ const attendanceRoutes = require('./routes/attendance.routes');
 const gradeRoutes = require('./routes/grade.routes');
 const resourceRoutes = require('./routes/resource.routes');
 const messageRoutes = require('./routes/message.routes');
+const departmentRoutes = require('./routes/department.routes');
+const activityLogRoutes = require('./routes/activityLog.routes');
+const faceRecognitionRoutes = require('./routes/faceRecognition.routes');
+const predictionRoutes = require('./routes/prediction.routes');
+const teacherRoutes = require('./routes/separateTeacher.routes');
 
 // Connect to database
 connectDB();
 
 // Initialize express app
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5002;
 
 // Middleware
 app.use(cors());
@@ -43,6 +48,11 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/grades', gradeRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/departments', departmentRoutes);
+app.use('/api/activity-logs', activityLogRoutes);
+app.use('/api/face-recognition', faceRecognitionRoutes);
+app.use('/api/prediction', predictionRoutes);
+app.use('/api/teacher', teacherRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

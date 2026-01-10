@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Check authentication first
+    checkAuthentication();
+    
     // Sidebar Navigation
     const sidebarMenu = document.querySelectorAll('.sidebar-menu a');
     const contentSections = document.querySelectorAll('.content-section');
@@ -1148,8 +1151,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.querySelector('.logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
-            // In a real application, you would handle the logout process
-            // For demonstration, we'll just show a notification
+            // Clear authentication data
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            
+            // Show notification
             showNotification('Logged out successfully!', 'success');
             
             // Redirect to login page after a short delay
@@ -1159,3 +1165,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 })
+
+// Check if user is authenticated
+function checkAuthentication() {
+    const authToken = localStorage.getItem('authToken');
+    const currentUser = localStorage.getItem('currentUser');
+    
+    if (!authToken || !currentUser) {
+        // Redirect to login if not authenticated
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    try {
+        const user = JSON.parse(currentUser);
+        if (user.role !== 'managing_authority') {
+            // Redirect to appropriate dashboard based on role
+            redirectToDashboard(user.role);
+            return;
+        }
+    } catch (error) {
+        console.error('Error parsing user data:', error);
+        window.location.href = 'login.html';
+    }
+}
+
+// Redirect to appropriate dashboard based on role
+function redirectToDashboard(role) {
+    const dashboards = {
+        'student': 'student-dashboard.html',
+        'teacher': 'teacher-dashboard.html',
+        'hod': 'HOD-dashboard.html',
+        'admin': 'admin-dashboard.html'
+    };
+    
+    window.location.href = dashboards[role] || 'login.html';
+}

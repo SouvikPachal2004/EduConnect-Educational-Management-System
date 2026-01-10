@@ -8,7 +8,7 @@ This is the backend API for EduConnect - A Virtual Classroom Platform.
 - Role-based Access Control (Student, Teacher, Admin, HOD, Managing Authority)
 - Class Management
 - Assignment Management
-- Attendance Tracking
+- Attendance Tracking (including face recognition integration)
 - Grade Management
 - Resource Sharing
 - Messaging System
@@ -84,14 +84,24 @@ This is the backend API for EduConnect - A Virtual Classroom Platform.
 - `POST /api/messages/drafts/:id/send` - Send draft
 - `DELETE /api/messages/:id` - Delete message
 
+### Face Recognition Integration
+- `POST /api/face-recognition/take-attendance` - Take attendance using face recognition (Teacher only)
+- `POST /api/face-recognition/mappings` - Create student mapping (Teacher/Admin)
+- `GET /api/face-recognition/mappings` - Get all student mappings (Teacher/Admin)
+- `GET /api/face-recognition/students/:faceId` - Get student by face ID (Teacher/Admin)
+- `DELETE /api/face-recognition/mappings/:faceId` - Delete student mapping (Teacher/Admin)
+- `POST /api/face-recognition/attendance` - Mark attendance by face recognition (Teacher)
+
 ## Installation
 
 1. Clone the repository
 2. Navigate to the backend directory: `cd backend`
-3. Install dependencies: `npm install`
-4. Create a `.env` file based on `.env.example`
-5. Start MongoDB server
-6. Run the server: `npm start` or `npm run dev` (for development)
+3. Install Node.js dependencies: `npm install`
+4. Navigate to the face recognition directory: `cd ../face`
+5. Install Python dependencies: `pip install -r requirements.txt`
+6. Create a `.env` file based on `.env.example`
+7. Start MongoDB server
+8. Run the server: `npm start` or `npm run dev` (for development)
 
 ## Environment Variables
 

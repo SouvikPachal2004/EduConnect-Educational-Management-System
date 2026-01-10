@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const { hashPassword, comparePassword, generateAuthToken } = require('../utils/auth.utils');
 const { successResponse, errorResponse, validationErrorResponse } = require('../utils/response.utils');
+const { logActivity } = require('../utils/activityLogger');
 
 // Register user
 const register = async (req, res) => {
@@ -25,14 +26,40 @@ const register = async (req, res) => {
       department,
     });
 
-    // Generate student/teacher ID based on role
+    // Generate role-specific ID based on role
     if (role === 'student') {
-      user.studentId = `STU${Date.now()}`;
+      // Use provided studentId if available, otherwise generate one
+      user.studentId = req.body.studentId || `STU${Date.now()}`;
     } else if (role === 'teacher') {
       user.teacherId = `TEA${Date.now()}`;
+    } else if (role === 'admin') {
+      // Admins don't need special IDs, but we could generate one if needed
+      // For now, we'll leave it as is
+    } else if (role === 'hod') {
+      // HODs are teachers with special roles, so they get teacher IDs
+      user.teacherId = `HOD${Date.now()}`;
+    } else if (role === 'managing_authority') {
+      // Managing authority members don't need special IDs
     }
 
     await user.save();
+
+    // Log user creation activity
+    await logActivity({
+      userId: user._id,
+      userName: user.name,
+      action: 'user_creation',
+      actionLabel: 'User Registration',
+      description: `New ${role} user registered with email ${email}`,
+      ipAddress: req.ip || req.connection.remoteAddress || 'Unknown',
+      status: 'success',
+      metadata: {
+        role: role,
+        department: department,
+        studentId: user.studentId,
+        teacherId: user.teacherId
+      }
+    });
 
     // Generate auth token
     const token = generateAuthToken(user);
@@ -68,6 +95,16 @@ const login = async (req, res) => {
     // Check if password is correct
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
+      // Log failed login attempt
+      await logActivity({
+        userId: user._id,
+        userName: user.name,
+        action: 'login',
+        actionLabel: 'Login attempt',
+        description: `Failed login attempt - invalid password`,
+        ipAddress: req.ip || req.connection.remoteAddress || 'Unknown',
+        status: 'failed'
+      });
       return errorResponse(res, 'Invalid credentials', 401);
     }
 
@@ -77,6 +114,17 @@ const login = async (req, res) => {
 
     // Generate auth token
     const token = generateAuthToken(user);
+    
+    // Log successful login
+    await logActivity({
+      userId: user._id,
+      userName: user.name,
+      action: 'login',
+      actionLabel: 'Login',
+      description: `Successful login as ${user.role}`,
+      ipAddress: req.ip || req.connection.remoteAddress || 'Unknown',
+      status: 'success'
+    });
 
     // Return success response
     const userData = {

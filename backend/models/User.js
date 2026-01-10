@@ -37,6 +37,12 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true,
   },
+  // Add grade field for students
+  grade: {
+    type: Number,
+    min: 0,
+    max: 10,
+  },
   profilePicture: {
     type: String,
   },

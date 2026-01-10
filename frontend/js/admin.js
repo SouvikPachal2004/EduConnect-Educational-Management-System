@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Check authentication first
+    checkAuthentication();
+    
     // Initialize dashboard
     initializeDashboard();
     
@@ -42,8 +45,126 @@ document.addEventListener('DOMContentLoaded', function() {
     setupNotificationDropdown();
 });
 
+// Check if user is authenticated
+function checkAuthentication() {
+    const authToken = localStorage.getItem('authToken');
+    const currentUser = localStorage.getItem('currentUser');
+    
+    if (!authToken || !currentUser) {
+        // Redirect to login if not authenticated
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    try {
+        const user = JSON.parse(currentUser);
+        if (user.role !== 'admin') {
+            // Redirect to appropriate dashboard based on role
+            redirectToDashboard(user.role);
+            return;
+        }
+    } catch (error) {
+        console.error('Error parsing user data:', error);
+        window.location.href = 'login.html';
+    }
+}
+
+// Redirect to appropriate dashboard based on role
+function redirectToDashboard(role) {
+    const dashboards = {
+        'student': 'student-dashboard.html',
+        'teacher': 'teacher-dashboard.html',
+        'hod': 'HOD-dashboard.html',
+        'managing_authority': 'managing-authority.html'
+    };
+    
+    window.location.href = dashboards[role] || 'login.html';
+}
+
+// Load admin user information
+function loadAdminUserInfo() {
+    const currentUser = localStorage.getItem('currentUser');
+    
+    if (!currentUser) return;
+    
+    try {
+        const user = JSON.parse(currentUser);
+        
+        // Update admin name in sidebar
+        const adminNameElement = document.getElementById('adminName');
+        if (adminNameElement && user.name) {
+            adminNameElement.textContent = user.name;
+        }
+        
+        // Update welcome message
+        const welcomeMessageElement = document.getElementById('welcomeMessage');
+        if (welcomeMessageElement && user.name) {
+            const firstName = user.name.split(' ')[0];
+            welcomeMessageElement.textContent = `Welcome back, ${firstName}! Here's what's happening with the system.`;
+        }
+    } catch (error) {
+        console.error('Error loading admin user info:', error);
+    }
+}
+
+// Load department options for dropdowns
+function loadDepartmentOptions() {
+    console.log('loadDepartmentOptions() called');
+    const departmentsTable = document.querySelector('#departments tbody');
+    if (!departmentsTable) {
+        console.log('Departments table not found');
+        return;
+    }
+    
+    // Define the specific departments
+    const departments = ['CSE', 'IT', 'CS-DS', 'CSE-AIML'];
+    
+    console.log('Departments found:', departments);
+    
+    // Update department dropdown in Add User modal
+    const userDeptSelect = document.getElementById('userDept');
+    if (userDeptSelect) {
+        console.log('Updating userDept dropdown');
+        // Keep the first "Select Department" option
+        let optionsHTML = '<option value="">Select Department</option>';
+        departments.forEach(dept => {
+            optionsHTML += `<option value="${dept}">${dept}</option>`;
+        });
+        
+        userDeptSelect.innerHTML = optionsHTML;
+        console.log('userDept dropdown updated with', departments.length, 'departments');
+    } else {
+        console.log('userDept select not found');
+    }
+    
+    // Update department dropdown in Add Course modal
+    const courseDeptSelect = document.getElementById('courseDept');
+    if (courseDeptSelect) {
+        console.log('Updating courseDept dropdown');
+        // Keep the first "Select Department" option
+        let optionsHTML = '<option value="">Select Department</option>';
+        departments.forEach(dept => {
+            optionsHTML += `<option value="${dept}">${dept}</option>`;
+        });
+        
+        courseDeptSelect.innerHTML = optionsHTML;
+        console.log('courseDept dropdown updated with', departments.length, 'departments');
+    } else {
+        console.log('courseDept select not found');
+    }
+}
+
 // Initialize dashboard components
 function initializeDashboard() {
+    // Set default date for activity logs filter
+    const currentDate = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('activityLogDate');
+    if (dateInput) {
+        dateInput.value = currentDate;
+    }
+    // Load admin user info
+    loadAdminUserInfo();
+    
     // Set current date for activity logs
     const today = new Date();
     const formattedDate = today.toISOString().split('T')[0];
@@ -78,66 +199,99 @@ function initializeDashboard() {
 
 // Load dashboard statistics
 function loadDashboardStats() {
-    // Simulate API call to get dashboard statistics
+    const authToken = localStorage.getItem('authToken');
+    
+    if (!authToken) return;
+    
+    // Fetch user count
+    fetch('http://localhost:5002/api/users?limit=1', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.data && data.data.pagination) {
+            const userStatCard = document.querySelector('#overview .stat-card:nth-child(2)');
+            if (userStatCard) {
+                const valueElement = userStatCard.querySelector('.stat-card-value');
+                const changeElement = userStatCard.querySelector('.stat-card-change');
+                if (valueElement) {
+                    valueElement.textContent = data.data.pagination.total.toLocaleString();
+                }
+                if (changeElement) {
+                    // Calculate new users this month (for demo, show a percentage)
+                    const newUsers = Math.floor(data.data.pagination.total * 0.1);
+                    changeElement.innerHTML = `<i class="fas fa-arrow-up"></i> ${newUsers} new this month`;
+                }
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching user stats:', error);
+    });
+    
+    // Fetch classes count
+    fetch('http://localhost:5002/api/classes', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.data && data.data.classes) {
+            const courseStatCard = document.querySelector('#overview .stat-card:nth-child(3)');
+            if (courseStatCard) {
+                const valueElement = courseStatCard.querySelector('.stat-card-value');
+                const changeElement = courseStatCard.querySelector('.stat-card-change');
+                if (valueElement) {
+                    valueElement.textContent = data.data.classes.length.toString();
+                }
+                if (changeElement) {
+                    const newCourses = Math.floor(data.data.classes.length * 0.08);
+                    changeElement.innerHTML = `<i class="fas fa-arrow-up"></i> ${newCourses} from last semester`;
+                }
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching classes stats:', error);
+    });
+    
+    // Department stats - fetch from API
+    fetch('http://localhost:5002/api/departments', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.data) {
+            const deptStatCard = document.querySelector('#overview .stat-card:nth-child(1)');
+            if (deptStatCard) {
+                const valueElement = deptStatCard.querySelector('.stat-card-value');
+                if (valueElement) {
+                    valueElement.textContent = data.data.count.toString();
+                }
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching departments stats:', error);
+    });
+    
     setTimeout(() => {
-        // Department stats
-        const deptStatCard = document.querySelector('#overview .stat-card:nth-child(1)');
-        if (deptStatCard) {
-            const valueElement = deptStatCard.querySelector('.stat-card-value');
-            const changeElement = deptStatCard.querySelector('.stat-card-change');
-            if (valueElement) {
-                // Generate a random value between 6-12 for demo
-                const value = Math.floor(Math.random() * 6) + 6;
-                valueElement.textContent = value.toString();
-            }
-            if (changeElement) {
-                // Generate a random value between 0-3 for demo
-                const added = Math.floor(Math.random() * 3);
-                changeElement.innerHTML = `<i class="fas fa-arrow-up"></i> ${added} added this year`;
-            }
-        }
-        
-        // User stats
-        const userStatCard = document.querySelector('#overview .stat-card:nth-child(2)');
-        if (userStatCard) {
-            const valueElement = userStatCard.querySelector('.stat-card-value');
-            const changeElement = userStatCard.querySelector('.stat-card-change');
-            if (valueElement) {
-                // Generate a random value between 1000-1500 for demo
-                const value = Math.floor(Math.random() * 500) + 1000;
-                valueElement.textContent = value.toLocaleString();
-            }
-            if (changeElement) {
-                // Generate a random value between 80-150 for demo
-                const added = Math.floor(Math.random() * 70) + 80;
-                changeElement.innerHTML = `<i class="fas fa-arrow-up"></i> ${added} new this month`;
-            }
-        }
-        
-        // Course stats
-        const courseStatCard = document.querySelector('#overview .stat-card:nth-child(3)');
-        if (courseStatCard) {
-            const valueElement = courseStatCard.querySelector('.stat-card-value');
-            const changeElement = courseStatCard.querySelector('.stat-card-change');
-            if (valueElement) {
-                // Generate a random value between 120-180 for demo
-                const value = Math.floor(Math.random() * 60) + 120;
-                valueElement.textContent = value.toString();
-            }
-            if (changeElement) {
-                // Generate a random value between 5-20 for demo
-                const added = Math.floor(Math.random() * 15) + 5;
-                changeElement.innerHTML = `<i class="fas fa-arrow-up"></i> ${added} from last semester`;
-            }
-        }
-        
-        // System health stats
         const healthStatCard = document.querySelector('#overview .stat-card:nth-child(4)');
         if (healthStatCard) {
             const valueElement = healthStatCard.querySelector('.stat-card-value');
             const changeElement = healthStatCard.querySelector('.stat-card-change');
             if (valueElement) {
-                // Generate a random value between 95-100 for demo
                 const value = Math.floor(Math.random() * 5) + 95;
                 valueElement.textContent = `${value}%`;
             }
@@ -156,29 +310,55 @@ function loadDepartments() {
     // Show loading message
     departmentsTable.innerHTML = '<tr><td colspan="6" class="text-center">Loading departments...</td></tr>';
     
-    // Simulate API call
-    setTimeout(() => {
-        // Sample department data
-        const departments = [
-            { name: 'Computer Engineering', hod: 'Dr. Priya Singh', faculty: 24, students: 342, established: 2010 },
-            { name: 'Mechanical Engineering', hod: 'Dr. Anil Verma', faculty: 18, students: 285, established: 2005 },
-            { name: 'Electrical Engineering', hod: 'Dr. Suresh Iyer', faculty: 20, students: 310, established: 2008 },
-            { name: 'Civil Engineering', hod: 'Dr. Meena Reddy', faculty: 16, students: 275, established: 2012 },
-            { name: 'Chemical Engineering', hod: 'Dr. Rajesh Gupta', faculty: 14, students: 195, established: 2015 }
-        ];
-        
+    // Get auth token
+    const authToken = localStorage.getItem('authToken');
+    
+    if (!authToken) {
+        departmentsTable.innerHTML = '<tr><td colspan="6" class="text-center">Please login to view departments</td></tr>';
+        return;
+    }
+    
+    // Fetch departments from backend API
+    fetch('http://localhost:5002/api/departments', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
         // Clear table
         departmentsTable.innerHTML = '';
         
-        // Add departments to table
-        departments.forEach(dept => {
-            addDepartmentToTable(dept.name, dept.hod, dept.faculty, dept.students, dept.established);
-        });
-    }, 800);
+        if (data.success && data.data && data.data.departments && data.data.departments.length > 0) {
+            // Add departments to table
+            data.data.departments.forEach(dept => {
+                addDepartmentToTable(
+                    dept.name,
+                    dept.hod,
+                    dept.faculty,
+                    dept.students,
+                    dept.established,
+                    dept._id
+                );
+            });
+        } else {
+            departmentsTable.innerHTML = '<tr><td colspan="6" class="text-center">No departments found</td></tr>';
+        }
+        
+        // Load department options for dropdowns
+        loadDepartmentOptions();
+    })
+    .catch(error => {
+        console.error('Error fetching departments:', error);
+        departmentsTable.innerHTML = '<tr><td colspan="6" class="text-center">Error loading departments. Please try again.</td></tr>';
+    });
 }
 
 // Load users from API
 function loadUsers() {
+    console.log('loadUsers() called');
     // Show loading message
     const usersTable = document.querySelector('#users tbody');
     if (!usersTable) return;
@@ -186,28 +366,84 @@ function loadUsers() {
     // Clear existing content
     usersTable.innerHTML = '<tr><td colspan="7" class="text-center">Loading users...</td></tr>';
     
-    // Simulate API call with setTimeout
-    setTimeout(() => {
-        // Sample user data (in a real app, this would come from an API)
-        const users = [
-            { name: 'Dr. Priya Singh', id: 'HOD-CS001', role: 'HOD', department: 'Computer Engineering', email: 'priya.singh@educonnect.edu', status: 'Active' },
-            { name: 'Prof. Amit Patel', id: 'FAC-CS024', role: 'Faculty', department: 'Computer Engineering', email: 'amit.patel@educonnect.edu', status: 'Active' },
-            { name: 'Rohan Kumar', id: 'STU-CS2021001', role: 'Student', department: 'Computer Engineering', email: 'rohan.kumar@educonnect.edu', status: 'Active' },
-            { name: 'Dr. Anil Verma', id: 'HOD-ME001', role: 'HOD', department: 'Mechanical Engineering', email: 'anil.verma@educonnect.edu', status: 'Active' },
-            { name: 'Neha Sharma', id: 'STU-CS2021042', role: 'Student', department: 'Computer Engineering', email: 'neha.sharma@educonnect.edu', status: 'Suspended' }
-        ];
-        
+    // Get auth token
+    const authToken = localStorage.getItem('authToken');
+    console.log('Auth token:', authToken ? 'exists' : 'missing');
+    
+    if (!authToken) {
+        usersTable.innerHTML = '<tr><td colspan="7" class="text-center">Please login to view users</td></tr>';
+        return;
+    }
+    
+    // Fetch users from backend API
+    console.log('Fetching users from API...');
+    fetch('http://localhost:5002/api/users?limit=100', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        console.log('Users API response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Users API data:', data);
         // Clear table
         usersTable.innerHTML = '';
         
-        // Add users to table
-        users.forEach(user => {
-            addUserToTable(user.name, user.id, user.role, user.department, user.email, user.status);
-        });
-        
-        // Update user count
-        updateUserCount();
-    }, 1000);
+        if (data.success && data.data && data.data.users && data.data.users.length > 0) {
+            // Add users to table
+            data.data.users.forEach(user => {
+                const userRole = capitalizeRole(user.role);
+                // Display appropriate ID based on role
+                let userId = 'N/A';
+                if (user.role === 'student' && user.studentId) {
+                    userId = user.studentId;
+                } else if ((user.role === 'teacher' || user.role === 'hod') && user.teacherId) {
+                    userId = user.teacherId;
+                } else if (user.role === 'admin' || user.role === 'managing_authority') {
+                    // For admin and managing authority, we can show a shortened version of the _id
+                    userId = user._id ? user._id.substring(0, 8) : 'N/A';
+                } else {
+                    // Fallback to _id if no specific ID is available
+                    userId = user._id ? user._id.substring(0, 8) : 'N/A';
+                }
+                const userStatus = user.isActive ? 'Active' : 'Suspended';
+                
+                addUserToTable(
+                    user.name,
+                    userId,
+                    userRole,
+                    user.department || 'N/A',
+                    user.email,
+                    userStatus
+                );
+            });
+            
+            // Update user count
+            updateUserCount();
+        } else {
+            usersTable.innerHTML = '<tr><td colspan="7" class="text-center">No users found</td></tr>';
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching users:', error);
+        usersTable.innerHTML = '<tr><td colspan="7" class="text-center">Error loading users. Please try again.</td></tr>';
+    });
+}
+
+// Helper function to capitalize role
+function capitalizeRole(role) {
+    const roleMap = {
+        'student': 'Student',
+        'teacher': 'Faculty',
+        'hod': 'HOD',
+        'admin': 'Administrator',
+        'managing_authority': 'Managing Authority'
+    };
+    return roleMap[role] || role;
 }
 
 // Load courses from API
@@ -219,28 +455,82 @@ function loadCourses() {
     // Clear existing content
     coursesTable.innerHTML = '<tr><td colspan="7" class="text-center">Loading courses...</td></tr>';
     
-    // Simulate API call with setTimeout
-    setTimeout(() => {
-        // Sample course data (in a real app, this would come from an API)
-        const courses = [
-            { code: 'CS301', name: 'Data Structures', department: 'Computer Engineering', credits: 4, type: 'Core', status: 'Active' },
-            { code: 'CS302', name: 'Algorithms', department: 'Computer Engineering', credits: 4, type: 'Core', status: 'Active' },
-            { code: 'ME201', name: 'Thermodynamics', department: 'Mechanical Engineering', credits: 3, type: 'Core', status: 'Active' },
-            { code: 'EE101', name: 'Circuit Analysis', department: 'Electrical Engineering', credits: 3, type: 'Core', status: 'Active' },
-            { code: 'CS401', name: 'Machine Learning', department: 'Computer Engineering', credits: 3, type: 'Elective', status: 'Pending Approval' }
-        ];
-        
+    // Get auth token
+    const authToken = localStorage.getItem('authToken');
+    
+    if (!authToken) {
+        coursesTable.innerHTML = '<tr><td colspan="7" class="text-center">Please login to view courses</td></tr>';
+        return;
+    }
+    
+    // Fetch classes from backend API
+    fetch('http://localhost:5002/api/classes', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
         // Clear table
         coursesTable.innerHTML = '';
         
-        // Add courses to table
-        courses.forEach(course => {
-            addCourseToTable(course.code, course.name, course.department, course.credits, course.type, course.status);
-        });
-        
-        // Update course count
-        updateCourseCount();
-    }, 1000);
+        if (data.success && data.data && data.data.classes && data.data.classes.length > 0) {
+            // Add courses to table
+            data.data.classes.forEach(course => {
+                const courseCode = course.code || course._id.substring(0, 8).toUpperCase();
+                const teacherName = course.teacher ? course.teacher.name : 'Not Assigned';
+                
+                // Parse credits, type, and department from description
+                let credits = 3; // Default value
+                let type = 'Core'; // Default value
+                let department = 'General'; // Default value
+                
+                // Try to extract information from description
+                if (course.description) {
+                    // Extract credits (assuming format like "Credits: 4")
+                    const creditsMatch = course.description.match(/Credits:\s*(\d+)/i);
+                    if (creditsMatch) {
+                        credits = parseInt(creditsMatch[1]);
+                    }
+                    
+                    // Extract type (assuming format like "Type: Elective")
+                    const typeMatch = course.description.match(/Type:\s*([^,]+)/i);
+                    if (typeMatch) {
+                        type = typeMatch[1];
+                    }
+                    
+                    // Extract department (assuming format like "Department: Computer Science")
+                    const deptMatch = course.description.match(/Department:\s*(.+)/i);
+                    if (deptMatch) {
+                        department = deptMatch[1];
+                    }
+                }
+                
+                const status = course.isActive ? 'Active' : 'Inactive';
+                
+                addCourseToTable(
+                    course._id,
+                    courseCode,
+                    course.name,
+                    department,
+                    credits,
+                    type,
+                    status
+                );
+            });
+            
+            // Update course count
+            updateCourseCount();
+        } else {
+            coursesTable.innerHTML = '<tr><td colspan="7" class="text-center">No courses found</td></tr>';
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching courses:', error);
+        coursesTable.innerHTML = '<tr><td colspan="7" class="text-center">Error loading courses. Please try again.</td></tr>';
+    });
 }
 
 // Load system status data
@@ -419,39 +709,86 @@ function loadResourceUsage() {
 }
 
 // Load activity logs data
-function loadActivityLogs() {
+function loadActivityLogs(startDate = null, endDate = null) {
+    console.log('loadActivityLogs called with startDate:', startDate, 'endDate:', endDate);
     const logsTable = document.querySelector('#logs tbody');
     if (!logsTable) return;
     
     // Show loading message
     logsTable.innerHTML = '<tr><td colspan="6" class="text-center">Loading activity logs...</td></tr>';
     
-    // Simulate API call
-    setTimeout(() => {
-        // Sample activity logs data
-        const logs = [
-            { timestamp: '2023-10-15 09:24:33', user: 'Dr. Priya Singh', action: 'Course creation', ip: '192.168.1.105', details: 'Created course CS401: Machine Learning', status: 'Success' },
-            { timestamp: '2023-10-15 08:45:12', user: 'Prof. Amit Patel', action: 'Grade submission', ip: '192.168.1.42', details: 'Submitted grades for CS301: Data Structures', status: 'Success' },
-            { timestamp: '2023-10-15 03:00:00', user: 'System', action: 'Backup completed', ip: '127.0.0.1', details: 'Daily backup completed successfully', status: 'Success' },
-            { timestamp: '2023-10-14 22:15:44', user: 'Student: Rohan Kumar', action: 'Login attempt', ip: '192.168.1.78', details: 'Failed login attempt - invalid password', status: 'Failed' },
-            { timestamp: '2023-10-14 18:30:21', user: 'Dr. Anil Verma', action: 'Timetable update', ip: '192.168.1.93', details: 'Updated timetable for Mechanical Engineering', status: 'Success' }
-        ];
-        
+    // Get auth token
+    const authToken = localStorage.getItem('authToken');
+    console.log('Auth token for activity logs:', authToken ? 'Present' : 'Missing');
+    
+    if (!authToken) {
+        logsTable.innerHTML = '<tr><td colspan="6" class="text-center">Please login to view activity logs</td></tr>';
+        return;
+    }
+    
+    // Build API URL with filters
+    let apiUrl = 'http://localhost:5002/api/activity-logs?limit=50';
+    
+    // Add date filters if provided
+    if (startDate) {
+        // Convert date format from YYYY-MM-DD to ensure compatibility with backend
+        apiUrl += `&startDate=${encodeURIComponent(startDate)}`;
+    }
+    
+    if (endDate) {
+        // Convert date format from YYYY-MM-DD to ensure compatibility with backend
+        apiUrl += `&endDate=${encodeURIComponent(endDate)}`;
+    }
+    
+    console.log('Fetching activity logs with URL:', apiUrl);
+    
+    // Fetch activity logs from backend API
+    fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        console.log('Activity logs API response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Activity logs API data:', data);
         // Clear table
         logsTable.innerHTML = '';
         
-        // Add logs to table
-        logs.forEach(log => {
-            addLogEntryToTable({
-                timestamp: log.timestamp,
-                user: log.user,
-                action: log.action,
-                ip: log.ip,
-                details: log.details,
-                status: log.status === 'Success' ? 'success' : 'danger'
+        if (data.success && data.data && data.data.logs && data.data.logs.length > 0) {
+            // Add logs to table
+            data.data.logs.forEach(log => {
+                const timestamp = new Date(log.timestamp).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+                
+                addLogEntryToTable({
+                    timestamp: timestamp,
+                    user: log.userName,
+                    action: log.actionLabel,
+                    ip: log.ipAddress,
+                    details: log.description,
+                    status: log.status === 'success' ? 'success' : log.status === 'failed' ? 'danger' : 'warning'
+                });
             });
-        });
-    }, 900);
+        } else {
+            logsTable.innerHTML = '<tr><td colspan="6" class="text-center">No activity logs found</td></tr>';
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching activity logs:', error);
+        logsTable.innerHTML = '<tr><td colspan="6" class="text-center">Error loading activity logs. Please try again.</td></tr>';
+    });
 }
 
 // Load reports data
@@ -602,6 +939,13 @@ function setupNavigation() {
                 // Update page title
                 updatePageTitle(sectionId);
                 
+                // Refresh activity logs when navigating to logs section
+                if (sectionId === 'logs') {
+                    // Load today's logs by default
+                    const today = new Date().toISOString().split('T')[0];
+                    loadActivityLogs(today, today);
+                }
+                
                 // Scroll to top
                 window.scrollTo(0, 0);
             }
@@ -661,6 +1005,10 @@ function setupInteractiveElements() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
             if (confirm('Are you sure you want to logout?')) {
+                // Clear authentication data
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+                
                 showNotification('Logging out...', 'info');
                 setTimeout(() => {
                     window.location.href = 'login.html';
@@ -738,12 +1086,23 @@ function setupUserActions() {
         });
     }
     
-    // User filter dropdown
-    const userFilter = document.querySelector('#users select.form-control');
-    if (userFilter) {
-        userFilter.addEventListener('change', function() {
-            const filterValue = this.value;
-            filterUsers(filterValue);
+    // User role filter dropdown
+    const userRoleFilter = document.getElementById('userRoleFilter');
+    if (userRoleFilter) {
+        userRoleFilter.addEventListener('change', function() {
+            const roleFilterValue = this.value;
+            const departmentFilterValue = document.getElementById('userDepartmentFilter').value;
+            filterUsersByRoleAndDepartment(roleFilterValue, departmentFilterValue);
+        });
+    }
+    
+    // User department filter dropdown
+    const userDepartmentFilter = document.getElementById('userDepartmentFilter');
+    if (userDepartmentFilter) {
+        userDepartmentFilter.addEventListener('change', function() {
+            const departmentFilterValue = this.value;
+            const roleFilterValue = document.getElementById('userRoleFilter').value;
+            filterUsersByRoleAndDepartment(roleFilterValue, departmentFilterValue);
         });
     }
     
@@ -840,13 +1199,17 @@ function setupSettingsActions() {
 
 // Setup log actions
 function setupLogActions() {
-    // Filter button
-    const filterBtn = document.querySelector('#logs .btn-outline');
-    if (filterBtn) {
+    // Filter button - specifically target the button with 'Filter' text
+    const filterBtn = document.querySelector('#logs .btn-outline.btn-sm');
+    if (filterBtn && filterBtn.textContent.trim() === 'Filter') {
         filterBtn.addEventListener('click', function(e) {
             e.preventDefault();
             const dateInput = document.querySelector('#logs input[type="date"]');
             const dateValue = dateInput ? dateInput.value : '';
+            
+            // Debug log to check if we're getting the date value
+            console.log('Filter button clicked, date value:', dateValue);
+            
             filterLogs(dateValue);
         });
     }
@@ -1183,11 +1546,15 @@ function setupResourceMonitoring() {
 
 // Setup activity logs
 function setupActivityLogs() {
-    // Load initial activity logs data
-    loadActivityLogs();
+    // Load initial activity logs data for today
+    const today = new Date().toISOString().split('T')[0];
+    loadActivityLogs(today, today);
     
-    // Simulate new log entries
-    setInterval(addNewLogEntry, 60000); // Add new log every minute
+    // Fetch real activity logs from backend every 30 seconds
+    setInterval(() => {
+        const today = new Date().toISOString().split('T')[0];
+        loadActivityLogs(today, today);
+    }, 30000); // Update every 30 seconds
 }
 
 // Setup system monitoring
@@ -1208,14 +1575,7 @@ function setupResourceMonitoring() {
     setInterval(loadResourceUsage, 10000); // Update every 10 seconds
 }
 
-// Setup activity logs
-function setupActivityLogs() {
-    // Load initial activity logs data
-    loadActivityLogs();
-    
-    // Simulate new log entries
-    setInterval(addNewLogEntry, 60000); // Add new log every minute
-}
+
 
 // Setup report generation
 function setupReportGeneration() {
@@ -1229,37 +1589,6 @@ function setupReportGeneration() {
             e.preventDefault();
             generateReport();
         });
-    }
-}
-
-
-
-// Add new log entry (simulated)
-function addNewLogEntry() {
-    const users = ['Dr. Priya Singh', 'Prof. Amit Patel', 'Dr. Anil Verma', 'Student: Rohan Kumar'];
-    const actions = ['Login', 'Logout', 'Course creation', 'Grade submission', 'File upload', 'Report generation'];
-    const ips = ['192.168.1.105', '192.168.1.42', '192.168.1.78', '192.168.1.93'];
-    
-    const randomUser = users[Math.floor(Math.random() * users.length)];
-    const randomAction = actions[Math.floor(Math.random() * actions.length)];
-    const randomIP = ips[Math.floor(Math.random() * ips.length)];
-    
-    const logEntry = {
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        user: randomUser,
-        action: randomAction,
-        ip: randomIP,
-        details: `${randomAction} performed by ${randomUser}`,
-        status: Math.random() > 0.1 ? 'success' : 'danger'
-    };
-    
-    addLogEntryToTable(logEntry);
-    
-    // Update notification badge
-    const badge = document.querySelector('.notification-badge');
-    if (badge) {
-        const currentCount = parseInt(badge.textContent);
-        updateNotificationBadge(currentCount + 1);
     }
 }
 
@@ -1453,7 +1782,7 @@ function setupModals() {
     const addDepartmentModal = document.getElementById('addDepartmentModal');
     const addDepartmentBtn = document.querySelector('#departments .btn-primary');
     const cancelAddDeptBtn = document.getElementById('cancelAddDept');
-    const closeAddDeptBtn = addDepartmentModal.querySelector('.close');
+    const closeAddDeptBtn = addDepartmentModal?.querySelector('.close');
     const addDepartmentForm = document.getElementById('addDepartmentForm');
     
     if (addDepartmentBtn) {
@@ -1466,14 +1795,14 @@ function setupModals() {
     if (cancelAddDeptBtn) {
         cancelAddDeptBtn.addEventListener('click', function() {
             addDepartmentModal.style.display = 'none';
-            addDepartmentForm.reset();
+            addDepartmentForm?.reset();
         });
     }
     
     if (closeAddDeptBtn) {
         closeAddDeptBtn.addEventListener('click', function() {
             addDepartmentModal.style.display = 'none';
-            addDepartmentForm.reset();
+            addDepartmentForm?.reset();
         });
     }
     
@@ -1488,7 +1817,7 @@ function setupModals() {
     const addUserModal = document.getElementById('addUserModal');
     const addUserBtn = document.querySelector('#users .btn-primary');
     const cancelAddUserBtn = document.getElementById('cancelAddUser');
-    const closeAddUserBtn = addUserModal.querySelector('.close');
+    const closeAddUserBtn = addUserModal?.querySelector('.close');
     const addUserForm = document.getElementById('addUserForm');
     
     if (addUserBtn) {
@@ -1501,14 +1830,14 @@ function setupModals() {
     if (cancelAddUserBtn) {
         cancelAddUserBtn.addEventListener('click', function() {
             addUserModal.style.display = 'none';
-            addUserForm.reset();
+            addUserForm?.reset();
         });
     }
     
     if (closeAddUserBtn) {
         closeAddUserBtn.addEventListener('click', function() {
             addUserModal.style.display = 'none';
-            addUserForm.reset();
+            addUserForm?.reset();
         });
     }
     
@@ -1523,7 +1852,7 @@ function setupModals() {
     const addCourseModal = document.getElementById('addCourseModal');
     const addCourseBtn = document.querySelector('#courses .btn-primary');
     const cancelAddCourseBtn = document.getElementById('cancelAddCourse');
-    const closeAddCourseBtn = addCourseModal.querySelector('.close');
+    const closeAddCourseBtn = addCourseModal?.querySelector('.close');
     const addCourseForm = document.getElementById('addCourseForm');
     
     if (addCourseBtn) {
@@ -1536,14 +1865,14 @@ function setupModals() {
     if (cancelAddCourseBtn) {
         cancelAddCourseBtn.addEventListener('click', function() {
             addCourseModal.style.display = 'none';
-            addCourseForm.reset();
+            addCourseForm?.reset();
         });
     }
     
     if (closeAddCourseBtn) {
         closeAddCourseBtn.addEventListener('click', function() {
             addCourseModal.style.display = 'none';
-            addCourseForm.reset();
+            addCourseForm?.reset();
         });
     }
     
@@ -1558,17 +1887,17 @@ function setupModals() {
     window.addEventListener('click', function(event) {
         if (event.target === addDepartmentModal) {
             addDepartmentModal.style.display = 'none';
-            addDepartmentForm.reset();
+            addDepartmentForm?.reset();
         }
         
         if (event.target === addUserModal) {
             addUserModal.style.display = 'none';
-            addUserForm.reset();
+            addUserForm?.reset();
         }
         
         if (event.target === addCourseModal) {
             addCourseModal.style.display = 'none';
-            addCourseForm.reset();
+            addCourseForm?.reset();
         }
     });
 }
@@ -1597,32 +1926,58 @@ function addDepartment() {
     // Show adding message
     const notification = showNotification('Adding department...', 'info', 0);
     
-    // Simulate add process
-    setTimeout(() => {
+    // Get auth token
+    const authToken = localStorage.getItem('authToken');
+    
+    // Make API call to create department
+    fetch('http://localhost:5002/api/departments', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            name: deptName,
+            hod: deptHOD,
+            faculty: parseInt(deptFaculty),
+            students: parseInt(deptStudents),
+            established: parseInt(deptEstablished)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
         removeNotification(notification);
-        showNotification(`Department "${deptName}" added successfully`, 'success');
         
-        // Add to departments table
-        addDepartmentToTable(deptName, deptHOD, deptFaculty, deptStudents, deptEstablished);
-        
-        // Close modal
-        const modal = document.getElementById('addDepartmentModal');
-        if (modal) {
-            modal.style.display = 'none';
-            document.getElementById('addDepartmentForm').reset();
+        if (data.success) {
+            showNotification(`Department "${deptName}" added successfully`, 'success');
+            
+            // Close modal
+            const modal = document.getElementById('addDepartmentModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.getElementById('addDepartmentForm').reset();
+            }
+            
+            // Reload departments from database
+            loadDepartments();
+        } else {
+            showNotification(data.message || 'Failed to add department', 'error');
         }
-        
-        // Update department count
-        updateDepartmentCount();
-    }, 1500);
+    })
+    .catch(error => {
+        removeNotification(notification);
+        console.error('Error adding department:', error);
+        showNotification('An error occurred while adding the department', 'error');
+    });
 }
 
 // Add department to table
-function addDepartmentToTable(name, hod, faculty, students, established) {
+function addDepartmentToTable(name, hod, faculty, students, established, id) {
     const departmentsTable = document.querySelector('#departments tbody');
     if (!departmentsTable) return;
     
     const row = document.createElement('tr');
+    row.dataset.departmentId = id; // Store department ID
     
     row.innerHTML = `
         <td>${name}</td>
@@ -1645,7 +2000,7 @@ function addDepartmentToTable(name, hod, faculty, students, established) {
     
     deleteBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        deleteDepartment(name);
+        deleteDepartment(id, name);
     });
     
     editBtn.addEventListener('click', function(e) {
@@ -1678,21 +2033,36 @@ function editDepartment(departmentName) {
 }
 
 // Delete department
-function deleteDepartment(departmentName) {
-    if (confirm(`Are you sure you want to delete the department ${departmentName}?`)) {
-        // Find the department row in the table
-        const departmentRows = document.querySelectorAll('#departments tbody tr');
-        departmentRows.forEach(row => {
-            const nameCell = row.cells[0];
-            if (nameCell && nameCell.textContent === departmentName) {
-                // Remove the row from the table
-                row.remove();
-                // Update department count
-                updateDepartmentCount();
-                showNotification(`Department ${departmentName} deleted successfully`, 'success');
-            }
-        });
+function deleteDepartment(departmentId, departmentName) {
+    if (!confirm(`Are you sure you want to delete the department ${departmentName}?`)) {
+        return;
     }
+    
+    // Get auth token
+    const authToken = localStorage.getItem('authToken');
+    
+    // Make API call to delete department
+    fetch(`http://localhost:5002/api/departments/${departmentId}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`Department ${departmentName} deleted successfully`, 'success');
+            // Reload departments from database
+            loadDepartments();
+        } else {
+            showNotification(data.message || 'Failed to delete department', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting department:', error);
+        showNotification('An error occurred while deleting the department', 'error');
+    });
 }
 
 // Show add user modal
@@ -1700,6 +2070,8 @@ function showAddUserModal() {
     const modal = document.getElementById('addUserModal');
     if (modal) {
         modal.style.display = 'block';
+        // Load department options when modal opens
+        loadDepartmentOptions();
     }
 }
 
@@ -1710,34 +2082,82 @@ function addUser() {
     const userRole = document.getElementById('userRole').value;
     const userDept = document.getElementById('userDept').value;
     const userEmail = document.getElementById('userEmail').value;
+    const userPassword = document.getElementById('userPassword').value;
     const userStatus = document.getElementById('userStatus').value;
     
-    if (!userName || !userId || !userRole || !userDept || !userEmail || !userStatus) {
+    if (!userName || !userId || !userRole || !userDept || !userEmail || !userPassword || !userStatus) {
         showNotification('Please fill in all fields', 'error');
+        return;
+    }
+    
+    // Validate password length
+    if (userPassword.length < 6) {
+        showNotification('Password must be at least 6 characters long', 'error');
+        return;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userEmail)) {
+        showNotification('Please enter a valid email address', 'error');
         return;
     }
     
     // Show adding message
     const notification = showNotification('Adding user...', 'info', 0);
     
-    // Simulate add process
-    setTimeout(() => {
+    // Map frontend role to backend role
+    const roleMap = {
+        'Student': 'student',
+        'Faculty': 'teacher',
+        'HOD': 'hod',
+        'Staff': 'teacher',
+        'Administrator': 'admin'
+    };
+    
+    const backendRole = roleMap[userRole] || 'student';
+    
+    // Make API call to register user
+    fetch('http://localhost:5002/api/auth/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            name: userName,
+            email: userEmail,
+            password: userPassword,
+            role: backendRole,
+            department: userDept,
+            studentId: userId  // Include student ID for students
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Add user API response:', data);
         removeNotification(notification);
-        showNotification(`User "${userName}" added successfully`, 'success');
         
-        // Add to users table
-        addUserToTable(userName, userId, userRole, userDept, userEmail, userStatus);
-        
-        // Close modal
-        const modal = document.getElementById('addUserModal');
-        if (modal) {
-            modal.style.display = 'none';
-            document.getElementById('addUserForm').reset();
+        if (data.success) {
+            showNotification(`User "${userName}" added successfully`, 'success');
+            
+            // Close modal
+            const modal = document.getElementById('addUserModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.getElementById('addUserForm').reset();
+            }
+            
+            // Reload users from database to get fresh data
+            loadUsers();
+        } else {
+            showNotification(data.message || 'Failed to add user', 'error');
         }
-        
-        // Update user count
-        updateUserCount();
-    }, 1500);
+    })
+    .catch(error => {
+        removeNotification(notification);
+        console.error('Error:', error);
+        showNotification('An error occurred while adding the user', 'error');
+    });
 }
 
 // Add user to table
@@ -1755,14 +2175,122 @@ function addUserToTable(name, id, role, dept, email, status) {
         <td>${role}</td>
         <td>${dept}</td>
         <td>${email}</td>
-        <td><span class="status-badge ${statusClass}">${status}</span></td>
+        <td class="${statusClass}">${status}</td>
         <td>
-            <a href="#" class="btn btn-sm btn-outline">Edit</a>
-            <a href="#" class="btn btn-sm btn-outline btn-danger">Delete</a>
+            <button class="btn btn-info" onclick="viewUserDetails('${name}')">View</button>
+            <button class="btn btn-warning" onclick="editUser('${name}')">Edit</button>
+            <button class="btn btn-danger" onclick="deleteUser('${name}')">Delete</button>
         </td>
     `;
     
-    // Add to table
+    usersTable.appendChild(row);
+}
+
+// Update user count
+function updateUserCount() {
+    const usersTable = document.querySelector('#users tbody');
+    if (!usersTable) return;
+    
+    const count = usersTable.children.length;
+    const statCard = document.querySelector('#overview .stat-card:nth-child(2) .stat-card-value');
+
+    if (statCard) {
+        statCard.textContent = count;
+    }
+}
+
+// View user details
+function viewUserDetails(userName) {
+    showNotification(`Viewing details for ${userName}`, 'info');
+}
+
+// Edit user
+function editUser(userName) {
+    showNotification(`Editing ${userName}`, 'info');
+}
+
+// Delete user
+function deleteUser(userName) {
+    // First, we need to find the user ID from the table
+    const userRows = document.querySelectorAll('#users tbody tr');
+    let userId = null;
+    let userRow = null;
+    
+    for (let i = 0; i < userRows.length; i++) {
+        const row = userRows[i];
+        const nameCell = row.cells[0];
+        if (nameCell && nameCell.textContent === userName) {
+            userRow = row;
+            // In a real implementation, we would store the user ID in a data attribute
+            // For now, we'll prompt for confirmation and then make the API call
+            break;
+        }
+    }
+    
+    if (!userRow) {
+        showNotification('User not found in table', 'error');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to delete the user ${userName}?`)) {
+        // Get auth token
+        const authToken = localStorage.getItem('authToken');
+        
+        // In a real implementation, we would have the user ID stored in a data attribute
+        // For demonstration purposes, we'll make a call to get all users and find the ID
+        fetch('http://localhost:5002/api/users?limit=1000', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data && data.data.users) {
+                // Find the user ID
+                let foundUserId = null;
+                for (let i = 0; i < data.data.users.length; i++) {
+                    if (data.data.users[i].name === userName) {
+                        foundUserId = data.data.users[i]._id;
+                        break;
+                    }
+                }
+                
+                if (foundUserId) {
+                    // Make API call to delete user from database
+                    return fetch(`http://localhost:5002/api/users/${foundUserId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                } else {
+                    throw new Error('User ID not found');
+                }
+            } else {
+                throw new Error('Failed to fetch users');
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the row from the table
+                userRow.remove();
+                // Update user count
+                updateUserCount();
+                showNotification(`User ${userName} deleted successfully`, 'success');
+            } else {
+                showNotification(data.message || 'Failed to delete user', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting user:', error);
+            showNotification('An error occurred while deleting the user: ' + error.message, 'error');
+        });
+    }
+// Add to table
     usersTable.appendChild(row);
     
     // Add event listeners to new buttons
@@ -1772,11 +2300,6 @@ function addUserToTable(name, id, role, dept, email, status) {
     editBtn.addEventListener('click', function(e) {
         e.preventDefault();
         editUser(name);
-    });
-    
-    deleteBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        deleteUser(name);
     });
 }
 
@@ -1800,23 +2323,72 @@ function editUser(userName) {
 // Delete user
 function deleteUser(userName) {
     if (confirm(`Are you sure you want to delete the user ${userName}?`)) {
-        // Find the user row in the table
-        const userRows = document.querySelectorAll('#users tbody tr');
-        userRows.forEach(row => {
-            const nameCell = row.cells[0];
-            if (nameCell && nameCell.textContent === userName) {
-                // Remove the row from the table
-                row.remove();
+        // Get auth token
+        const authToken = localStorage.getItem('authToken');
+        
+        // First, we need to get all users to find the user ID
+        fetch('http://localhost:5002/api/users?limit=1000', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data && data.data.users) {
+                // Find the user ID
+                let foundUserId = null;
+                for (let i = 0; i < data.data.users.length; i++) {
+                    if (data.data.users[i].name === userName) {
+                        foundUserId = data.data.users[i]._id;
+                        break;
+                    }
+                }
+                
+                if (foundUserId) {
+                    // Make API call to delete user from database
+                    return fetch(`http://localhost:5002/api/users/${foundUserId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                } else {
+                    throw new Error('User not found');
+                }
+            } else {
+                throw new Error('Failed to fetch users');
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Find and remove the row from the table
+                const userRows = document.querySelectorAll('#users tbody tr');
+                userRows.forEach(row => {
+                    const nameCell = row.cells[0];
+                    if (nameCell && nameCell.textContent === userName) {
+                        row.remove();
+                    }
+                });
                 // Update user count
                 updateUserCount();
-                showNotification(`User ${userName} deleted successfully`, 'success');
+                showNotification(`User ${userName} deleted successfully from database`, 'success');
+            } else {
+                showNotification(data.message || 'Failed to delete user', 'error');
             }
+        })
+        .catch(error => {
+            console.error('Error deleting user:', error);
+            showNotification('An error occurred while deleting the user: ' + error.message, 'error');
         });
     }
 }
 
 // Filter users by role
-function filterUsers(role) {
+function filterUsersByRole(role) {
     const rows = document.querySelectorAll('#users tbody tr');
     let visibleCount = 0;
     
@@ -1834,6 +2406,32 @@ function filterUsers(role) {
     showNotification(`Showing ${visibleCount} users with role: ${role}`, 'info');
 }
 
+// Filter users by role and department
+function filterUsersByRoleAndDepartment(role, department) {
+    const rows = document.querySelectorAll('#users tbody tr');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const userRole = row.cells[2].textContent;
+        const userDepartment = row.cells[3].textContent;
+        
+        // Check role filter
+        const roleMatch = (role === 'All Users' || userRole === role);
+        
+        // Check department filter
+        const departmentMatch = (department === 'All Departments' || userDepartment === department);
+        
+        if (roleMatch && departmentMatch) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    showNotification(`Showing ${visibleCount} users with role: ${role} and department: ${department}`, 'info');
+}
+
 // Show add course modal
 function showAddCourseModal() {
     const modal = document.getElementById('addCourseModal');
@@ -1844,6 +2442,16 @@ function showAddCourseModal() {
 
 // Add course
 function addCourse() {
+    // Check if we're in edit mode by looking for the course ID field
+    const courseIdField = document.getElementById('courseId');
+    const courseId = courseIdField ? courseIdField.value : null;
+    
+    // If we have a course ID, this is actually an update operation
+    if (courseId && courseId !== '') {
+        updateCourse(courseId);
+        return;
+    }
+    
     const courseCode = document.getElementById('courseCode').value;
     const courseName = document.getElementById('courseName').value;
     const courseDept = document.getElementById('courseDept').value;
@@ -1859,32 +2467,92 @@ function addCourse() {
     // Show adding message
     const notification = showNotification('Adding course...', 'info', 0);
     
-    // Simulate add process
-    setTimeout(() => {
-        removeNotification(notification);
-        showNotification(`Course "${courseName}" added successfully`, 'success');
-        
-        // Add to courses table
-        addCourseToTable(courseCode, courseName, courseDept, courseCredits, courseType, courseStatus);
-        
-        // Close modal
-        const modal = document.getElementById('addCourseModal');
-        if (modal) {
-            modal.style.display = 'none';
-            document.getElementById('addCourseForm').reset();
+    // Get auth token
+    const authToken = localStorage.getItem('authToken');
+    
+    // Prepare data for API call
+    const courseData = {
+        name: courseName,
+        description: `${courseCode} - Credits: ${courseCredits}, Type: ${courseType}, Department: ${courseDept}`,
+        // Note: The backend expects a schedule object, but we'll provide a minimal one
+        schedule: {
+            days: ['Monday'],
+            startTime: '09:00',
+            endTime: '10:30',
+            location: 'Online'
         }
+    };
+    
+    // Make API call to create class
+    fetch('http://localhost:5002/api/classes', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(courseData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        removeNotification(notification);
         
-        // Update course count
-        updateCourseCount();
-    }, 1500);
+        if (data.success) {
+            showNotification(`Course "${courseName}" added successfully`, 'success');
+            
+            // Add to courses table
+            addCourseToTable(courseCode, courseName, courseDept, courseCredits, courseType, courseStatus);
+            
+            // Close modal
+            const modal = document.getElementById('addCourseModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.getElementById('addCourseForm').reset();
+            }
+            
+            // Remove course ID field if it exists
+            const courseIdField = document.getElementById('courseId');
+            if (courseIdField) {
+                courseIdField.remove();
+            }
+            
+            // Restore original form submit handler
+            const form = document.getElementById('addCourseForm');
+            const originalHandler = form.dataset.originalOnSubmit;
+            if (originalHandler && originalHandler !== 'null') {
+                form.onsubmit = null;
+            } else {
+                form.onsubmit = null;
+            }
+            
+            // Clean up our data attribute
+            delete form.dataset.originalOnSubmit;
+            
+            // Reset modal title
+            const modalTitle = document.querySelector('#addCourseModal .modal-header h2');
+            if (modalTitle) {
+                modalTitle.textContent = 'Add New Course';
+            }
+            
+            // Update course count
+            updateCourseCount();
+        } else {
+            showNotification(data.message || 'Failed to add course', 'error');
+        }
+    })
+    .catch(error => {
+        removeNotification(notification);
+        console.error('Error adding course:', error);
+        showNotification('An error occurred while adding the course: ' + error.message, 'error');
+    });
 }
 
 // Add course to table
-function addCourseToTable(code, name, dept, credits, type, status) {
+function addCourseToTable(id, code, name, dept, credits, type, status) {
     const coursesTable = document.querySelector('#courses tbody');
     if (!coursesTable) return;
     
     const row = document.createElement('tr');
+    row.dataset.courseId = id; // Store course ID in data attribute
     
     const statusClass = status === 'Active' ? 'success' : 
                        status === 'Pending Approval' ? 'warning' : 'danger';
@@ -1939,7 +2607,191 @@ function viewCourseDetails(courseName) {
 
 // Edit course
 function editCourse(courseName) {
-    showNotification(`Editing ${courseName}`, 'info');
+    // Find the course row in the table
+    const courseRows = document.querySelectorAll('#courses tbody tr');
+    let courseRow = null;
+    let courseId = null;
+    
+    for (let i = 0; i < courseRows.length; i++) {
+        const row = courseRows[i];
+        const nameCell = row.cells[1]; // Course name is in the second cell
+        if (nameCell && nameCell.textContent === courseName) {
+            courseRow = row;
+            courseId = row.dataset.courseId;
+            break;
+        }
+    }
+    
+    if (!courseRow || !courseId) {
+        showNotification('Course not found', 'error');
+        return;
+    }
+    
+    // Get course data from the row
+    const courseCode = courseRow.cells[0].textContent;
+    const courseDept = courseRow.cells[2].textContent;
+    const courseCredits = courseRow.cells[3].textContent;
+    const courseType = courseRow.cells[4].textContent;
+    const courseStatus = courseRow.cells[5].textContent.trim();
+    
+    // Pre-populate the add course modal with existing data
+    document.getElementById('courseCode').value = courseCode;
+    document.getElementById('courseName').value = courseName;
+    document.getElementById('courseDept').value = courseDept;
+    document.getElementById('courseCredits').value = courseCredits;
+    document.getElementById('courseType').value = courseType;
+    document.getElementById('courseStatus').value = courseStatus;
+    
+    // Store the course ID in a hidden field or global variable for update
+    // We'll add a hidden field to the form to store the course ID
+    let courseIdField = document.getElementById('courseId');
+    if (!courseIdField) {
+        courseIdField = document.createElement('input');
+        courseIdField.type = 'hidden';
+        courseIdField.id = 'courseId';
+        document.getElementById('addCourseForm').appendChild(courseIdField);
+    }
+    courseIdField.value = courseId;
+    
+    // Change modal title to indicate edit mode
+    const modalTitle = document.querySelector('#addCourseModal .modal-header h2');
+    if (modalTitle) {
+        modalTitle.textContent = 'Edit Course';
+    }
+    
+    // Show the modal
+    const modal = document.getElementById('addCourseModal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
+    
+    // Prevent the default form submission and handle updates through our update function
+    const form = document.getElementById('addCourseForm');
+    const originalOnSubmit = form.onsubmit;
+    
+    // Temporarily override form submission
+    form.onsubmit = function(e) {
+        e.preventDefault();
+        updateCourse(courseId);
+        return false;
+    };
+    
+    // Store original handler for restoration
+    form.dataset.originalOnSubmit = originalOnSubmit || 'null';
+}
+
+// Update course
+function updateCourse(courseId) {
+    const courseCode = document.getElementById('courseCode').value;
+    const courseName = document.getElementById('courseName').value;
+    const courseDept = document.getElementById('courseDept').value;
+    const courseCredits = document.getElementById('courseCredits').value;
+    const courseType = document.getElementById('courseType').value;
+    const courseStatus = document.getElementById('courseStatus').value;
+    
+    if (!courseCode || !courseName || !courseDept || !courseCredits || !courseType || !courseStatus) {
+        showNotification('Please fill in all fields', 'error');
+        return;
+    }
+    
+    // Show updating message
+    const notification = showNotification('Updating course...', 'info', 0);
+    
+    // Get auth token
+    const authToken = localStorage.getItem('authToken');
+    
+    // Prepare data for API call
+    const courseData = {
+        name: courseName,
+        description: `${courseCode} - Credits: ${courseCredits}, Type: ${courseType}, Department: ${courseDept}`,
+        // Note: The backend expects a schedule object, but we'll provide a minimal one
+        schedule: {
+            days: ['Monday'],
+            startTime: '09:00',
+            endTime: '10:30',
+            location: 'Online'
+        }
+    };
+    
+    // Make API call to update class
+    fetch(`http://localhost:5002/api/classes/${courseId}`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(courseData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        removeNotification(notification);
+        
+        if (data.success) {
+            showNotification(`Course "${courseName}" updated successfully`, 'success');
+            
+            // Update the course row in the table
+            updateCourseInTable(courseId, courseCode, courseName, courseDept, courseCredits, courseType, courseStatus);
+            
+            // Close modal
+            const modal = document.getElementById('addCourseModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.getElementById('addCourseForm').reset();
+            }
+            
+            // Restore original form submit handler
+            const form = document.getElementById('addCourseForm');
+            const originalHandler = form.dataset.originalOnSubmit;
+            if (originalHandler && originalHandler !== 'null') {
+                // We can't directly restore the original handler since it was a function
+                // Instead, we'll remove our override and let the default behavior take over
+                form.onsubmit = null;
+            } else {
+                form.onsubmit = null;
+            }
+            
+            // Clean up our data attribute
+            delete form.dataset.originalOnSubmit;
+            
+            // Reset modal title
+            const modalTitle = document.querySelector('#addCourseModal .modal-header h2');
+            if (modalTitle) {
+                modalTitle.textContent = 'Add New Course';
+            }
+        } else {
+            showNotification(data.message || 'Failed to update course', 'error');
+        }
+    })
+    .catch(error => {
+        removeNotification(notification);
+        console.error('Error updating course:', error);
+        showNotification('An error occurred while updating the course: ' + error.message, 'error');
+    });
+}
+
+// Update course in table
+function updateCourseInTable(id, code, name, dept, credits, type, status) {
+    const courseRows = document.querySelectorAll('#courses tbody tr');
+    
+    for (let i = 0; i < courseRows.length; i++) {
+        const row = courseRows[i];
+        if (row.dataset.courseId === id) {
+            // Update row cells
+            row.cells[0].textContent = code;
+            row.cells[1].textContent = name;
+            row.cells[2].textContent = dept;
+            row.cells[3].textContent = credits;
+            row.cells[4].textContent = type;
+            
+            // Update status badge
+            const statusCell = row.cells[5];
+            const statusClass = status === 'Active' ? 'success' : 
+                               status === 'Pending Approval' ? 'warning' : 'danger';
+            statusCell.innerHTML = `<span class="status-badge ${statusClass}">${status}</span>`;
+            
+            break;
+        }
+    }
 }
 
 // Filter courses by department
@@ -1963,26 +2815,22 @@ function filterCourses(department) {
 
 // Filter logs by date
 function filterLogs(date) {
+    console.log('filterLogs called with date:', date);
+    
     if (!date) {
         showNotification('Please select a date', 'error');
         return;
     }
     
-    const rows = document.querySelectorAll('#logs tbody tr');
-    let visibleCount = 0;
+    // Use the selected date as both start and end date to filter for that specific day
+    // The backend expects dates in YYYY-MM-DD format which is what the input provides
+    const startDate = date;
+    const endDate = date;
     
-    rows.forEach(row => {
-        const logDate = row.cells[0].textContent.split(' ')[0];
-        
-        if (logDate === date) {
-            row.style.display = '';
-            visibleCount++;
-        } else {
-            row.style.display = 'none';
-        }
-    });
+    console.log('Calling loadActivityLogs with startDate:', startDate, 'endDate:', endDate);
     
-    showNotification(`Showing ${visibleCount} logs for ${date}`, 'info');
+    // Load activity logs with the date filter
+    loadActivityLogs(startDate, endDate);
 }
 
 // Format time ago

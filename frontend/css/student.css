@@ -1860,3 +1860,49 @@ body {
         font-size: 13px;
     }
 }
+
+/* File input styling */
+.file-label {
+    display: inline-block;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 5px;
+    font-size: 14px;
+    color: #495057;
+}
+
+.file-label:hover {
+    background-color: #e9ecef;
+}
+
+#submissionFile {
+    display: none;
+}
+
+/* Additional styles for assignment attachments */
+.assignment-attachments {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+.attachment-item {
+    margin-bottom: 5px;
+}
+
+.attachment-item:last-child {
+    margin-bottom: 0;
+}
+
+.attachment-item a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.attachment-item a:hover {
+    text-decoration: underline;
+}

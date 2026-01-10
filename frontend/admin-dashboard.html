@@ -27,7 +27,7 @@
                         <i class="fas fa-user-shield"></i>
                     </div>
                     <div class="user-info">
-                        <h3>Mr. Rajeev Sharma</h3>
+                        <h3 id="adminName">Admin</h3>
                         <p>System Administrator</p>
                     </div>
                 </div>
@@ -58,7 +58,7 @@
                         <i class="fas fa-bars"></i>
                     </button>
                     <h1>Admin Dashboard</h1>
-                    <p>Welcome back, Mr. Sharma! Here's what's happening with the system.</p>
+                    <p id="welcomeMessage">Welcome back! Here's what's happening with the system.</p>
                 </div>
                 <div class="header-actions">
                    
@@ -330,7 +330,7 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>Computer Engineering</td>
+                                    <td>CSE</td>
                                     <td>Dr. Priya Singh</td>
                                     <td>24</td>
                                     <td>342</td>
@@ -341,7 +341,7 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>Mechanical Engineering</td>
+                                    <td>IT</td>
                                     <td>Dr. Anil Verma</td>
                                     <td>18</td>
                                     <td>285</td>
@@ -352,7 +352,7 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>Electrical Engineering</td>
+                                    <td>CS-DS</td>
                                     <td>Dr. Suresh Iyer</td>
                                     <td>20</td>
                                     <td>310</td>
@@ -363,22 +363,11 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>Civil Engineering</td>
+                                    <td>CSE-AIML</td>
                                     <td>Dr. Meena Reddy</td>
                                     <td>16</td>
                                     <td>275</td>
                                     <td>2012</td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline btn-danger">Delete</a>
-                                        <a href="#" class="btn btn-sm btn-outline">Edit</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Chemical Engineering</td>
-                                    <td>Dr. Rajesh Gupta</td>
-                                    <td>14</td>
-                                    <td>195</td>
-                                    <td>2015</td>
                                     <td>
                                         <a href="#" class="btn btn-sm btn-outline btn-danger">Delete</a>
                                         <a href="#" class="btn btn-sm btn-outline">Edit</a>
@@ -396,14 +385,21 @@
                     <div class="card-header">
                         <h2 class="card-title">User Management</h2>
                         <div>
-                            <select class="form-control" style="width: auto; display: inline-block; margin-right: 10px;">
+                            <select class="form-control" style="width: auto; display: inline-block; margin-right: 10px;" id="userRoleFilter">
                                 <option>All Users</option>
                                 <option>Students</option>
                                 <option>Faculty</option>
                                 <option>Staff</option>
                                 <option>Administrators</option>
                             </select>
-                            <a href="#" class="btn btn-primary btn-sm">Add User</a>
+                            <select class="form-control" style="width: auto; display: inline-block; margin-right: 10px;" id="userDepartmentFilter">
+                                <option>All Departments</option>
+                                <option>CSE</option>
+                                <option>IT</option>
+                                <option>CS-DS</option>
+                                <option>CSE-AIML</option>
+                            </select>
+                            <a href="#" class="btn btn-primary btn-sm" onclick="showAddUserModal()">Add User</a>
                         </div>
                     </div>
                     <div class="card-body">
@@ -435,11 +431,10 @@
                         <div>
                             <select class="form-control" style="width: auto; display: inline-block; margin-right: 10px;">
                                 <option>All Departments</option>
-                                <option>Computer Engineering</option>
-                                <option>Mechanical Engineering</option>
-                                <option>Electrical Engineering</option>
-                                <option>Civil Engineering</option>
-                                <option>Chemical Engineering</option>
+                                <option>CSE</option>
+                                <option>IT</option>
+                                <option>CS-DS</option>
+                                <option>CSE-AIML</option>
                             </select>
                             <a href="#" class="btn btn-primary btn-sm">Add Course</a>
                         </div>
@@ -678,7 +673,7 @@
                     <div class="card-header">
                         <h2 class="card-title">Activity Logs</h2>
                         <div>
-                            <input type="date" class="form-control" style="width: auto; display: inline-block; margin-right: 10px;">
+                            <input type="date" class="form-control" style="width: auto; display: inline-block; margin-right: 10px;" id="activityLogDate">
                             <button class="btn btn-outline btn-sm">Filter</button>
                         </div>
                     </div>
@@ -981,16 +976,19 @@
                         <label for="userDept">Department</label>
                         <select id="userDept" class="form-control" required>
                             <option value="">Select Department</option>
-                            <option value="Computer Engineering">Computer Engineering</option>
-                            <option value="Mechanical Engineering">Mechanical Engineering</option>
-                            <option value="Electrical Engineering">Electrical Engineering</option>
-                            <option value="Civil Engineering">Civil Engineering</option>
-                            <option value="Chemical Engineering">Chemical Engineering</option>
+                            <option value="CSE">CSE</option>
+                            <option value="IT">IT</option>
+                            <option value="CS-DS">CS-DS</option>
+                            <option value="CSE-AIML">CSE-AIML</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="userEmail">Email</label>
                         <input type="email" id="userEmail" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="userPassword">Password</label>
+                        <input type="password" id="userPassword" class="form-control" required minlength="6" placeholder="Minimum 6 characters">
                     </div>
                     <div class="form-group">
                         <label for="userStatus">Status</label>
@@ -1029,11 +1027,10 @@
                         <label for="courseDept">Department</label>
                         <select id="courseDept" class="form-control" required>
                             <option value="">Select Department</option>
-                            <option value="Computer Engineering">Computer Engineering</option>
-                            <option value="Mechanical Engineering">Mechanical Engineering</option>
-                            <option value="Electrical Engineering">Electrical Engineering</option>
-                            <option value="Civil Engineering">Civil Engineering</option>
-                            <option value="Chemical Engineering">Chemical Engineering</option>
+                            <option value="CSE">CSE</option>
+                            <option value="IT">IT</option>
+                            <option value="CS-DS">CS-DS</option>
+                            <option value="CSE-AIML">CSE-AIML</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -1065,6 +1062,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/admin.js"></script>
+    <script src="js/admin.js?v=1.1"></script>
 </body>
 </html>

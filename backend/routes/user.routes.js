@@ -11,10 +11,10 @@ const router = express.Router();
 
 router.use(protect);
 
-// Admin only routes
-router.get('/', authorize('admin'), getAllUsers);
-router.get('/:id', authorize('admin'), getUserById);
-router.put('/:id', authorize('admin'), updateUser);
-router.delete('/:id', authorize('admin'), deleteUser);
+// Admin and Managing Authority routes
+router.get('/', authorize('admin', 'managing_authority'), getAllUsers);
+router.get('/:id', authorize('admin', 'managing_authority'), getUserById);
+router.put('/:id', authorize('admin', 'managing_authority'), updateUser);
+router.delete('/:id', authorize('admin', 'managing_authority'), deleteUser);
 
 module.exports = router;

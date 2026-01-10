@@ -2,6 +2,200 @@ const Attendance = require('../models/Attendance');
 const Class = require('../models/Class');
 const User = require('../models/User');
 const { successResponse, errorResponse } = require('../utils/response.utils');
+const { launchFaceRecognition } = require('../scripts/launch_face_recognition');
+const { spawn } = require('child_process');
+const path = require('path');
+
+// Launch face recognition system
+const launchFaceRecognitionSystem = async (req, res) => {
+  try {
+    const { date } = req.body;
+    
+    console.log('Launching face recognition GUI application');
+    
+    // Path to the face recognition GUI launcher
+    const guiLauncherPath = path.join(__dirname, '../../face/gui_launcher.py');
+    
+    // Use system Python executable
+    const pythonExecutable = 'python';
+    
+    // Arguments to pass to the GUI launcher
+    const args = [guiLauncherPath];
+    
+    // Add authentication token if available
+    if (req.headers.authorization) {
+      const token = req.headers.authorization.replace('Bearer ', '');
+      args.push('--auth-token', token);
+    }
+    
+    console.log('Launching GUI with Python executable:', pythonExecutable);
+    console.log('Launching GUI with args:', args);
+    
+    // Spawn the Python process to launch the GUI using system Python
+    const pythonProcess = spawn(pythonExecutable, args, {
+      cwd: path.join(__dirname, '../../face')
+    });
+    
+    // Handle stdout
+    pythonProcess.stdout.on('data', (data) => {
+      console.log(`Face recognition GUI stdout: ${data}`);
+    });
+    
+    // Handle stderr
+    pythonProcess.stderr.on('data', (data) => {
+      console.error(`Face recognition GUI stderr: ${data}`);
+    });
+    
+    // Handle process close
+    pythonProcess.on('close', (code) => {
+      console.log(`Face recognition GUI process exited with code ${code}`);
+    });
+    
+    // Handle process error
+    pythonProcess.on('error', (error) => {
+      console.error('Failed to start face recognition GUI process:', error);
+      // Still return success since we've initiated the launch
+    });
+    
+    // Return success response immediately
+    successResponse(res, { 
+      date: date || new Date().toISOString().split('T')[0],
+      message: 'Face recognition GUI application launched successfully' 
+    }, 'Face recognition GUI launched');
+    
+  } catch (error) {
+    console.error('Error in launchFaceRecognitionSystem:', error);
+    errorResponse(res, 'Failed to launch face recognition GUI', 500, error.message);
+  }
+};
+
+// Get department-wise attendance
+const getDepartmentAttendance = async (req, res) => {
+  try {
+    // Get teacher's department
+    const teacherDepartment = req.user.department;
+    
+    // Connect to MongoDB directly to access the attendances collection
+    const db = require('mongoose').connection.db;
+    
+    // Map department names to match the format in the attendances collection
+    const departmentMapping = {
+      'Computer Science & Engineering': 'CSE',
+      'Computer Science and Engineering': 'CSE',
+      'CS-DS': 'CS-DS',
+      'IT': 'IT',
+      'CSE-AIML': 'CSE-AIML',
+      'CSE-DS': 'CSE-DS'
+    };
+    
+    const mappedDepartment = departmentMapping[teacherDepartment] || teacherDepartment;
+    
+    // Get attendance records for the teacher's department
+    const attendanceRecords = await db.collection('attendances').find({
+      department: mappedDepartment
+    }).toArray();
+    
+    // Transform the data to match frontend expectations
+    const transformedRecords = attendanceRecords.map(record => ({
+      student: {
+        name: record.student_name,
+        studentId: record.student_id
+      },
+      attendance: record.attendance,
+      todaysAttendance: record.todays_attendance || 'Not Marked'
+    }));
+    
+    successResponse(res, transformedRecords, 'Department attendance records fetched successfully');
+  } catch (error) {
+    errorResponse(res, 'Failed to fetch department attendance records', 500, error.message);
+  }
+};
+
+// Store date-wise attendance for calendar view
+const storeDateWiseAttendance = async (req, res) => {
+  try {
+    const { date, attendanceData } = req.body;
+    
+    // Connect to MongoDB directly to access the attendances collection
+    const db = require('mongoose').connection.db;
+    
+    // Process each attendance record
+    const results = [];
+    
+    for (const record of attendanceData) {
+      const { studentId, status } = record;
+      
+      // Update or insert the date-wise attendance record
+      const result = await db.collection('attendances').updateOne(
+        { 
+          student_id: studentId,
+          date: new Date(date)
+        },
+        { 
+          $set: {
+            student_id: studentId,
+            date: new Date(date),
+            status: status,
+            updatedAt: new Date()
+          }
+        },
+        { upsert: true }
+      );
+      
+      results.push({
+        studentId,
+        date,
+        status,
+        modifiedCount: result.modifiedCount,
+        upserted: result.upsertedCount > 0
+      });
+    }
+    
+    successResponse(res, results, 'Date-wise attendance stored successfully');
+  } catch (error) {
+    errorResponse(res, 'Failed to store date-wise attendance', 500, error.message);
+  }
+};
+
+// Get date-wise attendance for calendar view
+const getDateWiseAttendance = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    // Connect to MongoDB directly to access the attendances collection
+    const db = require('mongoose').connection.db;
+    
+    // Get attendance records for the date range
+    // Only get records that have a date field (new format)
+    const attendanceRecords = await db.collection('attendances').find({
+      date: {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      }
+    }).toArray();
+    
+    // Group by date for calendar display
+    const attendanceByDate = {};
+    
+    attendanceRecords.forEach(record => {
+      // Format the date as YYYY-MM-DD
+      const dateStr = record.date.toISOString().split('T')[0];
+      
+      if (!attendanceByDate[dateStr]) {
+        attendanceByDate[dateStr] = [];
+      }
+      
+      attendanceByDate[dateStr].push({
+        studentId: record.student_id,
+        status: record.status || 'unknown'
+      });
+    });
+    
+    successResponse(res, attendanceByDate, 'Date-wise attendance records fetched successfully');
+  } catch (error) {
+    errorResponse(res, 'Failed to fetch date-wise attendance records', 500, error.message);
+  }
+};
 
 // Mark attendance
 const markAttendance = async (req, res) => {
@@ -51,6 +245,57 @@ const markAttendance = async (req, res) => {
     successResponse(res, attendanceRecords, 'Attendance marked successfully', 201);
   } catch (error) {
     errorResponse(res, 'Failed to mark attendance', 500, error.message);
+  }
+};
+
+// Mark attendance via face recognition
+const markAttendanceViaFaceRecognition = async (req, res) => {
+  try {
+    const { classId, date, attendance } = req.body;
+    
+    // Check if class exists
+    const classItem = await Class.findById(classId);
+    if (!classItem) {
+      return errorResponse(res, 'Class not found', 404);
+    }
+    
+    // Check if user is the teacher of this class
+    if (classItem.teacher.toString() !== req.user.id) {
+      return errorResponse(res, 'Not authorized to mark attendance for this class', 403);
+    }
+    
+    // Process attendance records
+    const attendanceRecords = [];
+    
+    for (const record of attendance) {
+      const { studentId, status, notes } = record;
+      
+      // Check if student exists and is enrolled in the class
+      const student = await User.findById(studentId);
+      if (!student || student.role !== 'student' || !classItem.students.includes(studentId)) {
+        continue; // Skip invalid students
+      }
+      
+      // Create or update attendance record
+      const attendanceRecord = await Attendance.findOneAndUpdate(
+        { class: classId, student: studentId, date: new Date(date) },
+        {
+          class: classId,
+          student: studentId,
+          date: new Date(date),
+          status,
+          notes,
+          markedBy: req.user.id,
+        },
+        { upsert: true, new: true }
+      );
+      
+      attendanceRecords.push(attendanceRecord);
+    }
+    
+    successResponse(res, attendanceRecords, 'Attendance marked successfully via face recognition', 201);
+  } catch (error) {
+    errorResponse(res, 'Failed to mark attendance via face recognition', 500, error.message);
   }
 };
 
@@ -199,8 +444,13 @@ const getAttendanceSummaryForClass = async (req, res) => {
 };
 
 module.exports = {
+  getDepartmentAttendance,
+  storeDateWiseAttendance,
+  getDateWiseAttendance,
   markAttendance,
+  markAttendanceViaFaceRecognition,
+  launchFaceRecognitionSystem,
   getAttendanceForClass,
   getAttendanceSummaryForStudent,
-  getAttendanceSummaryForClass,
+  getAttendanceSummaryForClass
 };
