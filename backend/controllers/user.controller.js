@@ -103,7 +103,6 @@ const getStudentsByTeacherDepartment = async (req, res) => {
     
     // Get the teacher's department
     const teacher = await User.findById(req.user.id);
-    console.log('Teacher data:', teacher);
     
     if (!teacher || teacher.role !== 'teacher') {
       console.log('Unauthorized access attempt. User role:', teacher ? teacher.role : 'not found');
@@ -118,14 +117,24 @@ const getStudentsByTeacherDepartment = async (req, res) => {
       return successResponse(res, { users: [] }, 'No department assigned to teacher');
     }
     
+    // Use department aliases for matching (same logic as HOD controller)
+    let deptFilter;
+    try {
+      const { getDepartmentAliases, normalizeDepartmentName } = require('../utils/departmentCatalog');
+      const canonical = normalizeDepartmentName(teacher.department) || teacher.department;
+      const aliases = getDepartmentAliases(canonical);
+      deptFilter = { $in: aliases };
+    } catch (e) {
+      deptFilter = teacher.department;
+    }
+
     // Get students in the same department
     const students = await User.find({
       role: 'student',
-      department: teacher.department
-    }).select('-password');
+      department: deptFilter
+    }).select('-password').sort({ name: 1 });
     
     console.log('Students found in department:', students.length);
-    console.log('Students data:', students);
 
     successResponse(res, { users: students }, 'Students fetched successfully');
   } catch (error) {

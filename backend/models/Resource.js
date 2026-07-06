@@ -19,26 +19,50 @@ const resourceSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  fileType: {
+  resourceType: {
     type: String,
-    enum: ['document', 'video', 'link', 'other'],
+    enum: ['file', 'url', 'youtube', 'drive', 'video', 'document', 'other'],
     required: true,
   },
+  // For file uploads
   fileName: {
     type: String,
   },
   filePath: {
     type: String,
   },
-  fileUrl: {
-    type: String,
-  },
   fileSize: {
     type: Number,
+  },
+  mimeType: {
+    type: String,
+  },
+  // For URLs (website, YouTube, Drive, etc.)
+  url: {
+    type: String,
+  },
+  urlType: {
+    type: String,
+    enum: ['website', 'youtube', 'drive', 'video', 'other'],
+  },
+  // Metadata
+  thumbnail: {
+    type: String,
+  },
+  duration: {
+    type: String, // For videos
   },
   isPublic: {
     type: Boolean,
     default: false,
+  },
+  views: {
+    type: Number,
+    default: 0,
+  },
+  downloads: {
+    type: Number,
+    default: 0,
   },
 }, {
   timestamps: true,
@@ -47,6 +71,6 @@ const resourceSchema = new mongoose.Schema({
 // Indexes
 resourceSchema.index({ class: 1 });
 resourceSchema.index({ teacher: 1 });
-resourceSchema.index({ fileType: 1 });
+resourceSchema.index({ resourceType: 1 });
 
 module.exports = mongoose.model('Resource', resourceSchema);

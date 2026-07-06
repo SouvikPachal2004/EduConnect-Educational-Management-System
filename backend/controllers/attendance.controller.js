@@ -5,6 +5,7 @@ const { successResponse, errorResponse } = require('../utils/response.utils');
 const { launchFaceRecognition } = require('../scripts/launch_face_recognition');
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 // Launch face recognition system
 const launchFaceRecognitionSystem = async (req, res) => {
@@ -13,11 +14,47 @@ const launchFaceRecognitionSystem = async (req, res) => {
     
     console.log('Launching face recognition GUI application');
     
-    // Path to the face recognition GUI launcher
-    const guiLauncherPath = path.join(__dirname, '../../face/gui_launcher.py');
+    // Path to the face recognition folder
+    const faceRecognitionPath = path.join(__dirname, '../../face');
+    const guiLauncherPath = path.join(faceRecognitionPath, 'gui_launcher.py');
     
-    // Use system Python executable
-    const pythonExecutable = 'python';
+    // Check if Python script exists
+    if (!fs.existsSync(guiLauncherPath)) {
+      console.error('GUI launcher script not found at:', guiLauncherPath);
+      return errorResponse(res, 'Face recognition GUI launcher not found', 500);
+    }
+    
+    // Check for virtual environment Python (preferred)
+    const venvPythonWin = path.join(faceRecognitionPath, '.venv', 'Scripts', 'python.exe');
+    const venvPythonUnix = path.join(faceRecognitionPath, '.venv', 'bin', 'python');
+    
+    let pythonExecutable = 'python'; // Default fallback
+    
+    // Use virtual environment Python if available
+    if (fs.existsSync(venvPythonWin)) {
+      pythonExecutable = venvPythonWin;
+      console.log('Using virtual environment Python (Windows):', pythonExecutable);
+    } else if (fs.existsSync(venvPythonUnix)) {
+      pythonExecutable = venvPythonUnix;
+      console.log('Using virtual environment Python (Unix):', pythonExecutable);
+    } else {
+      console.log('Virtual environment not found, using system Python');
+      // Try different Python executables (Windows compatibility)
+      const pythonExecutables = ['python', 'py', 'python3'];
+      
+      for (const pyExe of pythonExecutables) {
+        try {
+          const testResult = require('child_process').spawnSync(pyExe, ['--version']);
+          if (testResult.status === 0) {
+            pythonExecutable = pyExe;
+            console.log(`Found Python executable: ${pyExe}`);
+            break;
+          }
+        } catch (e) {
+          // Continue to next executable
+        }
+      }
+    }
     
     // Arguments to pass to the GUI launcher
     const args = [guiLauncherPath];
@@ -30,11 +67,19 @@ const launchFaceRecognitionSystem = async (req, res) => {
     
     console.log('Launching GUI with Python executable:', pythonExecutable);
     console.log('Launching GUI with args:', args);
+    console.log('Working directory:', faceRecognitionPath);
     
-    // Spawn the Python process to launch the GUI using system Python
+    // Spawn the Python process to launch the GUI
+    // Use detached mode on Windows to prevent blocking
     const pythonProcess = spawn(pythonExecutable, args, {
-      cwd: path.join(__dirname, '../../face')
+      cwd: faceRecognitionPath,
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: true // Use shell on Windows for better compatibility
     });
+    
+    // Unreference the process so parent doesn't wait
+    pythonProcess.unref();
     
     // Handle stdout
     pythonProcess.stdout.on('data', (data) => {
@@ -54,13 +99,12 @@ const launchFaceRecognitionSystem = async (req, res) => {
     // Handle process error
     pythonProcess.on('error', (error) => {
       console.error('Failed to start face recognition GUI process:', error);
-      // Still return success since we've initiated the launch
     });
     
     // Return success response immediately
     successResponse(res, { 
       date: date || new Date().toISOString().split('T')[0],
-      message: 'Face recognition GUI application launched successfully' 
+      message: 'Face recognition GUI application launched successfully. Please check for the camera window.' 
     }, 'Face recognition GUI launched');
     
   } catch (error) {

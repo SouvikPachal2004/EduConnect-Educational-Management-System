@@ -23,6 +23,15 @@ const activityLogRoutes = require('./routes/activityLog.routes');
 const faceRecognitionRoutes = require('./routes/faceRecognition.routes');
 const predictionRoutes = require('./routes/prediction.routes');
 const teacherRoutes = require('./routes/separateTeacher.routes');
+const hodRoutes = require('./routes/hod.routes');
+const managingAuthorityRoutes = require('./routes/managingAuthority.routes');
+const approvalRoutes = require('./routes/approval.routes');
+const subjectRoutes = require('./routes/subject.routes');
+const enrollmentRoutes = require('./routes/enrollment.routes');
+const meetingRoutes = require('./routes/meeting.routes');
+const announcementRoutes = require('./routes/announcement.routes');
+const programRoutes = require('./routes/program.routes');
+const courseRoutes = require('./routes/course.routes');
 
 // Connect to database
 connectDB();
@@ -31,13 +40,74 @@ connectDB();
 const app = express();
 const PORT = process.env.PORT || 5002;
 
-// Middleware
-app.use(cors());
+// Auto-cleanup: end old meetings from PREVIOUS days only (not today's meetings)
+async function cleanupOldMeetings() {
+    try {
+        const Meeting = require('./models/Meeting');
+        const Class = require('./models/Class');
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const oldMeetings = await Meeting.find({ isActive: true });
+        for (const m of oldMeetings) {
+            const day = new Date(m.createdAt); day.setHours(0,0,0,0);
+            const schedDay = m.scheduledDate ? new Date(m.scheduledDate) : null;
+            // Only clean up meetings from BEFORE today (not today's meetings)
+            const isOldDay = day < today;
+            const schedOld = schedDay && schedDay < today;
+            if (isOldDay && !schedDay || schedOld) {
+                m.isActive = false; m.endedAt = new Date(); await m.save();
+                if (m.classId) await Class.findByIdAndUpdate(m.classId, { meetingLink: '' });
+            }
+        }
+    } catch (e) { console.error('cleanupOldMeetings error:', e.message); }
+}
+setInterval(cleanupOldMeetings, 60 * 60 * 1000); // every hour
+cleanupOldMeetings(); // run once on startup
+
+// Auto-sync active meeting links to class records every 10 seconds
+// This ensures student dashboard shows Join button immediately when teacher starts
+async function syncActiveMeetingLinks() {
+    try {
+        const Meeting = require('./models/Meeting');
+        const Class = require('./models/Class');
+        const activeMeetings = await Meeting.find({ isActive: true, classId: { $ne: null } });
+        for (const m of activeMeetings) {
+            if (m.meetingLink && m.classId) {
+                await Class.findByIdAndUpdate(m.classId, { meetingLink: m.meetingLink });
+            }
+        }
+        // Also clear links for ended meetings
+        const endedMeetings = await Meeting.find({ isActive: false, classId: { $ne: null }, endedAt: { $exists: true } });
+        const endedClassIds = endedMeetings.map(m => String(m.classId));
+        // Only clear if no other active meeting exists for that class
+        for (const classId of new Set(endedClassIds)) {
+            const stillActive = await Meeting.findOne({ classId, isActive: true });
+            if (!stillActive) {
+                await Class.findByIdAndUpdate(classId, { meetingLink: '' });
+            }
+        }
+    } catch (e) { /* silent */ }
+}
+setInterval(syncActiveMeetingLinks, 10000); // every 10 seconds
+syncActiveMeetingLinks(); // run immediately on startup
+
+// Middleware — allow all origins (works on Render, Vercel, any domain)
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from frontend
-app.use(express.static(path.join(__dirname, '../frontend')));
+// Serve static files from frontend — no caching so changes are reflected immediately
+app.use(express.static(path.join(__dirname, '../frontend'), {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -53,6 +123,15 @@ app.use('/api/activity-logs', activityLogRoutes);
 app.use('/api/face-recognition', faceRecognitionRoutes);
 app.use('/api/prediction', predictionRoutes);
 app.use('/api/teacher', teacherRoutes);
+app.use('/api/hod', hodRoutes);
+app.use('/api/managing-authority', managingAuthorityRoutes);
+app.use('/api/approvals', approvalRoutes);
+app.use('/api/subjects', subjectRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
+app.use('/api/meetings', meetingRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/programs', programRoutes);
+app.use('/api/courses', courseRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

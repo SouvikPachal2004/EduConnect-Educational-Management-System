@@ -2,1066 +2,773 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - EduConnect</title>
     <link rel="icon" href="/images/favicon-32x32.png" sizes="32x32" type="image/png">
     <link rel="icon" href="/images/favicon-16x16.png" sizes="16x16" type="image/png">
-    <link rel="icon" href="/images/android-chrome-512x512.png" sizes="512x512" type="image/png">
-    <link rel="manifest" href="/images/site.webmanifest">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/notifications.css">
+    <style>
+        /* ── Modal Overlay ── */
+        .adm-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 9000;
+            align-items: center;
+            justify-content: center;
+        }
+        .adm-modal-overlay.open { display: flex; }
+        .adm-modal-box {
+            background: #fff;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 520px;
+            max-height: 92vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            animation: slideUp .2s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity:0; }
+            to   { transform: translateY(0);    opacity:1; }
+        }
+        .adm-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .adm-modal-header h3 { margin:0; font-size:1.1rem; color:#1e293b; font-weight:700; }
+        .adm-modal-close {
+            background: none; border: none; font-size: 1.4rem;
+            color: #94a3b8; cursor: pointer; line-height:1;
+        }
+        .adm-modal-close:hover { color:#1e293b; }
+        .adm-modal-body { padding: 1.5rem; }
+        .adm-form-group { margin-bottom: 1.1rem; }
+        .adm-form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.4rem;
+        }
+        .adm-form-group label span.req { color:#ef4444; }
+        .adm-input {
+            width: 100%;
+            padding: 0.65rem 0.9rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color .2s;
+            box-sizing: border-box;
+        }
+        .adm-input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.12); }
+        .adm-modal-footer {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .btn-cancel {
+            padding: 0.6rem 1.2rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: #fff;
+            color: #374151;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-cancel:hover { background: #f9fafb; }
+        .btn-save {
+            padding: 0.6rem 1.4rem;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-save:hover { opacity: 0.9; }
+        .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* ── Table Styles ── */
+        .adm-table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+        .adm-table th {
+            background: #f8fafc;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.82rem;
+            border-bottom: 1px solid #e2e8f0;
+            white-space: nowrap;
+        }
+        .adm-table td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #374151;
+            vertical-align: middle;
+        }
+        .adm-table tr:last-child td { border-bottom: none; }
+        .adm-table tr:hover td { background: #f8fafc; }
+
+        /* ── Status Badge ── */
+        .badge-active {
+            display: inline-block;
+            padding: 0.2rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+        .badge-na {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            color: #94a3b8;
+            background: #f1f5f9;
+        }
+        .badge-prog {
+            display: inline-block;
+            padding: 0.2rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+
+        /* ── Action Buttons ── */
+        .btn-edit-sm {
+            padding: 0.35rem 0.8rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: #fff;
+            color: #374151;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-edit-sm:hover { background: #f9fafb; }
+        .btn-del-sm {
+            padding: 0.35rem 0.8rem;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            background: #fff;
+            color: #ef4444;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-del-sm:hover { background: #fef2f2; }
+
+        /* ── Programs Table empty state ── */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #94a3b8;
+        }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; opacity:.4; display:block; }
+
+        /* notification toast */
+        .adm-toast {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            padding: 0.8rem 1.4rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #fff;
+            z-index: 99999;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            animation: fadeIn .2s ease;
+        }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+        .adm-toast.success { background: #22c55e; }
+        .adm-toast.error   { background: #ef4444; }
+        .adm-toast.info    { background: #667eea; }
+    </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <i class="fas fa-graduation-cap"></i>
-                    <span>EduConnect</span>
-                </div>
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                    <div class="user-info">
-                        <h3 id="adminName">Admin</h3>
-                        <p>System Administrator</p>
-                    </div>
-                </div>
+<div class="dashboard-container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>EduConnect</span>
             </div>
-            <ul class="sidebar-menu">
-                <li><a href="#" class="active" data-section="overview"><i class="fas fa-home"></i> Dashboard</a></li>
-                <li><a href="#" data-section="departments"><i class="fas fa-building"></i> Departments</a></li>
-                <li><a href="#" data-section="users"><i class="fas fa-users"></i> User Management</a></li>
-                <li><a href="#" data-section="courses"><i class="fas fa-book"></i> Course Catalog</a></li>
-                <li><a href="#" data-section="resources"><i class="fas fa-server"></i> System Resources</a></li>
-                <li><a href="#" data-section="settings"><i class="fas fa-cogs"></i> System Settings</a></li>
-                <li><a href="#" data-section="logs"><i class="fas fa-history"></i> Activity Logs</a></li>
-                <li><a href="#" data-section="reports"><i class="fas fa-chart-line"></i> Reports</a></li>
-            </ul>
-            <div class="sidebar-footer">
-                <button class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i>
-                    Logout
-                </button>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="header">
-                <div class="page-title">
-                    <button class="mobile-menu-toggle" id="mobileMenuToggle">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <h1>Admin Dashboard</h1>
-                    <p id="welcomeMessage">Welcome back! Here's what's happening with the system.</p>
+            <div class="user-profile">
+                <div class="user-avatar"><i class="fas fa-user-shield"></i></div>
+                <div class="user-info">
+                    <h3 id="adminName">Admin</h3>
+                    <p>System Administrator</p>
                 </div>
-                <div class="header-actions">
-                   
-                    <div class="notification-icon" id="notificationIcon">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">8</span>
-                    </div>
-                    <div class="user-avatar">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Notification Dropdown -->
-            <div class="notification-dropdown" id="notificationDropdown">
-                <div class="notification-header">
-                    <h3>Notifications</h3>
-                    <button class="mark-all-read">Mark all as read</button>
-                </div>
-                <div class="notification-list" id="notificationList">
-                    <!-- Notifications will be dynamically added here -->
-                </div>
-                <div class="notification-footer">
-                    <a href="#" class="view-all">View All Notifications</a>
-                </div>
-            </div>
-
-            <!-- Dashboard Overview Section -->
-            <section class="content-section active" id="overview">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-title">Total Departments</div>
-                            <div class="stat-card-icon dark-blue">
-                                <i class="fas fa-building"></i>
-                            </div>
-                        </div>
-                        <div class="stat-card-value">8</div>
-                        <div class="stat-card-change positive">
-                            <i class="fas fa-arrow-up"></i> 1 added this year
-                        </div>
-                        <div class="stat-card-chart">
-                            <canvas id="departmentChart" width="100" height="40"></canvas>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-title">Total Users</div>
-                            <div class="stat-card-icon blue">
-                                <i class="fas fa-users"></i>
-                            </div>
-                        </div>
-                        <div class="stat-card-value">1,248</div>
-                        <div class="stat-card-change positive">
-                            <i class="fas fa-arrow-up"></i> 124 new this month
-                        </div>
-                        <div class="stat-card-chart">
-                            <canvas id="userChart" width="100" height="40"></canvas>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-title">Active Courses</div>
-                            <div class="stat-card-icon navy">
-                                <i class="fas fa-book"></i>
-                            </div>
-                        </div>
-                        <div class="stat-card-value">142</div>
-                        <div class="stat-card-change positive">
-                            <i class="fas fa-arrow-up"></i> 12 from last semester
-                        </div>
-                        <div class="stat-card-chart">
-                            <canvas id="courseChart" width="100" height="40"></canvas>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-title">System Health</div>
-                            <div class="stat-card-icon teal">
-                                <i class="fas fa-heartbeat"></i>
-                            </div>
-                        </div>
-                        <div class="stat-card-value">98%</div>
-                        <div class="stat-card-change positive">
-                            <i class="fas fa-check-circle"></i> All systems operational
-                        </div>
-                        <div class="stat-card-chart">
-                            <canvas id="healthChart" width="100" height="40"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="dashboard-row">
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">System Status</h2>
-                            <a href="#" class="btn btn-outline btn-sm">View Details</a>
-                        </div>
-                        <div class="card-body">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Service</th>
-                                        <th>Status</th>
-                                        <th>Uptime</th>
-                                        <th>Last Check</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Database Server</td>
-                                        <td><span class="status-badge success">Operational</span></td>
-                                        <td>99.9%</td>
-                                        <td>5 min ago</td>
-                                        <td>
-                                            <a href="#" class="btn btn-sm btn-outline">Restart</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Authentication Service</td>
-                                        <td><span class="status-badge success">Operational</span></td>
-                                        <td>100%</td>
-                                        <td>2 min ago</td>
-                                        <td>
-                                            <a href="#" class="btn btn-sm btn-outline">Restart</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>File Storage</td>
-                                        <td><span class="status-badge warning">Degraded</span></td>
-                                        <td>97.5%</td>
-                                        <td>1 min ago</td>
-                                        <td>
-                                            <a href="#" class="btn btn-sm btn-outline">Check</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Notification Service</td>
-                                        <td><span class="status-badge success">Operational</span></td>
-                                        <td>99.8%</td>
-                                        <td>3 min ago</td>
-                                        <td>
-                                            <a href="#" class="btn btn-sm btn-outline">Restart</a>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">Resource Usage</h2>
-                            <a href="#" class="btn btn-outline btn-sm">View Details</a>
-                        </div>
-                        <div class="card-body">
-                            <div class="resource-usage">
-                                <div class="resource-item">
-                                    <div class="resource-info">
-                                        <span class="resource-name">CPU Usage</span>
-                                        <span class="resource-value">42%</span>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: 42%;"></div>
-                                    </div>
-                                </div>
-                                <div class="resource-item">
-                                    <div class="resource-info">
-                                        <span class="resource-name">Memory Usage</span>
-                                        <span class="resource-value">65%</span>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: 65%;"></div>
-                                    </div>
-                                </div>
-                                <div class="resource-item">
-                                    <div class="resource-info">
-                                        <span class="resource-name">Disk Space</span>
-                                        <span class="resource-value">78%</span>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: 78%;"></div>
-                                    </div>
-                                </div>
-                                <div class="resource-item">
-                                    <div class="resource-info">
-                                        <span class="resource-name">Network Traffic</span>
-                                        <span class="resource-value">125 Mbps</span>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: 45%;"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Recent System Activities</h2>
-                        <a href="#" class="btn btn-outline btn-sm">View All Logs</a>
-                    </div>
-                    <div class="card-body">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>Action</th>
-                                    <th>IP Address</th>
-                                    <th>Timestamp</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Dr. Priya Singh</td>
-                                    <td>Course creation</td>
-                                    <td>192.168.1.105</td>
-                                    <td>2023-10-15 09:24:33</td>
-                                    <td><span class="status-badge success">Success</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Prof. Amit Patel</td>
-                                    <td>Grade submission</td>
-                                    <td>192.168.1.42</td>
-                                    <td>2023-10-15 08:45:12</td>
-                                    <td><span class="status-badge success">Success</span></td>
-                                </tr>
-                                <tr>
-                                    <td>System</td>
-                                    <td>Backup completed</td>
-                                    <td>127.0.0.1</td>
-                                    <td>2023-10-15 03:00:00</td>
-                                    <td><span class="status-badge success">Success</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Student: Rohan Kumar</td>
-                                    <td>Login attempt</td>
-                                    <td>192.168.1.78</td>
-                                    <td>2023-10-14 22:15:44</td>
-                                    <td><span class="status-badge danger">Failed</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Departments Section -->
-            <section class="content-section" id="departments">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">College Departments</h2>
-                        <a href="#" class="btn btn-primary btn-sm">Add Department</a>
-                    </div>
-                    <div class="card-body">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Department Name</th>
-                                    <th>HOD</th>
-                                    <th>Faculty Count</th>
-                                    <th>Student Count</th>
-                                    <th>Established</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>CSE</td>
-                                    <td>Dr. Priya Singh</td>
-                                    <td>24</td>
-                                    <td>342</td>
-                                    <td>2010</td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline btn-danger">Delete</a>
-                                        <a href="#" class="btn btn-sm btn-outline">Edit</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>IT</td>
-                                    <td>Dr. Anil Verma</td>
-                                    <td>18</td>
-                                    <td>285</td>
-                                    <td>2005</td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline btn-danger">Delete</a>
-                                        <a href="#" class="btn btn-sm btn-outline">Edit</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CS-DS</td>
-                                    <td>Dr. Suresh Iyer</td>
-                                    <td>20</td>
-                                    <td>310</td>
-                                    <td>2008</td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline btn-danger">Delete</a>
-                                        <a href="#" class="btn btn-sm btn-outline">Edit</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>CSE-AIML</td>
-                                    <td>Dr. Meena Reddy</td>
-                                    <td>16</td>
-                                    <td>275</td>
-                                    <td>2012</td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline btn-danger">Delete</a>
-                                        <a href="#" class="btn btn-sm btn-outline">Edit</a>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- User Management Section -->
-            <section class="content-section" id="users">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">User Management</h2>
-                        <div>
-                            <select class="form-control" style="width: auto; display: inline-block; margin-right: 10px;" id="userRoleFilter">
-                                <option>All Users</option>
-                                <option>Students</option>
-                                <option>Faculty</option>
-                                <option>Staff</option>
-                                <option>Administrators</option>
-                            </select>
-                            <select class="form-control" style="width: auto; display: inline-block; margin-right: 10px;" id="userDepartmentFilter">
-                                <option>All Departments</option>
-                                <option>CSE</option>
-                                <option>IT</option>
-                                <option>CS-DS</option>
-                                <option>CSE-AIML</option>
-                            </select>
-                            <a href="#" class="btn btn-primary btn-sm" onclick="showAddUserModal()">Add User</a>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>User ID</th>
-                                    <th>Role</th>
-                                    <th>Department</th>
-                                    <th>Email</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Course Catalog Section -->
-            <section class="content-section" id="courses">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Course Catalog</h2>
-                        <div>
-                            <select class="form-control" style="width: auto; display: inline-block; margin-right: 10px;">
-                                <option>All Departments</option>
-                                <option>CSE</option>
-                                <option>IT</option>
-                                <option>CS-DS</option>
-                                <option>CSE-AIML</option>
-                            </select>
-                            <a href="#" class="btn btn-primary btn-sm">Add Course</a>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Course Code</th>
-                                    <th>Course Name</th>
-                                    <th>Department</th>
-                                    <th>Credits</th>
-                                    <th>Type</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- System Resources Section -->
-            <section class="content-section" id="resources">
-                <div class="dashboard-row">
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">System Resources</h2>
-                            <a href="#" class="btn btn-outline btn-sm">Refresh</a>
-                        </div>
-                        <div class="card-body">
-                            <div class="stats-grid">
-                                <div class="stat-card">
-                                    <div class="stat-card-header">
-                                        <div class="stat-card-title">CPU Usage</div>
-                                        <div class="stat-card-icon dark-blue">
-                                            <i class="fas fa-microchip"></i>
-                                        </div>
-                                    </div>
-                                    <div class="stat-card-value">42%</div>
-                                    <div class="stat-card-change">
-                                        <i class="fas fa-info-circle"></i> Normal
-                                    </div>
-                                    <div class="resource-chart">
-                                        <canvas id="cpuChart" width="100" height="100"></canvas>
-                                    </div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-card-header">
-                                        <div class="stat-card-title">Memory Usage</div>
-                                        <div class="stat-card-icon blue">
-                                            <i class="fas fa-memory"></i>
-                                        </div>
-                                    </div>
-                                    <div class="stat-card-value">65%</div>
-                                    <div class="stat-card-change">
-                                        <i class="fas fa-info-circle"></i> 8.2 GB of 12 GB
-                                    </div>
-                                    <div class="resource-chart">
-                                        <canvas id="memoryChart" width="100" height="100"></canvas>
-                                    </div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-card-header">
-                                        <div class="stat-card-title">Disk Space</div>
-                                        <div class="stat-card-icon navy">
-                                            <i class="fas fa-hdd"></i>
-                                        </div>
-                                    </div>
-                                    <div class="stat-card-value">78%</div>
-                                    <div class="stat-card-change">
-                                        <i class="fas fa-info-circle"></i> 312 GB of 400 GB
-                                    </div>
-                                    <div class="resource-chart">
-                                        <canvas id="diskChart" width="100" height="100"></canvas>
-                                    </div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-card-header">
-                                        <div class="stat-card-title">Network Traffic</div>
-                                        <div class="stat-card-icon teal">
-                                            <i class="fas fa-network-wired"></i>
-                                        </div>
-                                    </div>
-                                    <div class="stat-card-value">125 Mbps</div>
-                                    <div class="stat-card-change">
-                                        <i class="fas fa-info-circle"></i> In: 75 Mbps, Out: 50 Mbps
-                                    </div>
-                                    <div class="resource-chart">
-                                        <canvas id="networkChart" width="100" height="100"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">Storage Allocation</h2>
-                        </div>
-                        <div class="card-body">
-                            <div class="storage-chart">
-                                <canvas id="storageChart" width="400" height="200"></canvas>
-                            </div>
-                            <div class="storage-legend">
-                                <div class="legend-item">
-                                    <div class="legend-color" style="background-color: #303F9F;"></div>
-                                    <span>Database (11%)</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color" style="background-color: #3949AB;"></div>
-                                    <span>Course Materials (30%)</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color" style="background-color: #5C6BC0;"></div>
-                                    <span>User Files (21%)</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color" style="background-color: #7986CB;"></div>
-                                    <span>System Backups (16%)</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color" style="background-color: #C5CAE9;"></div>
-                                    <span>Other (22%)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- System Settings Section -->
-            <section class="content-section" id="settings">
-                <div class="dashboard-row">
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">System Settings</h2>
-                            <a href="#" class="btn btn-primary btn-sm">Save Changes</a>
-                        </div>
-                        <div class="card-body">
-                            <form id="systemSettingsForm">
-                                <div class="form-group">
-                                    <label for="systemName">System Name</label>
-                                    <input type="text" id="systemName" class="form-control" value="EduConnect">
-                                </div>
-                                <div class="form-group">
-                                    <label for="academicYear">Current Academic Year</label>
-                                    <input type="text" id="academicYear" class="form-control" value="2025-2026">
-                                </div>
-                                <div class="form-group">
-                                    <label for="semester">Current Semester</label>
-                                    <select id="semester" class="form-control">
-                                        <option value="odd" selected>Odd Semester</option>
-                                        <option value="even">Even Semester</option>
-                                    </select>
-                                </div>
-                            
-                                <div class="form-group">
-                                    <label for="backupFrequency">Backup Frequency</label>
-                                    <select id="backupFrequency" class="form-control">
-                                        <option value="daily">Daily</option>
-                                        <option value="weekly" selected>Weekly</option>
-                                        <option value="monthly">Monthly</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="sessionTimeout">Session Timeout (minutes)</label>
-                                    <input type="number" id="sessionTimeout" class="form-control" value="30">
-                                </div>
-                                <div class="form-group">
-                                    <label for="maxFileSize">Maximum File Upload Size (MB)</label>
-                                    <input type="number" id="maxFileSize" class="form-control" value="50">
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">Notification Settings</h2>
-                            <a href="#" class="btn btn-primary btn-sm">Save Changes</a>
-                        </div>
-                        <div class="card-body">
-                            <form id="notificationSettingsForm">
-                                <div class="form-group">
-                                    <label>Email Notifications</label>
-                                    <div class="toggle-container">
-                                        <div class="toggle-switch">
-                                            <input type="checkbox" id="emailNotifications" checked>
-                                            <label for="emailNotifications"></label>
-                                        </div>
-                                        <span>Enable email notifications</span>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label>SMS Notifications</label>
-                                    <div class="toggle-container">
-                                        <div class="toggle-switch">
-                                            <input type="checkbox" id="smsNotifications">
-                                            <label for="smsNotifications"></label>
-                                        </div>
-                                        <span>Enable SMS notifications</span>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label>Push Notifications</label>
-                                    <div class="toggle-container">
-                                        <div class="toggle-switch">
-                                            <input type="checkbox" id="pushNotifications" checked>
-                                            <label for="pushNotifications"></label>
-                                        </div>
-                                        <span>Enable push notifications</span>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="notificationFrequency">Notification Frequency</label>
-                                    <select id="notificationFrequency" class="form-control">
-                                        <option value="immediate" selected>Immediate</option>
-                                        <option value="hourly">Hourly</option>
-                                        <option value="daily">Daily</option>
-                                        <option value="weekly">Weekly</option>
-                                    </select>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Activity Logs Section -->
-            <section class="content-section" id="logs">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Activity Logs</h2>
-                        <div>
-                            <input type="date" class="form-control" style="width: auto; display: inline-block; margin-right: 10px;" id="activityLogDate">
-                            <button class="btn btn-outline btn-sm">Filter</button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>User</th>
-                                    <th>Action</th>
-                                    <th>IP Address</th>
-                                    <th>Details</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>2023-10-15 09:24:33</td>
-                                    <td>Dr. Priya Singh</td>
-                                    <td>Course creation</td>
-                                    <td>192.168.1.105</td>
-                                    <td>Created course CS401: Machine Learning</td>
-                                    <td><span class="status-badge success">Success</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2023-10-15 08:45:12</td>
-                                    <td>Prof. Amit Patel</td>
-                                    <td>Grade submission</td>
-                                    <td>192.168.1.42</td>
-                                    <td>Submitted grades for CS301: Data Structures</td>
-                                    <td><span class="status-badge success">Success</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2023-10-15 03:00:00</td>
-                                    <td>System</td>
-                                    <td>Backup completed</td>
-                                    <td>127.0.0.1</td>
-                                    <td>Daily backup completed successfully</td>
-                                    <td><span class="status-badge success">Success</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2023-10-14 22:15:44</td>
-                                    <td>Student: Rohan Kumar</td>
-                                    <td>Login attempt</td>
-                                    <td>192.168.1.78</td>
-                                    <td>Failed login attempt - invalid password</td>
-                                    <td><span class="status-badge danger">Failed</span></td>
-                                </tr>
-                                <tr>
-                                    <td>2023-10-14 18:30:21</td>
-                                    <td>Dr. Anil Verma</td>
-                                    <td>Timetable update</td>
-                                    <td>192.168.1.93</td>
-                                    <td>Updated timetable for Mechanical Engineering</td>
-                                    <td><span class="status-badge success">Success</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Reports Section -->
-            <section class="content-section" id="reports">
-                <div class="dashboard-row">
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">System Reports</h2>
-                            <a href="#" class="btn btn-primary btn-sm">Generate Report</a>
-                        </div>
-                        <div class="card-body">
-                            <div class="stats-grid">
-                                <div class="stat-card">
-                                    <div class="stat-card-header">
-                                        <div class="stat-card-title">System Uptime</div>
-                                        <div class="stat-card-icon dark-blue">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                    </div>
-                                    <div class="stat-card-value">99.8%</div>
-                                    <div class="stat-card-change positive">
-                                        <i class="fas fa-arrow-up"></i> 0.2% from last month
-                                    </div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-card-header">
-                                        <div class="stat-card-title">Active Users</div>
-                                        <div class="stat-card-icon blue">
-                                            <i class="fas fa-users"></i>
-                                        </div>
-                                    </div>
-                                    <div class="stat-card-value">856</div>
-                                    <div class="stat-card-change positive">
-                                        <i class="fas fa-arrow-up"></i> 42 from yesterday
-                                    </div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-card-header">
-                                        <div class="stat-card-title">Data Processed</div>
-                                        <div class="stat-card-icon navy">
-                                            <i class="fas fa-database"></i>
-                                        </div>
-                                    </div>
-                                    <div class="stat-card-value">2.4 TB</div>
-                                    <div class="stat-card-change positive">
-                                        <i class="fas fa-arrow-up"></i> 120 GB this week
-                                    </div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-card-header">
-                                        <div class="stat-card-title">API Requests</div>
-                                        <div class="stat-card-icon teal">
-                                            <i class="fas fa-exchange-alt"></i>
-                                        </div>
-                                    </div>
-                                    <div class="stat-card-value">1.2M</div>
-                                    <div class="stat-card-change positive">
-                                        <i class="fas fa-arrow-up"></i> 85K from yesterday
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Report Generation</h3>
-                        </div>
-                        <div class="card-body">
-                            <form id="reportForm">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="reportType">Report Type</label>
-                                        <select id="reportType" class="form-control">
-                                            <option value="system">System Health</option>
-                                            <option value="users">User Activity</option>
-                                            <option value="performance">Performance Metrics</option>
-                                            <option value="security">Security Audit</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="reportFormat">Format</label>
-                                        <select id="reportFormat" class="form-control">
-                                            <option value="pdf">PDF</option>
-                                            <option value="excel">Excel</option>
-                                            <option value="csv">CSV</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="reportDateRange">Date Range</label>
-                                        <select id="reportDateRange" class="form-control">
-                                            <option value="today">Today</option>
-                                            <option value="week">This Week</option>
-                                            <option value="month">This Month</option>
-                                            <option value="quarter">This Quarter</option>
-                                            <option value="year">This Year</option>
-                                            <option value="custom">Custom Range</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <button type="submit" class="btn btn-primary">Generate Report</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Recent Reports</h3>
-                    </div>
-                    <div class="card-body">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Report Name</th>
-                                    <th>Type</th>
-                                    <th>Generated Date</th>
-                                    <th>Generated By</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>System Health Report</td>
-                                    <td>System Health</td>
-                                    <td>2023-10-15</td>
-                                    <td>System</td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline">Download</a>
-                                        <a href="#" class="btn btn-sm btn-outline">View</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>User Activity Report</td>
-                                    <td>User Activity</td>
-                                    <td>2023-10-10</td>
-                                    <td>Mr. Rajeev Sharma</td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline">Download</a>
-                                        <a href="#" class="btn btn-sm btn-outline">View</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Performance Metrics Report</td>
-                                    <td>Performance Metrics</td>
-                                    <td>2023-10-05</td>
-                                    <td>System</td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline">Download</a>
-                                        <a href="#" class="btn btn-sm btn-outline">View</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Security Audit Report</td>
-                                    <td>Security Audit</td>
-                                    <td>2023-10-01</td>
-                                    <td>Mr. Rajeev Sharma</td>
-                                    <td>
-                                        <a href="#" class="btn btn-sm btn-outline">Download</a>
-                                        <a href="#" class="btn btn-sm btn-outline">View</a>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Add Department Modal -->
-    <div class="modal" id="addDepartmentModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Add New Department</h2>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="addDepartmentForm">
-                    <div class="form-group">
-                        <label for="deptName">Department Name</label>
-                        <input type="text" id="deptName" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="deptHOD">Head of Department</label>
-                        <input type="text" id="deptHOD" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="deptFaculty">Faculty Count</label>
-                        <input type="number" id="deptFaculty" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="deptStudents">Student Count</label>
-                        <input type="number" id="deptStudents" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="deptEstablished">Established Year</label>
-                        <input type="number" id="deptEstablished" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary">Add Department</button>
-                        <button type="button" class="btn btn-outline" id="cancelAddDept">Cancel</button>
-                    </div>
-                </form>
             </div>
         </div>
-    </div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="active" data-section="overview"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="#" data-section="programs"><i class="fas fa-university"></i> Programs</a></li>
+            <li><a href="#" data-section="departments"><i class="fas fa-building"></i> Departments</a></li>
+            <li><a href="#" data-section="users"><i class="fas fa-users"></i> User Management</a></li>
+            <li><a href="#" data-section="subjects"><i class="fas fa-book"></i> Subjects</a></li>
+            <li><a href="#" data-section="logs"><i class="fas fa-history"></i> Activity Logs</a></li>
+            <li><a href="#" data-section="reports"><i class="fas fa-chart-line"></i> Reports</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <button class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </div>
+    </aside>
 
-    <!-- Add User Modal -->
-    <div class="modal" id="addUserModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Add New User</h2>
-                <span class="close">&times;</span>
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="header">
+            <div class="page-title">
+                <button class="mobile-menu-toggle" id="mobileMenuToggle"><i class="fas fa-bars"></i></button>
+                <h1 id="pageTitle">Admin Dashboard</h1>
+                <p id="welcomeMessage">Welcome back! Here's what's happening with the system.</p>
             </div>
-            <div class="modal-body">
-                <form id="addUserForm">
-                    <div class="form-group">
-                        <label for="userName">Full Name</label>
-                        <input type="text" id="userName" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="userId">User ID</label>
-                        <input type="text" id="userId" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="userRole">Role</label>
-                        <select id="userRole" class="form-control" required>
-                            <option value="">Select Role</option>
-                            <option value="Student">Student</option>
-                            <option value="Faculty">Faculty</option>
-                            <option value="HOD">HOD</option>
-                            <option value="Staff">Staff</option>
-                            <option value="Administrator">Administrator</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="userDept">Department</label>
-                        <select id="userDept" class="form-control" required>
-                            <option value="">Select Department</option>
-                            <option value="CSE">CSE</option>
-                            <option value="IT">IT</option>
-                            <option value="CS-DS">CS-DS</option>
-                            <option value="CSE-AIML">CSE-AIML</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="userEmail">Email</label>
-                        <input type="email" id="userEmail" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="userPassword">Password</label>
-                        <input type="password" id="userPassword" class="form-control" required minlength="6" placeholder="Minimum 6 characters">
-                    </div>
-                    <div class="form-group">
-                        <label for="userStatus">Status</label>
-                        <select id="userStatus" class="form-control" required>
-                            <option value="Active">Active</option>
-                            <option value="Suspended">Suspended</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary">Add User</button>
-                        <button type="button" class="btn btn-outline" id="cancelAddUser">Cancel</button>
-                    </div>
-                </form>
+            <div class="header-actions">
+                <div class="notification-icon" id="notificationIcon">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">0</span>
+                </div>
+                <div class="user-avatar"><i class="fas fa-user-shield"></i></div>
             </div>
         </div>
-    </div>
 
-    <!-- Add Course Modal -->
-    <div class="modal" id="addCourseModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Add New Course</h2>
-                <span class="close">&times;</span>
+        <!-- ══════════════════ OVERVIEW ══════════════════ -->
+        <section class="content-section active" id="overview">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-card-title">Total Departments</div>
+                        <div class="stat-card-icon dark-blue"><i class="fas fa-building"></i></div>
+                    </div>
+                    <div class="stat-card-value" id="ovDeptCount">—</div>
+                    <div class="stat-card-change positive"><i class="fas fa-arrow-up"></i> Active departments</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-card-title">Total Users</div>
+                        <div class="stat-card-icon blue"><i class="fas fa-users"></i></div>
+                    </div>
+                    <div class="stat-card-value" id="ovUserCount">—</div>
+                    <div class="stat-card-change positive"><i class="fas fa-arrow-up"></i> Registered users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-card-title">Degree Programs</div>
+                        <div class="stat-card-icon navy"><i class="fas fa-university"></i></div>
+                    </div>
+                    <div class="stat-card-value" id="ovProgCount">—</div>
+                    <div class="stat-card-change positive"><i class="fas fa-arrow-up"></i> Active programs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-card-title">Pending Approvals</div>
+                        <div class="stat-card-icon teal"><i class="fas fa-clock"></i></div>
+                    </div>
+                    <div class="stat-card-value" id="pendingApprovalsValue">0</div>
+                    <div class="stat-card-change" id="pendingApprovalsChange"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+                </div>
             </div>
-            <div class="modal-body">
-                <form id="addCourseForm">
-                    <div class="form-group">
-                        <label for="courseCode">Course Code</label>
-                        <input type="text" id="courseCode" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="courseName">Course Name</label>
-                        <input type="text" id="courseName" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="courseDept">Department</label>
-                        <select id="courseDept" class="form-control" required>
-                            <option value="">Select Department</option>
-                            <option value="CSE">CSE</option>
-                            <option value="IT">IT</option>
-                            <option value="CS-DS">CS-DS</option>
-                            <option value="CSE-AIML">CSE-AIML</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="courseCredits">Credits</label>
-                        <input type="number" id="courseCredits" class="form-control" min="1" max="6" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="courseType">Type</label>
-                        <select id="courseType" class="form-control" required>
-                            <option value="Core">Core</option>
-                            <option value="Elective">Elective</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="courseStatus">Status</label>
-                        <select id="courseStatus" class="form-control" required>
-                            <option value="Active">Active</option>
-                            <option value="Pending Approval">Pending Approval</option>
-                            <option value="Inactive">Inactive</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary">Add Course</button>
-                        <button type="button" class="btn btn-outline" id="cancelAddCourse">Cancel</button>
-                    </div>
-                </form>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title"><i class="fas fa-bolt" style="color:#667eea;margin-right:6px;"></i>Recent Activity</h2>
+                    <a href="#" class="btn btn-outline btn-sm" onclick="document.querySelector('[data-section=logs]').click();return false;">View All</a>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead><tr><th>User</th><th>Action</th><th>Details</th><th>Time</th><th>Status</th></tr></thead>
+                        <tbody id="recentActivityBody">
+                            <tr><td colspan="5" style="text-align:center;padding:2rem;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
+        </section>
+
+        <!-- ══════════════════ PROGRAMS ══════════════════ -->
+        <section class="content-section" id="programs">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Degree Programs</h2>
+                    <button class="btn btn-primary btn-sm" onclick="openAddProgramModal()">Add Program</button>
+                </div>
+                <div class="card-body" style="padding:0;">
+                    <table class="adm-table" id="programsTable">
+                        <thead>
+                            <tr>
+                                <th>Program Code</th>
+                                <th>Program Name</th>
+                                <th>Duration</th>
+                                <th>Semesters</th>
+                                <th>Departments</th>
+                                <th>Subjects</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="programsTableBody">
+                            <tr><td colspan="8" class="empty-state"><i class="fas fa-spinner fa-spin"></i><span>Loading programs...</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════ DEPARTMENTS ══════════════════ -->
+        <section class="content-section" id="departments">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">College Departments</h2>
+                    <button class="btn btn-primary btn-sm" onclick="openAddDeptModal()">Add Department</button>
+                </div>
+                <div class="card-body" style="padding:0;">
+                    <table class="adm-table">
+                        <thead>
+                            <tr>
+                                <th>Department Name</th>
+                                <th>Program</th>
+                                <th>HOD</th>
+                                <th>Faculty Count</th>
+                                <th>Student Count</th>
+                                <th>Established</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deptsTableBody">
+                            <tr><td colspan="7" class="empty-state"><i class="fas fa-spinner fa-spin"></i><span>Loading departments...</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════ USERS ══════════════════ -->
+        <section class="content-section" id="users">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">User Management</h2>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+                        <select class="form-control" style="width:auto;" id="userRoleFilter">
+                            <option>All Users</option>
+                            <option>Students</option>
+                            <option>Faculty</option>
+                            <option>HOD</option>
+                            <option>Administrators</option>
+                        </select>
+                        <select class="form-control" style="width:auto;" id="userDepartmentFilter">
+                            <option>All Departments</option>
+                            <option>CSE</option><option>IT</option>
+                            <option>CSE(DS)</option><option>CSE(AI)</option><option>ECE</option>
+                        </select>
+                        <a href="#" class="btn btn-primary btn-sm" onclick="showAddUserModal()">Add User</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Name</th><th>User ID</th><th>Role</th><th>Department</th><th>Email</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════ SUBJECTS ══════════════════ -->
+        <section class="content-section" id="subjects">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Subject / Course Catalog</h2>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+                        <select class="form-control" style="width:auto;" id="courseProgramFilter">
+                            <option value="">All Programs</option>
+                        </select>
+                        <select class="form-control" style="width:auto;" id="courseDeptFilterBar">
+                            <option value="">All Departments</option>
+                            <option value="CSE">CSE</option><option value="IT">IT</option>
+                            <option value="CSE(DS)">CSE(DS)</option><option value="CSE(AI)">CSE(AI)</option>
+                            <option value="ECE">ECE</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" onclick="openAddSubjectModal()"><i class="fas fa-plus"></i> Add Subject</button>
+                    </div>
+                </div>
+                <div class="card-body" style="padding:0;">
+                    <table class="adm-table">
+                        <thead>
+                            <tr><th>Code</th><th>Subject Name</th><th>Program</th><th>Department</th><th>Credits</th><th>Semester</th><th>Type</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="subjectsTableBody">
+                            <tr><td colspan="8" class="empty-state"><i class="fas fa-spinner fa-spin"></i><span>Loading subjects...</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════ LOGS ══════════════════ -->
+        <section class="content-section" id="logs">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Activity Logs</h2>
+                    <div>
+                        <input type="date" class="form-control" style="width:auto;display:inline-block;margin-right:8px;" id="activityLogDate">
+                        <button class="btn btn-outline btn-sm" onclick="filterLogs()">Filter</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>IP Address</th><th>Details</th><th>Status</th></tr></thead>
+                        <tbody id="logsTableBody">
+                            <tr><td colspan="6" style="text-align:center;padding:2rem;color:#94a3b8;">Loading logs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════ REPORTS ══════════════════ -->
+        <section class="content-section" id="reports">
+            <div class="card">
+                <div class="card-header"><h2 class="card-title">System Reports</h2></div>
+                <div class="card-body">
+                    <form id="reportForm" style="max-width:480px;">
+                        <div class="form-group">
+                            <label>Report Type</label>
+                            <select id="reportType" class="form-control">
+                                <option value="system">System Health</option>
+                                <option value="users">User Activity</option>
+                                <option value="performance">Performance Metrics</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Format</label>
+                            <select id="reportFormat" class="form-control">
+                                <option value="pdf">PDF</option><option value="excel">Excel</option><option value="csv">CSV</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Date Range</label>
+                            <select id="reportDateRange" class="form-control">
+                                <option value="today">Today</option><option value="week">This Week</option>
+                                <option value="month">This Month</option><option value="year">This Year</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Generate Report</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════ -->
+
+<!-- Add Program Modal -->
+<div class="adm-modal-overlay" id="addProgramModal">
+    <div class="adm-modal-box">
+        <div class="adm-modal-header">
+            <h3><i class="fas fa-university" style="color:#667eea;margin-right:6px;"></i> Add Degree Program</h3>
+            <button class="adm-modal-close" onclick="closeModal('addProgramModal')">&times;</button>
+        </div>
+        <div class="adm-modal-body">
+            <form id="addProgramForm">
+                <div class="adm-form-group">
+                    <label>Program Name <span class="req">*</span></label>
+                    <input class="adm-input" id="progName" type="text" placeholder="e.g. Bachelor of Technology" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Program Code <span class="req">*</span></label>
+                    <input class="adm-input" id="progCode" type="text" placeholder="e.g. BTECH" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Description</label>
+                    <textarea class="adm-input" id="progDesc" rows="2" placeholder="Optional description"></textarea>
+                </div>
+                <div class="adm-form-group">
+                    <label>Duration (years)</label>
+                    <input class="adm-input" id="progDuration" type="number" min="1" max="6" value="4">
+                </div>
+                <div class="adm-form-group">
+                    <label>Total Semesters</label>
+                    <input class="adm-input" id="progSemesters" type="number" min="2" max="12" value="8">
+                </div>
+            </form>
+        </div>
+        <div class="adm-modal-footer">
+            <button class="btn-cancel" onclick="closeModal('addProgramModal')">Cancel</button>
+            <button class="btn-save" id="saveProgramBtn" onclick="submitAddProgram()">Create Program</button>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/admin.js?v=1.1"></script>
+<!-- Edit Program Modal -->
+<div class="adm-modal-overlay" id="editProgramModal">
+    <div class="adm-modal-box">
+        <div class="adm-modal-header">
+            <h3><i class="fas fa-edit" style="color:#667eea;margin-right:6px;"></i> Edit Program</h3>
+            <button class="adm-modal-close" onclick="closeModal('editProgramModal')">&times;</button>
+        </div>
+        <div class="adm-modal-body">
+            <form id="editProgramForm">
+                <input type="hidden" id="editProgId">
+                <div class="adm-form-group">
+                    <label>Program Name <span class="req">*</span></label>
+                    <input class="adm-input" id="editProgName" type="text" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Program Code <span class="req">*</span></label>
+                    <input class="adm-input" id="editProgCode" type="text" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Description</label>
+                    <textarea class="adm-input" id="editProgDesc" rows="2"></textarea>
+                </div>
+                <div class="adm-form-group">
+                    <label>Duration (years)</label>
+                    <input class="adm-input" id="editProgDuration" type="number" min="1" max="6">
+                </div>
+                <div class="adm-form-group">
+                    <label>Total Semesters</label>
+                    <input class="adm-input" id="editProgSemesters" type="number" min="2" max="12">
+                </div>
+            </form>
+        </div>
+        <div class="adm-modal-footer">
+            <button class="btn-cancel" onclick="closeModal('editProgramModal')">Cancel</button>
+            <button class="btn-save" id="updateProgramBtn" onclick="submitEditProgram()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Department Modal -->
+<div class="adm-modal-overlay" id="addDeptModal">
+    <div class="adm-modal-box">
+        <div class="adm-modal-header">
+            <h3><i class="fas fa-building" style="color:#667eea;margin-right:6px;"></i> Add Department</h3>
+            <button class="adm-modal-close" onclick="closeModal('addDeptModal')">&times;</button>
+        </div>
+        <div class="adm-modal-body">
+            <form id="addDeptForm">
+                <div class="adm-form-group">
+                    <label>Department Name <span class="req">*</span></label>
+                    <input class="adm-input" id="addDeptName" type="text" placeholder="e.g. CSE, IT, ECE" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Program (Degree)</label>
+                    <select class="adm-input" id="addDeptProgram">
+                        <option value="">— None —</option>
+                    </select>
+                </div>
+                <div class="adm-form-group">
+                    <label>Head of Department <span class="req">*</span></label>
+                    <input class="adm-input" id="addDeptHOD" type="text" placeholder="Dr. Full Name" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Established Year <span class="req">*</span></label>
+                    <input class="adm-input" id="addDeptEstablished" type="number" min="1900" max="2030" required placeholder="e.g. 2005">
+                </div>
+            </form>
+        </div>
+        <div class="adm-modal-footer">
+            <button class="btn-cancel" onclick="closeModal('addDeptModal')">Cancel</button>
+            <button class="btn-save" id="saveDeptBtn" onclick="submitAddDept()">Add Department</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Department Modal -->
+<div class="adm-modal-overlay" id="editDeptModal">
+    <div class="adm-modal-box">
+        <div class="adm-modal-header">
+            <h3>Edit Department</h3>
+            <button class="adm-modal-close" onclick="closeModal('editDeptModal')">&times;</button>
+        </div>
+        <div class="adm-modal-body">
+            <form id="editDeptForm">
+                <input type="hidden" id="editDeptId">
+                <div class="adm-form-group">
+                    <label>Department Name <span class="req">*</span></label>
+                    <input class="adm-input" id="editDeptName" type="text" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Program (Degree)</label>
+                    <select class="adm-input" id="editDeptProgram">
+                        <option value="">— None —</option>
+                    </select>
+                </div>
+                <div class="adm-form-group">
+                    <label>Head of Department <span class="req">*</span></label>
+                    <input class="adm-input" id="editDeptHOD" type="text" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Established Date</label>
+                    <input class="adm-input" id="editDeptEstablished" type="date">
+                </div>
+            </form>
+        </div>
+        <div class="adm-modal-footer">
+            <button class="btn-cancel" onclick="closeModal('editDeptModal')">Cancel</button>
+            <button class="btn-save" id="updateDeptBtn" onclick="submitEditDept()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Subject Modal -->
+<div class="adm-modal-overlay" id="addSubjectModal">
+    <div class="adm-modal-box">
+        <div class="adm-modal-header">
+            <h3><i class="fas fa-book" style="color:#667eea;margin-right:6px;"></i> Add Subject</h3>
+            <button class="adm-modal-close" onclick="closeModal('addSubjectModal')">&times;</button>
+        </div>
+        <div class="adm-modal-body">
+            <form id="addSubjectForm">
+                <div class="adm-form-group">
+                    <label>Subject Code <span class="req">*</span></label>
+                    <input class="adm-input" id="subCode" type="text" placeholder="e.g. CS301" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Subject Name <span class="req">*</span></label>
+                    <input class="adm-input" id="subName" type="text" required>
+                </div>
+                <div class="adm-form-group">
+                    <label>Program</label>
+                    <select class="adm-input" id="subProgram">
+                        <option value="">— Select Program —</option>
+                    </select>
+                </div>
+                <div class="adm-form-group">
+                    <label>Department</label>
+                    <select class="adm-input" id="subDept">
+                        <option value="">All Departments</option>
+                        <option value="CSE">CSE</option><option value="IT">IT</option>
+                        <option value="CSE(DS)">CSE(DS)</option><option value="CSE(AI)">CSE(AI)</option>
+                        <option value="ECE">ECE</option>
+                    </select>
+                </div>
+                <div class="adm-form-group">
+                    <label>Semester</label>
+                    <select class="adm-input" id="subSemester">
+                        <option value="">— Select —</option>
+                        <option value="1">Semester 1</option><option value="2">Semester 2</option>
+                        <option value="3">Semester 3</option><option value="4">Semester 4</option>
+                        <option value="5">Semester 5</option><option value="6">Semester 6</option>
+                        <option value="7">Semester 7</option><option value="8">Semester 8</option>
+                    </select>
+                </div>
+                <div class="adm-form-group">
+                    <label>Credits</label>
+                    <input class="adm-input" id="subCredits" type="number" min="1" max="6" value="3">
+                </div>
+                <div class="adm-form-group">
+                    <label>Type</label>
+                    <select class="adm-input" id="subType">
+                        <option value="Core">Core</option><option value="Elective">Elective</option>
+                        <option value="Lab">Lab</option><option value="Project">Project</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="adm-modal-footer">
+            <button class="btn-cancel" onclick="closeModal('addSubjectModal')">Cancel</button>
+            <button class="btn-save" id="saveSubjectBtn" onclick="submitAddSubject()">Add Subject</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal (existing) -->
+<div class="modal" id="addUserModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add New User</h2>
+            <span class="close" onclick="document.getElementById('addUserModal').style.display='none'">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="addUserForm">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="userName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Roll No. <small style="color:#94a3b8;">(auto-assigned for students when program is selected)</small></label>
+                    <input type="text" id="userId" class="form-control" placeholder="Select Program + Student role to auto-assign">
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="userRole" class="form-control" required>
+                        <option value="">Select Role</option>
+                        <option value="Student">Student</option>
+                        <option value="Faculty">Faculty</option>
+                        <option value="HOD">HOD</option>
+                        <option value="Administrator">Administrator</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Program <small style="color:#94a3b8;">(for students)</small></label>
+                    <select id="userProgram" class="form-control">
+                        <option value="">— Select Program —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Department</label>
+                    <select id="userDept" class="form-control" required>
+                        <option value="">Loading departments...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="userEmail" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="userPassword" class="form-control" required minlength="6" placeholder="Min 6 characters">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="userStatus" class="form-control" required>
+                        <option value="Active">Active</option>
+                        <option value="Suspended">Suspended</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Add User</button>
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('addUserModal').style.display='none'">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="notification-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/admin.js?v=4.0&t=20260612"></script>
+<script src="js/admin-programs.js?v=1.1&t=20260612"></script>
 </body>
 </html>

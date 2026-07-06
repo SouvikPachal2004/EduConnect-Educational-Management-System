@@ -10,6 +10,10 @@ const {
   exportDepartmentGrades,
   initializeDepartmentGrades
 } = require('../controllers/separateDepartmentGrade.controller');
+const {
+  getMyAssignedSubjects,
+  createClassForSubject,
+} = require('../controllers/subject.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
 
 const router = express.Router();
@@ -28,5 +32,9 @@ router.get('/department-grades', authorize('teacher'), getDepartmentGrades);
 router.get('/department-grades/student/:studentId', authorize('teacher'), getStudentDepartmentGrade);
 router.get('/department-grades/export', authorize('teacher'), exportDepartmentGrades);
 router.post('/department-grades/initialize', authorize('teacher'), initializeDepartmentGrades);
+
+// Subject-linked class creation
+router.get('/my-subjects', authorize('teacher'), getMyAssignedSubjects);
+router.post('/subjects/:id/create-class', authorize('teacher'), createClassForSubject);
 
 module.exports = router;

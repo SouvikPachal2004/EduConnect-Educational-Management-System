@@ -28,6 +28,12 @@ const departmentSchema = new mongoose.Schema({
     min: 1900,
     max: new Date().getFullYear()
   },
+  // Program this department belongs to (e.g. B.Tech, BCA, MCA)
+  program: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Program',
+    default: null,
+  },
   isActive: {
     type: Boolean,
     default: true

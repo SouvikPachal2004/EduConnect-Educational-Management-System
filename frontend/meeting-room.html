@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduConnect Meet</title>
+    <link rel="icon" href="/images/favicon-32x32.png" sizes="32x32" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/meeting-room.css">
+</head>
+<body>
+    <!-- ============ PRE-JOIN LOBBY ============ -->
+    <div id="lobby" class="lobby">
+        <div class="lobby-card">
+            <div class="lobby-brand">
+                <i class="fas fa-graduation-cap"></i>
+                <span>EduConnect <strong>Meet</strong></span>
+            </div>
+            <div class="lobby-preview">
+                <video id="lobbyVideo" autoplay muted playsinline></video>
+                <div id="lobbyCamOff" class="lobby-cam-off">
+                    <div class="avatar-circle" id="lobbyAvatar">U</div>
+                </div>
+                <div class="lobby-preview-controls">
+                    <button id="lobbyMicBtn" class="ctrl-btn" title="Toggle microphone">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="lobbyCamBtn" class="ctrl-btn" title="Toggle camera">
+                        <i class="fas fa-video"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="lobby-info">
+                <h2 id="lobbyMeetingTitle">Loading meeting...</h2>
+                <p id="lobbyMeetingMeta">Getting things ready</p>
+                <div class="lobby-name-input">
+                    <input type="text" id="lobbyNameInput" placeholder="Your name" />
+                </div>
+                <button id="joinNowBtn" class="join-now-btn">
+                    <i class="fas fa-video"></i> Join now
+                </button>
+                <p class="lobby-hint" id="lobbyHint">Check your camera and mic before joining</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ MEETING ROOM ============ -->
+    <div id="meetingRoom" class="meeting-room" style="display:none;">
+        <!-- Top bar -->
+        <header class="meet-topbar">
+            <div class="meet-topbar-left">
+                <i class="fas fa-graduation-cap meet-logo"></i>
+                <span id="meetTitle" class="meet-title">Class Meeting</span>
+                <span class="meet-divider">|</span>
+                <span id="meetClock" class="meet-clock">--:--</span>
+            </div>
+            <div class="meet-topbar-right">
+                <span class="meet-room-code" id="meetRoomCode">
+                    <i class="fas fa-hashtag"></i> <span id="roomCodeText"></span>
+                </span>
+                <button class="meet-icon-btn" id="copyLinkBtn" title="Copy meeting link">
+                    <i class="fas fa-link"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main area -->
+        <div class="meet-main">
+            <div class="meet-stage" id="meetStage">
+                <!-- Video grid -->
+                <div class="video-grid" id="videoGrid">
+                    <!-- Local + remote tiles injected here -->
+                </div>
+            </div>
+
+            <!-- Side panel (chat / participants) -->
+            <aside class="meet-panel" id="meetPanel" style="display:none;">
+                <div class="panel-header">
+                    <span id="panelTitle">In-call messages</span>
+                    <button class="meet-icon-btn" id="closePanelBtn"><i class="fas fa-times"></i></button>
+                </div>
+
+                <!-- Chat tab -->
+                <div id="chatPanel" class="panel-body">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-empty" id="chatEmpty">
+                            <i class="fas fa-comments"></i>
+                            <p>Messages are visible to everyone in the call</p>
+                        </div>
+                    </div>
+                    <div class="chat-input-row">
+                        <input type="text" id="chatInput" placeholder="Send a message to everyone" />
+                        <button id="chatSendBtn" class="chat-send-btn"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+
+                <!-- Participants tab -->
+                <div id="participantsPanel" class="panel-body" style="display:none;">
+                    <div class="participants-list" id="participantsList"></div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Bottom control bar -->
+        <footer class="meet-controls">
+            <div class="controls-left">
+                <span class="meet-info-pill" id="meetInfoPill">
+                    <i class="fas fa-user-group"></i> <span id="participantCount">1</span>
+                </span>
+            </div>
+            <div class="controls-center">
+                <button class="ctrl-btn" id="micBtn" title="Microphone">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button class="ctrl-btn" id="camBtn" title="Camera">
+                    <i class="fas fa-video"></i>
+                </button>
+                <button class="ctrl-btn" id="screenBtn" title="Present screen">
+                    <i class="fas fa-display"></i>
+                </button>
+                <button class="ctrl-btn" id="handBtn" title="Raise hand">
+                    <i class="fas fa-hand"></i>
+                </button>
+                <button class="ctrl-btn leave-btn" id="leaveBtn" title="Leave call">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+            </div>
+            <div class="controls-right">
+                <button class="ctrl-btn round-btn" id="participantsBtn" title="Participants">
+                    <i class="fas fa-user-group"></i>
+                </button>
+                <button class="ctrl-btn round-btn" id="chatBtn" title="Chat">
+                    <i class="fas fa-comment-dots"></i>
+                    <span class="chat-badge" id="chatBadge" style="display:none;">0</span>
+                </button>
+                <button class="ctrl-btn" id="endMeetingBtn" title="End meeting for everyone" style="display:none; background:#ef4444; color:#fff; border-radius:10px; font-size:0.75rem; padding:0 0.8rem; width:auto; gap:0.3rem; white-space:nowrap;">
+                    <i class="fas fa-stop-circle"></i> End
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ============ LEFT MEETING SCREEN ============ -->
+    <div id="leftScreen" class="left-screen" style="display:none;">
+        <div class="left-card">
+            <i class="fas fa-phone-slash left-icon"></i>
+            <h2>You left the meeting</h2>
+            <p id="leftMeetingName"></p>
+            <div class="left-actions">
+                <button id="rejoinBtn" class="left-btn primary"><i class="fas fa-rotate-right"></i> Rejoin</button>
+                <button id="homeBtn" class="left-btn"><i class="fas fa-home"></i> Return to dashboard</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/meeting-room.js"></script>
+</body>
+</html>

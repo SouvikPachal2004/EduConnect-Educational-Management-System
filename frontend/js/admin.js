@@ -1,56 +1,48 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Check authentication first
+    console.log('Admin Dashboard: DOMContentLoaded fired');
+    
+    // admin-programs.js handles the new dashboard UI fully.
+    // Only run legacy admin.js initialization if the legacy elements exist.
+    // The new dashboard (admin-programs.js) manages auth, nav, and data loading.
+    
+    // Check if we're on the new dashboard (has admin-programs.js elements)
+    if (document.getElementById('programsTableBody')) {
+        console.log('New admin dashboard detected — admin-programs.js handles initialization.');
+        // Only set up notifications and charts from legacy code
+        setupNotifications();
+        try { setupCharts(); } catch(e) {}
+        return;
+    }
+    
+    // Legacy initialization for old dashboard structure
     checkAuthentication();
-    
-    // Initialize dashboard
     initializeDashboard();
-    
-    // Setup navigation
     setupNavigation();
-    
-    // Setup mobile menu
     setupMobileMenu();
-    
-    // Setup interactive elements
     setupInteractiveElements();
-    
-    // Setup forms
     setupForms();
-    
-    // Setup data tables
     setupDataTables();
-    
-    // Setup notification system
     setupNotifications();
-    
-    // Setup system monitoring
-    setupSystemMonitoring();
-    
-    // Setup resource monitoring
     setupResourceMonitoring();
-    
-    // Setup activity logs
     setupActivityLogs();
-    
-    // Setup report generation
     setupReportGeneration();
-    
-    // Setup modals
     setupModals();
-    
-    // Setup charts
     setupCharts();
     
-    // Setup notification dropdown
-    setupNotificationDropdown();
+    console.log('Admin Dashboard: All initialization functions called');
 });
 
 // Check if user is authenticated
 function checkAuthentication() {
+    console.log('Admin Dashboard: Checking authentication...');
     const authToken = localStorage.getItem('authToken');
     const currentUser = localStorage.getItem('currentUser');
     
+    console.log('Auth token exists:', !!authToken);
+    console.log('Current user exists:', !!currentUser);
+    
     if (!authToken || !currentUser) {
+        console.log('No auth token or user, redirecting to login');
         // Redirect to login if not authenticated
         window.location.href = 'login.html';
         return;
@@ -58,11 +50,14 @@ function checkAuthentication() {
     
     try {
         const user = JSON.parse(currentUser);
+        console.log('Parsed user:', user);
         if (user.role !== 'admin') {
+            console.log('User is not admin, redirecting to appropriate dashboard');
             // Redirect to appropriate dashboard based on role
             redirectToDashboard(user.role);
             return;
         }
+        console.log('Authentication successful - user is admin');
     } catch (error) {
         console.error('Error parsing user data:', error);
         window.location.href = 'login.html';
@@ -108,50 +103,24 @@ function loadAdminUserInfo() {
 }
 
 // Load department options for dropdowns
+// Load department options for dropdowns
+// Uses hardcoded canonical list so it is always correct and instant (no API call needed).
 function loadDepartmentOptions() {
-    console.log('loadDepartmentOptions() called');
-    const departmentsTable = document.querySelector('#departments tbody');
-    if (!departmentsTable) {
-        console.log('Departments table not found');
-        return;
-    }
-    
-    // Define the specific departments
-    const departments = ['CSE', 'IT', 'CS-DS', 'CSE-AIML'];
-    
-    console.log('Departments found:', departments);
-    
-    // Update department dropdown in Add User modal
-    const userDeptSelect = document.getElementById('userDept');
-    if (userDeptSelect) {
-        console.log('Updating userDept dropdown');
-        // Keep the first "Select Department" option
-        let optionsHTML = '<option value="">Select Department</option>';
-        departments.forEach(dept => {
-            optionsHTML += `<option value="${dept}">${dept}</option>`;
-        });
-        
-        userDeptSelect.innerHTML = optionsHTML;
-        console.log('userDept dropdown updated with', departments.length, 'departments');
-    } else {
-        console.log('userDept select not found');
-    }
-    
-    // Update department dropdown in Add Course modal
+    const DEPARTMENTS = ['CSE', 'IT', 'CSE(DS)', 'CSE(AI)', 'ECE'];
+
+    const buildOptions = () => {
+        let html = '<option value="">Select Department</option>';
+        DEPARTMENTS.forEach(d => { html += `<option value="${d}">${d}</option>`; });
+        return html;
+    };
+
+    const userDeptSelect  = document.getElementById('userDept');
     const courseDeptSelect = document.getElementById('courseDept');
-    if (courseDeptSelect) {
-        console.log('Updating courseDept dropdown');
-        // Keep the first "Select Department" option
-        let optionsHTML = '<option value="">Select Department</option>';
-        departments.forEach(dept => {
-            optionsHTML += `<option value="${dept}">${dept}</option>`;
-        });
-        
-        courseDeptSelect.innerHTML = optionsHTML;
-        console.log('courseDept dropdown updated with', departments.length, 'departments');
-    } else {
-        console.log('courseDept select not found');
-    }
+
+    if (userDeptSelect)   userDeptSelect.innerHTML  = buildOptions();
+    if (courseDeptSelect) courseDeptSelect.innerHTML = buildOptions();
+
+    console.log('Department dropdowns populated:', DEPARTMENTS);
 }
 
 // Initialize dashboard components
@@ -178,20 +147,64 @@ function initializeDashboard() {
     // Initialize notification badge
     updateNotificationBadge(8);
     
-    // Initialize notification dropdown
-    populateNotificationDropdown();
+    // Notification dropdown is now handled by notifications.js
+    // populateNotificationDropdown(); // Disabled to prevent duplicate panels
     
-    // Load all dynamic data
-    loadDashboardStats();
-    loadDashboardResourceUsage(); // Add this line to load dashboard resource usage
-    loadDepartments();
-    loadUsers();
-    loadCourses();
-    loadSystemStatus();
-    loadResourceUsage();
-    loadActivityLogs();
-    loadReports();
-    loadStorageData();
+    // Load all dynamic data with error handling
+    try {
+        loadDashboardStats();
+    } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+    }
+    
+    try {
+        loadDepartments();
+    } catch (error) {
+        console.error('Error loading departments:', error);
+    }
+    
+    try {
+        loadUsers();
+    } catch (error) {
+        console.error('Error loading users:', error);
+    }
+    
+    try {
+        loadCourses();
+    } catch (error) {
+        console.error('Error loading courses:', error);
+    }
+    
+    try {
+        loadActivityLogs();
+    } catch (error) {
+        console.error('Error loading activity logs:', error);
+    }
+    
+    try {
+        loadReports();
+    } catch (error) {
+        console.error('Error loading reports:', error);
+    }
+
+    // Force immediate recent activity load to override any conflicts
+    setTimeout(() => {
+        try {
+            console.log('Force loading recent activity...');
+            loadRecentActivity();
+        } catch (error) {
+            console.error('Error force loading recent activity:', error);
+        }
+    }, 100);
+
+    // Auto-refresh recent activity every 30 seconds
+    setInterval(() => {
+        try {
+            loadRecentActivity();
+        } catch (error) {
+            console.error('Error in recent activity auto-refresh:', error);
+        }
+    }, 30000);
     
     // Setup charts after data is loaded
     setTimeout(setupCharts, 1500);
@@ -199,107 +212,166 @@ function initializeDashboard() {
 
 // Load dashboard statistics
 function loadDashboardStats() {
+    console.log('loadDashboardStats: Starting...');
     const authToken = localStorage.getItem('authToken');
-    
-    if (!authToken) return;
-    
-    // Fetch user count
-    fetch('http://localhost:5002/api/users?limit=1', {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-        }
+    if (!authToken) {
+        console.log('loadDashboardStats: No auth token found');
+        return;
+    }
+
+    console.log('loadDashboardStats: Auth token found, making API calls...');
+
+    // 1. Total Users (real)
+    fetch('/api/users?limit=1', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
-        if (data.success && data.data && data.data.pagination) {
-            const userStatCard = document.querySelector('#overview .stat-card:nth-child(2)');
-            if (userStatCard) {
-                const valueElement = userStatCard.querySelector('.stat-card-value');
-                const changeElement = userStatCard.querySelector('.stat-card-change');
-                if (valueElement) {
-                    valueElement.textContent = data.data.pagination.total.toLocaleString();
-                }
-                if (changeElement) {
-                    // Calculate new users this month (for demo, show a percentage)
-                    const newUsers = Math.floor(data.data.pagination.total * 0.1);
-                    changeElement.innerHTML = `<i class="fas fa-arrow-up"></i> ${newUsers} new this month`;
-                }
+        if (data.success && data.data?.pagination) {
+            const total = data.data.pagination.total;
+            const card = document.querySelector('#overview .stat-card:nth-child(2)');
+            if (card) {
+                card.querySelector('.stat-card-value').textContent = total.toLocaleString();
+                const newU = Math.max(1, Math.floor(total * 0.1));
+                card.querySelector('.stat-card-change').innerHTML =
+                    `<i class="fas fa-arrow-up"></i> ${newU} new this month`;
             }
         }
+    }).catch(console.error);
+
+    // 2. Active Courses / Classes (real)
+    fetch('/api/classes', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
     })
-    .catch(error => {
-        console.error('Error fetching user stats:', error);
-    });
-    
-    // Fetch classes count
-    fetch('http://localhost:5002/api/classes', {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
-        if (data.success && data.data && data.data.classes) {
-            const courseStatCard = document.querySelector('#overview .stat-card:nth-child(3)');
-            if (courseStatCard) {
-                const valueElement = courseStatCard.querySelector('.stat-card-value');
-                const changeElement = courseStatCard.querySelector('.stat-card-change');
-                if (valueElement) {
-                    valueElement.textContent = data.data.classes.length.toString();
-                }
-                if (changeElement) {
-                    const newCourses = Math.floor(data.data.classes.length * 0.08);
-                    changeElement.innerHTML = `<i class="fas fa-arrow-up"></i> ${newCourses} from last semester`;
-                }
+        if (data.success && data.data?.classes) {
+            const count = data.data.classes.length;
+            const card = document.querySelector('#overview .stat-card:nth-child(3)');
+            if (card) {
+                card.querySelector('.stat-card-value').textContent = count;
+                card.querySelector('.stat-card-change').innerHTML =
+                    `<i class="fas fa-arrow-up"></i> ${Math.max(1, Math.floor(count * 0.08))} from last semester`;
             }
         }
+    }).catch(console.error);
+
+    // 3. Total Departments (real)
+    fetch('/api/departments', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
     })
-    .catch(error => {
-        console.error('Error fetching classes stats:', error);
-    });
-    
-    // Department stats - fetch from API
-    fetch('http://localhost:5002/api/departments', {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
         if (data.success && data.data) {
-            const deptStatCard = document.querySelector('#overview .stat-card:nth-child(1)');
-            if (deptStatCard) {
-                const valueElement = deptStatCard.querySelector('.stat-card-value');
-                if (valueElement) {
-                    valueElement.textContent = data.data.count.toString();
-                }
-            }
+            const card = document.querySelector('#overview .stat-card:nth-child(1)');
+            if (card) card.querySelector('.stat-card-value').textContent = data.data.count;
         }
+    }).catch(console.error);
+
+    // 4. Pending Approvals (real)
+    fetch('/api/approvals?status=pending&limit=100', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
     })
-    .catch(error => {
-        console.error('Error fetching departments stats:', error);
-    });
-    
-    setTimeout(() => {
-        const healthStatCard = document.querySelector('#overview .stat-card:nth-child(4)');
-        if (healthStatCard) {
-            const valueElement = healthStatCard.querySelector('.stat-card-value');
-            const changeElement = healthStatCard.querySelector('.stat-card-change');
-            if (valueElement) {
-                const value = Math.floor(Math.random() * 5) + 95;
-                valueElement.textContent = `${value}%`;
-            }
-            if (changeElement) {
-                changeElement.innerHTML = '<i class="fas fa-check-circle"></i> All systems operational';
+    .then(r => r.json())
+    .then(data => {
+        const count = data.success ? (data.data?.requests?.length || data.data?.count || 0) : 0;
+        const valEl    = document.getElementById('pendingApprovalsValue');
+        const changeEl = document.getElementById('pendingApprovalsChange');
+        if (valEl) valEl.textContent = count;
+        if (changeEl) {
+            if (count === 0) {
+                changeEl.innerHTML = '<i class="fas fa-check-circle" style="color:#22c55e;"></i> No pending approvals';
+                changeEl.className = 'stat-card-change positive';
+            } else {
+                changeEl.innerHTML = `<i class="fas fa-exclamation-circle" style="color:#f59e0b;"></i> ${count} awaiting review`;
+                changeEl.className = 'stat-card-change';
             }
         }
-    }, 500);
+    }).catch(() => {
+        const valEl = document.getElementById('pendingApprovalsValue');
+        if (valEl) valEl.textContent = '0';
+    });
+
+    // 5. Recent Activity (real — from activity logs API)
+    loadRecentActivity(authToken);
+}
+
+// Load recent activity into dashboard table (top 5 from activity logs)
+function loadRecentActivity(authToken) {
+    console.log('loadRecentActivity called, authToken:', !!authToken);
+    if (!authToken) authToken = localStorage.getItem('authToken');
+    const tbody = document.getElementById('recentActivityBody');
+    if (!tbody) {
+        console.log('recentActivityBody element not found');
+        return;
+    }
+
+    console.log('Loading recent activity...');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
+
+    fetch('/api/activity-logs?limit=5', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+    })
+    .then(r => {
+        console.log('Recent Activity API Response status:', r.status);
+        console.log('Recent Activity API Response headers:', r.headers);
+        if (!r.ok) {
+            throw new Error(`HTTP error! status: ${r.status}`);
+        }
+        return r.json();
+    })
+    .then(data => {
+        console.log('Recent Activity API Response data:', data);
+        const logs = data.success ? (data.data?.logs || []) : [];
+        console.log('Processed logs count:', logs.length);
+
+        if (!logs.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#94a3b8;">No recent activity found</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = logs.map(log => {
+            const statusClass = log.status === 'success' ? 'success'
+                              : log.status === 'failed'  ? 'danger'
+                              : 'warning';
+            const statusLabel = log.status
+                ? (log.status.charAt(0).toUpperCase() + log.status.slice(1))
+                : 'Info';
+
+            // timestamp field (not createdAt)
+            const time  = log.timestamp ? timeAgo(new Date(log.timestamp)) : 'Recently';
+            // userName stored directly on log
+            const user    = log.userName || log.user?.name || 'System';
+            const action  = log.actionLabel || log.action || 'Action';
+            const details = log.description || '—';
+
+            return `<tr>
+                <td><strong>${escHtml(user)}</strong></td>
+                <td>${escHtml(action)}</td>
+                <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(details)}">${escHtml(details)}</td>
+                <td style="white-space:nowrap;">${time}</td>
+                <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+            </tr>`;
+        }).join('');
+    })
+    .catch(err => {
+        console.log('Recent Activity API Error:', err);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#94a3b8;">Unable to load activity</td></tr>';
+    });
+}
+
+// Helper: escape HTML
+function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Helper: time ago string
+function timeAgo(date) {
+    const diff = Math.floor((Date.now() - date) / 1000);
+    if (diff < 60)   return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    if (diff < 86400)return `${Math.floor(diff/3600)}h ago`;
+    return `${Math.floor(diff/86400)}d ago`;
 }
 
 // Load departments data
@@ -319,7 +391,7 @@ function loadDepartments() {
     }
     
     // Fetch departments from backend API
-    fetch('http://localhost:5002/api/departments', {
+    fetch('/api/departments', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -339,7 +411,7 @@ function loadDepartments() {
                     dept.hod,
                     dept.faculty,
                     dept.students,
-                    dept.established,
+                    dept.isActive,
                     dept._id
                 );
             });
@@ -377,7 +449,7 @@ function loadUsers() {
     
     // Fetch users from backend API
     console.log('Fetching users from API...');
-    fetch('http://localhost:5002/api/users?limit=100', {
+    fetch('/api/users?limit=100', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -464,7 +536,7 @@ function loadCourses() {
     }
     
     // Fetch classes from backend API
-    fetch('http://localhost:5002/api/classes', {
+    fetch('/api/classes', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -482,29 +554,23 @@ function loadCourses() {
                 const courseCode = course.code || course._id.substring(0, 8).toUpperCase();
                 const teacherName = course.teacher ? course.teacher.name : 'Not Assigned';
                 
-                // Parse credits, type, and department from description
-                let credits = 3; // Default value
+                // Use credits from course object, fallback to 10 if not specified
+                let credits = course.credits || 10;
                 let type = 'Core'; // Default value
                 let department = 'General'; // Default value
                 
-                // Try to extract information from description
+                // Try to extract information from description if available
                 if (course.description) {
-                    // Extract credits (assuming format like "Credits: 4")
-                    const creditsMatch = course.description.match(/Credits:\s*(\d+)/i);
-                    if (creditsMatch) {
-                        credits = parseInt(creditsMatch[1]);
-                    }
-                    
                     // Extract type (assuming format like "Type: Elective")
                     const typeMatch = course.description.match(/Type:\s*([^,]+)/i);
                     if (typeMatch) {
-                        type = typeMatch[1];
+                        type = typeMatch[1].trim();
                     }
                     
                     // Extract department (assuming format like "Department: Computer Science")
                     const deptMatch = course.description.match(/Department:\s*(.+)/i);
                     if (deptMatch) {
-                        department = deptMatch[1];
+                        department = deptMatch[1].trim();
                     }
                 }
                 
@@ -535,9 +601,16 @@ function loadCourses() {
 
 // Load system status data
 function loadSystemStatus() {
-    const systemStatusTable = document.querySelector('#overview .data-table tbody');
-    if (!systemStatusTable) return;
+    // DISABLED: This function was incorrectly targeting the recent activity table
+    // const systemStatusTable = document.querySelector('#overview .data-table tbody');
+    // if (!systemStatusTable) return;
     
+    // System status functionality has been removed from the overview section
+    // as it was conflicting with the recent activity table
+    console.log('System status loading disabled - was conflicting with recent activity');
+    return;
+    
+    /* 
     // Show loading message
     systemStatusTable.innerHTML = '<tr><td colspan="5" class="text-center">Loading system status...</td></tr>';
     
@@ -572,6 +645,7 @@ function loadSystemStatus() {
             systemStatusTable.appendChild(row);
         });
     }, 600);
+    */
 }
 
 // Load resource usage data for dashboard
@@ -727,7 +801,7 @@ function loadActivityLogs(startDate = null, endDate = null) {
     }
     
     // Build API URL with filters
-    let apiUrl = 'http://localhost:5002/api/activity-logs?limit=50';
+    let apiUrl = '/api/activity-logs?limit=50';
     
     // Add date filters if provided
     if (startDate) {
@@ -966,8 +1040,6 @@ function updatePageTitle(sectionId) {
         'departments': 'College Departments',
         'users': 'User Management',
         'courses': 'Course Catalog',
-        'resources': 'System Resources',
-        'settings': 'System Settings',
         'logs': 'Activity Logs',
         'reports': 'System Reports'
     };
@@ -1025,9 +1097,6 @@ function setupInteractiveElements() {
     
     // Course actions
     setupCourseActions();
-    
-    // System settings actions
-    setupSettingsActions();
     
     // Activity log actions
     setupLogActions();
@@ -1217,26 +1286,9 @@ function setupLogActions() {
 
 // Setup system status actions
 function setupSystemStatusActions() {
-    // Use event delegation for system status action buttons
-    const systemStatusTable = document.querySelector('#overview .data-table tbody');
-    if (systemStatusTable) {
-        systemStatusTable.addEventListener('click', function(e) {
-            const target = e.target;
-            
-            // Check if clicked on a button
-            if (target.classList.contains('btn') && target.classList.contains('btn-outline')) {
-                e.preventDefault();
-                const action = target.textContent.trim();
-                const serviceName = target.closest('tr').cells[0].textContent;
-                
-                if (action === 'Restart') {
-                    restartService(serviceName);
-                } else if (action === 'Check') {
-                    checkService(serviceName);
-                }
-            }
-        });
-    }
+    // DISABLED: System status actions were targeting the wrong table (recent activity)
+    console.log('System status actions disabled - was conflicting with recent activity');
+    return;
 }
 
 // Setup resource actions
@@ -1277,6 +1329,68 @@ function setupForms() {
         reportForm.addEventListener('submit', function(e) {
             e.preventDefault();
             generateReport();
+        });
+    }
+    
+    // Auto-populate User ID when role changes
+    const userRoleSelect = document.getElementById('userRole');
+    const userIdInput = document.getElementById('userId');
+    
+    if (userRoleSelect && userIdInput) {
+        userRoleSelect.addEventListener('change', async function() {
+            const selectedRole = this.value;
+            
+            // Only auto-populate for student role
+            if (selectedRole === 'Student') {
+                // Fetch the next available roll number
+                try {
+                    const authToken = localStorage.getItem('authToken');
+                    const response = await fetch('/api/users?role=student&limit=1&sort=-studentId', {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success && data.data && data.data.users && data.data.users.length > 0) {
+                        const lastStudent = data.data.users[0];
+                        let nextRollNumber = 1;
+                        
+                        if (lastStudent.studentId) {
+                            // Extract numeric part from studentId
+                            const numericPart = lastStudent.studentId.toString().replace(/\D/g, '');
+                            if (numericPart) {
+                                nextRollNumber = parseInt(numericPart) + 1;
+                            }
+                        }
+                        
+                        // Set the next roll number
+                        userIdInput.value = nextRollNumber;
+                        userIdInput.readOnly = true;
+                        userIdInput.style.backgroundColor = '#f0f0f0';
+                    } else {
+                        // No students found, start from 1
+                        userIdInput.value = '1';
+                        userIdInput.readOnly = true;
+                        userIdInput.style.backgroundColor = '#f0f0f0';
+                    }
+                } catch (error) {
+                    console.error('Error fetching next roll number:', error);
+                    // Fallback: allow manual entry
+                    userIdInput.value = '';
+                    userIdInput.readOnly = false;
+                    userIdInput.style.backgroundColor = '';
+                    showNotification('Could not fetch next roll number. Please enter manually.', 'warning');
+                }
+            } else {
+                // For other roles, clear the field and allow manual entry
+                userIdInput.value = '';
+                userIdInput.readOnly = false;
+                userIdInput.style.backgroundColor = '';
+                userIdInput.placeholder = 'Will be auto-generated';
+            }
         });
     }
 }
@@ -1357,6 +1471,9 @@ function setupNotifications() {
 }
 
 // Setup notification dropdown
+// Notification dropdown is now handled by the unified notification system (notifications.js)
+// The following functions have been disabled to prevent duplicate notification panels
+/*
 function setupNotificationDropdown() {
     const notificationIcon = document.getElementById('notificationIcon');
     const notificationDropdown = document.getElementById('notificationDropdown');
@@ -1455,9 +1572,9 @@ function markAllNotificationsAsRead() {
     
     // Update notification badge
     updateNotificationBadge(0);
-    
     showNotification('All notifications marked as read', 'success');
 }
+*/
 
 // Update notification badge
 function updateNotificationBadge(count) {
@@ -1528,11 +1645,13 @@ function removeNotification(notification) {
 
 // Setup system monitoring
 function setupSystemMonitoring() {
-    // Load initial system status data
-    loadSystemStatus();
+    // DISABLED: Load initial system status data was conflicting with recent activity
+    // loadSystemStatus();
     
-    // Simulate system status updates
-    setInterval(loadSystemStatus, 30000); // Update every 30 seconds
+    console.log('System monitoring disabled - was conflicting with recent activity');
+    
+    // DISABLED: Simulate system status updates
+    // setInterval(loadSystemStatus, 30000); // Update every 30 seconds
 }
 
 // Setup resource monitoring
@@ -1557,13 +1676,15 @@ function setupActivityLogs() {
     }, 30000); // Update every 30 seconds
 }
 
-// Setup system monitoring
+// Setup system monitoring (DUPLICATE - DISABLED)
 function setupSystemMonitoring() {
-    // Load initial system status data
-    loadSystemStatus();
+    // DISABLED: Load initial system status data was conflicting with recent activity
+    // loadSystemStatus();
     
-    // Simulate system status updates
-    setInterval(loadSystemStatus, 30000); // Update every 30 seconds
+    console.log('System monitoring disabled (second instance) - was conflicting with recent activity');
+    
+    // DISABLED: Simulate system status updates
+    // setInterval(loadSystemStatus, 30000); // Update every 30 seconds
 }
 
 // Setup resource monitoring
@@ -1824,6 +1945,7 @@ function setupModals() {
         addUserBtn.addEventListener('click', function(e) {
             e.preventDefault();
             addUserModal.style.display = 'block';
+            loadDepartmentOptions();
         });
     }
     
@@ -1841,13 +1963,8 @@ function setupModals() {
         });
     }
     
-    if (addUserForm) {
-        addUserForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            addUser();
-        });
-    }
-    
+    // NOTE: addUser submit handler is wired in admin-programs.js (avoid duplicate handler)
+
     // Add Course Modal
     const addCourseModal = document.getElementById('addCourseModal');
     const addCourseBtn = document.querySelector('#courses .btn-primary');
@@ -1923,25 +2040,33 @@ function addDepartment() {
         return;
     }
     
-    // Show adding message
-    const notification = showNotification('Adding department...', 'info', 0);
+    // Show request message
+    const notification = showNotification('Sending department request to principal...', 'info', 0);
     
     // Get auth token
     const authToken = localStorage.getItem('authToken');
     
-    // Make API call to create department
-    fetch('http://localhost:5002/api/departments', {
+    // Create a principal approval request instead of activating the department immediately
+    fetch('/api/approvals', {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            name: deptName,
-            hod: deptHOD,
-            faculty: parseInt(deptFaculty),
-            students: parseInt(deptStudents),
-            established: parseInt(deptEstablished)
+            requestType: 'department',
+            title: `New Department: ${deptName}`,
+            description: `Request to add ${deptName} as a new active department.`,
+            departmentData: {
+                name: deptName,
+                hod: deptHOD,
+                faculty: parseInt(deptFaculty),
+                students: parseInt(deptStudents),
+                established: parseInt(deptEstablished)
+            },
+            metadata: {
+                submittedFrom: 'admin-dashboard'
+            }
         })
     })
     .then(response => response.json())
@@ -1949,7 +2074,7 @@ function addDepartment() {
         removeNotification(notification);
         
         if (data.success) {
-            showNotification(`Department "${deptName}" added successfully`, 'success');
+            showNotification(`Department "${deptName}" request sent to principal for approval`, 'success');
             
             // Close modal
             const modal = document.getElementById('addDepartmentModal');
@@ -1958,54 +2083,51 @@ function addDepartment() {
                 document.getElementById('addDepartmentForm').reset();
             }
             
-            // Reload departments from database
-            loadDepartments();
         } else {
-            showNotification(data.message || 'Failed to add department', 'error');
+            showNotification(data.message || 'Failed to send department request', 'error');
         }
     })
     .catch(error => {
         removeNotification(notification);
-        console.error('Error adding department:', error);
-        showNotification('An error occurred while adding the department', 'error');
+        console.error('Error sending department request:', error);
+        showNotification('An error occurred while sending the department request', 'error');
     });
 }
 
 // Add department to table
-function addDepartmentToTable(name, hod, faculty, students, established, id) {
+function addDepartmentToTable(name, hod, faculty, students, isActive, id) {
     const departmentsTable = document.querySelector('#departments tbody');
     if (!departmentsTable) return;
     
     const row = document.createElement('tr');
-    row.dataset.departmentId = id; // Store department ID
+    row.dataset.departmentId = id;
+    
+    const statusBadge = isActive
+        ? '<span class="status-badge success">Active</span>'
+        : '<span class="status-badge danger">Inactive</span>';
     
     row.innerHTML = `
         <td>${name}</td>
         <td>${hod}</td>
         <td>${faculty}</td>
         <td>${students}</td>
-        <td>${established}</td>
+        <td>${statusBadge}</td>
         <td>
-            <a href="#" class="btn btn-sm btn-outline btn-danger">Delete</a>
-            <a href="#" class="btn btn-sm btn-outline">Edit</a>
+            <button class="btn btn-sm btn-outline btn-danger dept-delete-btn">Delete</button>
+            <button class="btn btn-sm btn-outline dept-edit-btn">Edit</button>
         </td>
     `;
     
-    // Add to table
     departmentsTable.appendChild(row);
     
-    // Add event listeners to new buttons
-    const deleteBtn = row.querySelector('a:first-child');
-    const editBtn = row.querySelector('a:last-child');
-    
-    deleteBtn.addEventListener('click', function(e) {
+    row.querySelector('.dept-delete-btn').addEventListener('click', function(e) {
         e.preventDefault();
         deleteDepartment(id, name);
     });
     
-    editBtn.addEventListener('click', function(e) {
+    row.querySelector('.dept-edit-btn').addEventListener('click', function(e) {
         e.preventDefault();
-        editDepartment(name);
+        editDepartment(id, name, hod, faculty, students);
     });
 }
 
@@ -2027,10 +2149,85 @@ function viewDepartmentDetails(departmentName) {
     showNotification(`Viewing details for ${departmentName}`, 'info');
 }
 
-// Edit department
-function editDepartment(departmentName) {
-    showNotification(`Editing ${departmentName}`, 'info');
+// Edit department — opens modal prefilled with current values
+function editDepartment(id, name, hod, faculty, students) {
+    const modal = document.getElementById('editDepartmentModal');
+    if (!modal) return;
+
+    // Prefill form
+    document.getElementById('editDeptId').value          = id   || '';
+    document.getElementById('editDeptHOD').value         = hod  || '';
+
+    // Set the select to the current name (fallback to first option if not found)
+    const nameSelect = document.getElementById('editDeptName');
+    const match = Array.from(nameSelect.options).find(o => o.value === name);
+    nameSelect.value = match ? name : nameSelect.options[0].value;
+
+    modal.style.display = 'block';
 }
+
+// Wire up edit-department modal on first call (runs once)
+(function setupEditDepartmentModal() {
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal   = document.getElementById('editDepartmentModal');
+        const form    = document.getElementById('editDepartmentForm');
+        const closeBtn = document.getElementById('closeEditDeptModal');
+        const cancelBtn = document.getElementById('cancelEditDept');
+
+        const closeModal = () => { if (modal) modal.style.display = 'none'; };
+
+        if (closeBtn)  closeBtn.addEventListener('click',  closeModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+        window.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+        if (form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const id          = document.getElementById('editDeptId').value;
+                const name        = document.getElementById('editDeptName').value;
+                const hod         = document.getElementById('editDeptHOD').value.trim();
+                const established = document.getElementById('editDeptEstablished').value;
+
+                if (!hod) { showNotification('Please enter the HOD name', 'error'); return; }
+
+                const authToken = localStorage.getItem('authToken');
+                const submitBtn = form.querySelector('[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
+
+                try {
+                    const payload = { name, hod };
+                    if (established) payload.established = parseInt(established);
+
+                    const res  = await fetch(`/api/departments/${id}`, {
+                        method : 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type' : 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        showNotification(`Department updated successfully`, 'success');
+                        closeModal();
+                        loadDepartments(); // Refresh table
+                    } else {
+                        showNotification(data.message || 'Failed to update department', 'error');
+                    }
+                } catch (err) {
+                    console.error('Edit department error:', err);
+                    showNotification('Network error while saving', 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Save Changes';
+                }
+            });
+        }
+    });
+}());
 
 // Delete department
 function deleteDepartment(departmentId, departmentName) {
@@ -2042,7 +2239,7 @@ function deleteDepartment(departmentId, departmentName) {
     const authToken = localStorage.getItem('authToken');
     
     // Make API call to delete department
-    fetch(`http://localhost:5002/api/departments/${departmentId}`, {
+    fetch(`/api/departments/${departmentId}`, {
         method: 'DELETE',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -2085,8 +2282,16 @@ function addUser() {
     const userPassword = document.getElementById('userPassword').value;
     const userStatus = document.getElementById('userStatus').value;
     
-    if (!userName || !userId || !userRole || !userDept || !userEmail || !userPassword || !userStatus) {
-        showNotification('Please fill in all fields', 'error');
+    // For student role, userId is required (roll number)
+    // For other roles, userId will be auto-generated on backend
+    if (!userName || !userRole || !userDept || !userEmail || !userPassword || !userStatus) {
+        showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+    
+    // For student role, userId (roll number) is required
+    if (userRole === 'Student' && !userId) {
+        showNotification('Student roll number is required', 'error');
         return;
     }
     
@@ -2118,7 +2323,7 @@ function addUser() {
     const backendRole = roleMap[userRole] || 'student';
     
     // Make API call to register user
-    fetch('http://localhost:5002/api/auth/register', {
+    fetch('/api/auth/register', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -2238,7 +2443,7 @@ function deleteUser(userName) {
         
         // In a real implementation, we would have the user ID stored in a data attribute
         // For demonstration purposes, we'll make a call to get all users and find the ID
-        fetch('http://localhost:5002/api/users?limit=1000', {
+        fetch('/api/users?limit=1000', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${authToken}`,
@@ -2259,7 +2464,7 @@ function deleteUser(userName) {
                 
                 if (foundUserId) {
                     // Make API call to delete user from database
-                    return fetch(`http://localhost:5002/api/users/${foundUserId}`, {
+                    return fetch(`/api/users/${foundUserId}`, {
                         method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${authToken}`,
@@ -2327,7 +2532,7 @@ function deleteUser(userName) {
         const authToken = localStorage.getItem('authToken');
         
         // First, we need to get all users to find the user ID
-        fetch('http://localhost:5002/api/users?limit=1000', {
+        fetch('/api/users?limit=1000', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${authToken}`,
@@ -2348,7 +2553,7 @@ function deleteUser(userName) {
                 
                 if (foundUserId) {
                     // Make API call to delete user from database
-                    return fetch(`http://localhost:5002/api/users/${foundUserId}`, {
+                    return fetch(`/api/users/${foundUserId}`, {
                         method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${authToken}`,
@@ -2484,7 +2689,7 @@ function addCourse() {
     };
     
     // Make API call to create class
-    fetch('http://localhost:5002/api/classes', {
+    fetch('/api/classes', {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -2714,7 +2919,7 @@ function updateCourse(courseId) {
     };
     
     // Make API call to update class
-    fetch(`http://localhost:5002/api/classes/${courseId}`, {
+    fetch(`/api/classes/${courseId}`, {
         method: 'PUT',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -2990,3 +3195,565 @@ function setupStorageChart() {
     ctx.fillStyle = 'white';
     ctx.fill();
 }
+
+
+// ═══════════════════════════════════════════════════════════════
+// ── PROGRAMS MODULE ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+
+let programsList = []; // cached programs for dropdowns
+
+// Load all programs and render cards
+async function loadPrograms() {
+    const grid = document.getElementById('programsGrid');
+    if (!grid) return;
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    grid.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:2rem; grid-column:1/-1;"><i class="fas fa-spinner fa-spin"></i> Loading programs...</p>';
+
+    try {
+        const res = await fetch('/api/programs', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+
+        if (data.success && data.data.programs.length > 0) {
+            programsList = data.data.programs;
+            grid.innerHTML = '';
+            data.data.programs.forEach(prog => renderProgramCard(prog, grid));
+            populateProgramDropdowns(data.data.programs);
+        } else {
+            programsList = [];
+            grid.innerHTML = `
+                <div style="grid-column:1/-1; text-align:center; padding:3rem; color:#94a3b8;">
+                    <i class="fas fa-university" style="font-size:3rem; margin-bottom:1rem; opacity:0.3;"></i>
+                    <p>No programs yet. Create your first degree program to get started.</p>
+                    <button class="btn btn-primary" onclick="showAddProgramModal()" style="margin-top:1rem;">
+                        <i class="fas fa-plus"></i> Create First Program
+                    </button>
+                </div>`;
+        }
+    } catch (err) {
+        console.error('loadPrograms error:', err);
+        grid.innerHTML = '<p style="color:#f44336; text-align:center; padding:2rem; grid-column:1/-1;">Error loading programs.</p>';
+    }
+}
+
+// Render a single program card
+function renderProgramCard(prog, container) {
+    const durationLabel = `${prog.duration} Year${prog.duration > 1 ? 's' : ''}`;
+    const semLabel = `${prog.totalSemesters} Semesters`;
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:1.5rem; box-shadow:0 2px 8px rgba(0,0,0,0.06); display:flex; flex-direction:column; gap:0.8rem;';
+    card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+                <div style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; display:inline-block; padding:0.5rem 0.9rem; border-radius:8px; font-weight:700; font-size:1rem; letter-spacing:0.5px; margin-bottom:0.5rem;">${escHtml(prog.code)}</div>
+                <h3 style="margin:0; font-size:1rem; color:#1e293b; font-weight:600;">${escHtml(prog.name)}</h3>
+            </div>
+            <span style="background:#f0fdf4; color:#15803d; padding:0.25rem 0.7rem; border-radius:20px; font-size:0.75rem; font-weight:600;">Active</span>
+        </div>
+        ${prog.description ? `<p style="margin:0; color:#64748b; font-size:0.88rem; line-height:1.5;">${escHtml(prog.description)}</p>` : ''}
+        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+            <span style="background:#ede9fe; color:#7c3aed; padding:0.25rem 0.7rem; border-radius:6px; font-size:0.8rem; font-weight:600;"><i class="fas fa-clock"></i> ${durationLabel}</span>
+            <span style="background:#fef9c3; color:#a16207; padding:0.25rem 0.7rem; border-radius:6px; font-size:0.8rem; font-weight:600;"><i class="fas fa-layer-group"></i> ${semLabel}</span>
+            <span style="background:#dbeafe; color:#1d4ed8; padding:0.25rem 0.7rem; border-radius:6px; font-size:0.8rem; font-weight:600;"><i class="fas fa-building"></i> ${prog.departmentCount || 0} Depts</span>
+            <span style="background:#fce7f3; color:#be185d; padding:0.25rem 0.7rem; border-radius:6px; font-size:0.8rem; font-weight:600;"><i class="fas fa-book"></i> ${prog.subjectCount || 0} Subjects</span>
+        </div>
+        <div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
+            <button onclick="viewProgramDetail('${prog._id}')" style="flex:1; padding:0.55rem; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.85rem;">
+                <i class="fas fa-eye"></i> View Details
+            </button>
+            <button onclick="deleteProgramById('${prog._id}', '${escHtml(prog.name)}')" style="padding:0.55rem 0.8rem; background:#fff; color:#ef4444; border:1px solid #fecaca; border-radius:8px; cursor:pointer; font-size:0.85rem;">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(card);
+}
+
+// Populate program dropdowns across the page
+function populateProgramDropdowns(programs) {
+    const selectors = ['#deptProgram', '#courseProgram', '#editDeptProgram', '#courseProgramFilter'];
+    selectors.forEach(sel => {
+        const el = document.querySelector(sel);
+        if (!el) return;
+        const placeholder = sel.includes('Filter') ? '<option value="">All Programs</option>' : '<option value="">Select Program (optional)</option>';
+        el.innerHTML = placeholder + programs.map(p => `<option value="${p._id}">${escHtml(p.name)} (${escHtml(p.code)})</option>`).join('');
+    });
+}
+
+// Show Add Program modal
+function showAddProgramModal() {
+    const modal = document.getElementById('addProgramModal');
+    if (modal) modal.style.display = 'block';
+}
+
+// View program details
+async function viewProgramDetail(programId) {
+    const prog = programsList.find(p => p._id === programId);
+    if (!prog) return;
+
+    document.getElementById('programDetailTitle').textContent = `${prog.name} (${prog.code})`;
+    document.getElementById('programDetailDuration').textContent = `${prog.duration} Years`;
+    document.getElementById('programDetailSemesters').textContent = prog.totalSemesters;
+    document.getElementById('programDetailDeptCount').textContent = prog.departmentCount || 0;
+    document.getElementById('programDetailSubjectCount').textContent = prog.subjectCount || 0;
+
+    // Hide grid, show detail
+    document.getElementById('programsGrid').style.display = 'none';
+    document.getElementById('programDetailView').style.display = 'block';
+
+    // Load departments for this program
+    const deptList = document.getElementById('programDeptsList');
+    deptList.innerHTML = '<p style="color:#94a3b8;">Loading...</p>';
+    const token = localStorage.getItem('authToken');
+    try {
+        const res = await fetch(`/api/programs/${programId}/departments`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (data.success && data.data.departments.length > 0) {
+            deptList.innerHTML = `<div style="display:flex; flex-wrap:wrap; gap:0.75rem;">
+                ${data.data.departments.map(d => `
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:0.85rem 1.2rem; min-width:180px;">
+                        <div style="font-weight:700; color:#1e293b;">${escHtml(d.name)}</div>
+                        <div style="font-size:0.82rem; color:#64748b; margin-top:0.25rem;">HOD: ${escHtml(d.hod || 'N/A')}</div>
+                        <div style="font-size:0.82rem; color:#64748b;">Faculty: ${d.faculty || 0} | Students: ${d.students || 0}</div>
+                    </div>
+                `).join('')}
+            </div>`;
+        } else {
+            deptList.innerHTML = '<p style="color:#94a3b8;">No departments linked to this program yet. Go to Departments and edit them to link a program.</p>';
+        }
+    } catch (err) {
+        deptList.innerHTML = '<p style="color:#f44336;">Error loading departments.</p>';
+    }
+}
+
+function closeProgramDetail() {
+    document.getElementById('programsGrid').style.display = '';
+    document.getElementById('programDetailView').style.display = 'none';
+}
+
+// Delete program
+async function deleteProgramById(id, name) {
+    if (!confirm(`Are you sure you want to deactivate the program "${name}"? Existing departments will NOT be deleted.`)) return;
+    const token = localStorage.getItem('authToken');
+    try {
+        const res = await fetch(`/api/programs/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (data.success) {
+            showNotification(`Program "${name}" deactivated`, 'success');
+            loadPrograms();
+        } else {
+            showNotification(data.message || 'Failed to deactivate program', 'error');
+        }
+    } catch (err) {
+        showNotification('Network error', 'error');
+    }
+}
+
+// Wire up Add Program form
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('addProgramForm');
+    if (form) {
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const name = document.getElementById('programName').value.trim();
+            const code = document.getElementById('programCode').value.trim();
+            const description = document.getElementById('programDescription').value.trim();
+            const duration = parseInt(document.getElementById('programDuration').value);
+            const totalSemesters = parseInt(document.getElementById('programSemesters').value);
+
+            if (!name || !code) { showNotification('Name and code are required', 'error'); return; }
+
+            const btn = form.querySelector('[type="submit"]');
+            btn.disabled = true; btn.textContent = 'Creating...';
+            const token = localStorage.getItem('authToken');
+            try {
+                const res = await fetch('/api/programs', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, code, description, duration, totalSemesters })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification(`Program "${name}" created successfully!`, 'success');
+                    document.getElementById('addProgramModal').style.display = 'none';
+                    form.reset();
+                    loadPrograms();
+                } else {
+                    showNotification(data.message || 'Failed to create program', 'error');
+                }
+            } catch (err) {
+                showNotification('Network error', 'error');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Create Program';
+            }
+        });
+    }
+
+    // Load programs when Programs section is clicked
+    const programsLink = document.querySelector('[data-section="programs"]');
+    if (programsLink) {
+        programsLink.addEventListener('click', function () {
+            setTimeout(loadPrograms, 50);
+        });
+    }
+
+    // Load courses when Courses section is clicked
+    const coursesLink = document.querySelector('[data-section="courses"]');
+    if (coursesLink) {
+        coursesLink.addEventListener('click', function () {
+            setTimeout(() => { loadAdminCourses(); loadPrograms(); }, 50);
+        });
+    }
+
+    // Course program filter
+    const courseProgramFilter = document.getElementById('courseProgramFilter');
+    if (courseProgramFilter) {
+        courseProgramFilter.addEventListener('change', loadAdminCourses);
+    }
+    const courseDeptFilterBar = document.getElementById('courseDeptFilterBar');
+    if (courseDeptFilterBar) {
+        courseDeptFilterBar.addEventListener('change', loadAdminCourses);
+    }
+
+    // Add Program modal close via overlay
+    const addProgModal = document.getElementById('addProgramModal');
+    if (addProgModal) {
+        window.addEventListener('click', e => { if (e.target === addProgModal) addProgModal.style.display = 'none'; });
+    }
+
+    // Wire up Add Course form (new version using /api/courses)
+    const addCourseForm = document.getElementById('addCourseForm');
+    if (addCourseForm) {
+        // Remove old inline submit listener and replace
+        addCourseForm.removeEventListener('submit', addCourse);
+        addCourseForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            await submitAddCourseForm();
+        });
+    }
+
+    // Wire up Add Department form to pass program
+    const addDeptForm = document.getElementById('addDepartmentForm');
+    if (addDeptForm) {
+        addDeptForm.removeEventListener('submit', addDepartment);
+        addDeptForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            addDepartmentWithProgram();
+        });
+    }
+
+    // Edit Department — wire in program field
+    const editDeptForm = document.getElementById('editDepartmentForm');
+    if (editDeptForm) {
+        editDeptForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const id = document.getElementById('editDeptId').value;
+            const name = document.getElementById('editDeptName').value;
+            const hod = document.getElementById('editDeptHOD').value.trim();
+            const established = document.getElementById('editDeptEstablished').value;
+            const program = document.getElementById('editDeptProgram').value || null;
+            if (!hod) { showNotification('Please enter the HOD name', 'error'); return; }
+            const token = localStorage.getItem('authToken');
+            const btn = editDeptForm.querySelector('[type="submit"]');
+            btn.disabled = true; btn.textContent = 'Saving...';
+            try {
+                const payload = { name, hod };
+                if (established) payload.established = parseInt(established);
+                if (program) payload.program = program;
+                const res = await fetch(`/api/departments/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('Department updated successfully', 'success');
+                    document.getElementById('editDepartmentModal').style.display = 'none';
+                    loadDepartments();
+                } else {
+                    showNotification(data.message || 'Failed to update department', 'error');
+                }
+            } catch (err) {
+                showNotification('Network error while saving', 'error');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Save Changes';
+            }
+        });
+    }
+});
+
+// Add department with program field
+async function addDepartmentWithProgram() {
+    const deptName = document.getElementById('deptName').value.trim();
+    const deptHOD = document.getElementById('deptHOD').value.trim();
+    const deptFaculty = document.getElementById('deptFaculty').value;
+    const deptStudents = document.getElementById('deptStudents').value;
+    const deptEstablished = document.getElementById('deptEstablished').value;
+    const deptProgram = document.getElementById('deptProgram').value || null;
+
+    if (!deptName || !deptHOD || !deptFaculty || !deptEstablished) {
+        showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+
+    const token = localStorage.getItem('authToken');
+    const notification = showNotification('Creating department...', 'info', 0);
+
+    try {
+        const res = await fetch('/api/departments', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: deptName,
+                hod: deptHOD,
+                faculty: parseInt(deptFaculty),
+                students: parseInt(deptStudents || 0),
+                established: parseInt(deptEstablished),
+                program: deptProgram,
+            })
+        });
+        const data = await res.json();
+        removeNotification(notification);
+        if (data.success) {
+            showNotification(`Department "${deptName}" created successfully!`, 'success');
+            document.getElementById('addDepartmentModal').style.display = 'none';
+            document.getElementById('addDepartmentForm').reset();
+            loadDepartments();
+        } else {
+            showNotification(data.message || 'Failed to create department', 'error');
+        }
+    } catch (err) {
+        removeNotification(notification);
+        showNotification('Network error', 'error');
+    }
+}
+
+// Override editDepartment to populate program dropdown
+function editDepartment(id, name, hod, faculty, students, programId) {
+    const modal = document.getElementById('editDepartmentModal');
+    if (!modal) return;
+
+    document.getElementById('editDeptId').value = id || '';
+    document.getElementById('editDeptHOD').value = hod || '';
+
+    const nameSelect = document.getElementById('editDeptName');
+    const match = Array.from(nameSelect.options).find(o => o.value === name);
+    nameSelect.value = match ? name : nameSelect.options[0].value;
+
+    // Set program
+    const progSelect = document.getElementById('editDeptProgram');
+    if (progSelect && programId) {
+        progSelect.value = programId;
+    } else if (progSelect) {
+        progSelect.value = '';
+    }
+
+    // Populate program dropdown if not already
+    if (programsList.length > 0) {
+        populateProgramDropdowns(programsList);
+        if (progSelect && programId) progSelect.value = programId;
+    }
+
+    modal.style.display = 'block';
+}
+
+// Updated addDepartmentToTable to show program column
+function addDepartmentToTable(name, hod, faculty, students, isActive, id, programData) {
+    const departmentsTable = document.querySelector('#departments tbody');
+    if (!departmentsTable) return;
+
+    const row = document.createElement('tr');
+    row.dataset.departmentId = id;
+
+    const statusBadge = isActive
+        ? '<span class="status-badge success">Active</span>'
+        : '<span class="status-badge danger">Inactive</span>';
+
+    const progName = programData
+        ? `<span style="background:#ede9fe; color:#7c3aed; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.78rem; font-weight:600;">${escHtml(programData.code || programData.name)}</span>`
+        : '<span style="color:#94a3b8; font-size:0.82rem;">N/A</span>';
+
+    row.innerHTML = `
+        <td><strong>${escHtml(name)}</strong></td>
+        <td>${progName}</td>
+        <td>${escHtml(hod || 'N/A')}</td>
+        <td>${faculty}</td>
+        <td>${students}</td>
+        <td>${statusBadge}</td>
+        <td>
+            <button class="btn btn-sm btn-outline btn-danger dept-delete-btn">Delete</button>
+            <button class="btn btn-sm btn-outline dept-edit-btn">Edit</button>
+        </td>
+    `;
+
+    departmentsTable.appendChild(row);
+
+    row.querySelector('.dept-delete-btn').addEventListener('click', function (e) {
+        e.preventDefault();
+        deleteDepartment(id, name);
+    });
+
+    row.querySelector('.dept-edit-btn').addEventListener('click', function (e) {
+        e.preventDefault();
+        const progId = programData ? programData._id : null;
+        editDepartment(id, name, hod, faculty, students, progId);
+    });
+}
+
+// Updated loadDepartments to show program
+function loadDepartments() {
+    const departmentsTable = document.querySelector('#departments tbody');
+    if (!departmentsTable) return;
+    departmentsTable.innerHTML = '<tr><td colspan="7" class="text-center">Loading departments...</td></tr>';
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) { departmentsTable.innerHTML = '<tr><td colspan="7" class="text-center">Please login</td></tr>'; return; }
+
+    // Also load programs for dropdowns
+    if (programsList.length === 0) {
+        fetch('/api/programs', { headers: { 'Authorization': `Bearer ${authToken}` } })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { programsList = data.data.programs; populateProgramDropdowns(data.data.programs); }
+            }).catch(() => {});
+    } else {
+        populateProgramDropdowns(programsList);
+    }
+
+    fetch('/api/departments', { method: 'GET', headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' } })
+        .then(response => response.json())
+        .then(data => {
+            departmentsTable.innerHTML = '';
+            if (data.success && data.data && data.data.departments && data.data.departments.length > 0) {
+                data.data.departments.forEach(dept => {
+                    addDepartmentToTable(dept.name, dept.hod, dept.faculty, dept.students, dept.isActive, dept._id, dept.program);
+                });
+            } else {
+                departmentsTable.innerHTML = '<tr><td colspan="7" class="text-center">No departments found</td></tr>';
+            }
+            loadDepartmentOptions();
+        })
+        .catch(error => {
+            console.error('Error fetching departments:', error);
+            departmentsTable.innerHTML = '<tr><td colspan="7" class="text-center">Error loading departments.</td></tr>';
+        });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ── ADMIN COURSES MODULE (using /api/courses) ────────────────────
+// ═══════════════════════════════════════════════════════════════
+
+async function loadAdminCourses() {
+    const tbody = document.getElementById('coursesTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading subjects...</td></tr>';
+
+    const token = localStorage.getItem('authToken');
+    const programFilter = document.getElementById('courseProgramFilter')?.value || '';
+    const deptFilter = document.getElementById('courseDeptFilterBar')?.value || '';
+
+    let url = '/api/courses?';
+    if (programFilter) url += `program=${programFilter}&`;
+    if (deptFilter) url += `department=${deptFilter}&`;
+
+    try {
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+
+        if (data.success && data.data.courses.length > 0) {
+            tbody.innerHTML = '';
+            data.data.courses.forEach(course => {
+                const row = document.createElement('tr');
+                row.dataset.courseId = course._id;
+                row.innerHTML = `
+                    <td><strong>${escHtml(course.code)}</strong></td>
+                    <td>${escHtml(course.name)}</td>
+                    <td>${course.program ? `<span style="background:#ede9fe;color:#7c3aed;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.78rem;font-weight:600;">${escHtml(course.program.code)}</span>` : '<span style="color:#94a3b8;font-size:0.82rem;">N/A</span>'}</td>
+                    <td>${escHtml(course.department || '—')}</td>
+                    <td>${course.credits}</td>
+                    <td>${course.semester || '—'}</td>
+                    <td><span style="background:#dbeafe;color:#1d4ed8;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.78rem;font-weight:600;">${escHtml(course.type || 'Core')}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline btn-danger" onclick="deleteAdminCourse('${course._id}', '${escHtml(course.name)}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding:2rem; color:#94a3b8;">No subjects found. Add your first subject above.</td></tr>';
+        }
+    } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="color:#f44336;">Error loading subjects.</td></tr>';
+    }
+}
+
+async function submitAddCourseForm() {
+    const code = document.getElementById('courseCode').value.trim();
+    const name = document.getElementById('courseName').value.trim();
+    const program = document.getElementById('courseProgram').value || null;
+    const dept = document.getElementById('courseDept').value || null;
+    const semester = document.getElementById('courseSemester').value || null;
+    const credits = parseInt(document.getElementById('courseCredits').value) || 3;
+    const type = document.getElementById('courseType').value || 'Core';
+
+    if (!code || !name) { showNotification('Subject code and name are required', 'error'); return; }
+
+    const token = localStorage.getItem('authToken');
+    const btn = document.querySelector('#addCourseForm [type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Adding...'; }
+
+    try {
+        const res = await fetch('/api/courses', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, name, program, department: dept, semester, credits, type })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showNotification(`Subject "${name}" added successfully!`, 'success');
+            document.getElementById('addCourseModal').style.display = 'none';
+            document.getElementById('addCourseForm').reset();
+            loadAdminCourses();
+        } else {
+            showNotification(data.message || 'Failed to add subject', 'error');
+        }
+    } catch (err) {
+        showNotification('Network error', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Add Subject'; }
+    }
+}
+
+async function deleteAdminCourse(id, name) {
+    if (!confirm(`Delete subject "${name}"?`)) return;
+    const token = localStorage.getItem('authToken');
+    try {
+        const res = await fetch(`/api/courses/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (data.success) { showNotification(`Subject "${name}" deleted`, 'success'); loadAdminCourses(); }
+        else showNotification(data.message || 'Failed to delete', 'error');
+    } catch (err) { showNotification('Network error', 'error'); }
+}
+
+// Patch setupNavigation to handle programs tab
+const _origSetupNavigation = typeof setupNavigation === 'function' ? setupNavigation : null;
+document.addEventListener('DOMContentLoaded', function () {
+    // Update page title map for programs
+    const originalUpdatePageTitle = updatePageTitle;
+    // Override to add programs title
+    window.updatePageTitle = function (sectionId) {
+        const titles = {
+            'overview': 'Admin Dashboard',
+            'programs': 'Degree Programs',
+            'departments': 'College Departments',
+            'users': 'User Management',
+            'courses': 'Subject / Course Catalog',
+            'logs': 'Activity Logs',
+            'reports': 'System Reports'
+        };
+        const title = titles[sectionId] || 'Admin Dashboard';
+        const pageTitleElement = document.querySelector('.page-title h1');
+        if (pageTitleElement) pageTitleElement.textContent = title;
+    };
+});

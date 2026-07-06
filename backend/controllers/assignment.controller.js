@@ -57,36 +57,100 @@ const createAssignment = async (req, res) => {
 // Get all assignments
 const getAllAssignments = async (req, res) => {
   try {
-    const { classId, status, page = 1, limit = 10 } = req.query;
+    const { classId, status, page = 1, limit = 50 } = req.query;
     
     // Build filter
     const filter = {};
     if (classId) filter.class = classId;
-    if (status) filter.status = status;
+
+    // Students only see published assignments
+    if (req.user.role === 'student') {
+      filter.status = 'published';
+    } else if (status) {
+      filter.status = status;
+    }
+
+    // Teacher and HOD only see assignments THEY created (their own subjects)
+    if (req.user.role === 'teacher' || req.user.role === 'hod') {
+      filter.teacher = req.user.id;
+    }
+    
+    // For students: filter assignments from their department's classes (teachers + HODs)
+    if (req.user.role === 'student') {
+      const User = require('../models/User');
+      const studentUser = await User.findById(req.user.id).select('department');
+      if (studentUser?.department) {
+        const { getDepartmentAliases, normalizeDepartmentName } = require('../utils/departmentCatalog');
+        const canonical = normalizeDepartmentName(studentUser.department) || studentUser.department;
+        const aliases = getDepartmentAliases ? getDepartmentAliases(canonical) : [canonical, studentUser.department];
+
+        // Find all teachers AND HODs in the student's department
+        const deptStaff = await User.find({
+          role: { $in: ['teacher', 'hod'] },
+          department: { $in: aliases }
+        }).select('_id');
+        const staffIds = deptStaff.map(s => s._id);
+
+        // Get classes taught by any dept staff member
+        const deptClasses = await Class.find({ teacher: { $in: staffIds } }).select('_id');
+        const deptClassIds = deptClasses.map(c => c._id);
+
+        filter.$or = [
+          { class: { $in: deptClassIds } },   // assignments linked to dept classes
+          { teacher: { $in: staffIds } }       // assignments created by dept staff (HOD direct)
+        ];
+        if (classId) {
+          filter.$or = [{ class: classId }];   // override if specific class requested
+        }
+      }
+    }
     
     // Pagination
-    const skip = (page - 1) * limit;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
     
     // Get assignments
     const assignments = await Assignment.find(filter)
       .populate([
         { path: 'class', select: 'name code' },
-        { path: 'teacher', select: 'name email' }
+        { path: 'teacher', select: 'name email department' }
       ])
       .skip(skip)
       .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
+      .sort({ dueDate: 1 });
       
     // Get total count
     const total = await Assignment.countDocuments(filter);
     
+    // For students: attach submission info to each assignment
+    let enrichedAssignments = assignments;
+    if (req.user.role === 'student') {
+      const assignmentIds = assignments.map(a => a._id);
+      const submissions = await Submission.find({
+        assignment: { $in: assignmentIds },
+        student: req.user.id,
+      }).lean();
+
+      const submissionMap = {};
+      submissions.forEach(s => {
+        submissionMap[s.assignment.toString()] = s;
+      });
+
+      enrichedAssignments = assignments.map(a => {
+        const aObj = a.toObject();
+        const sub  = submissionMap[a._id.toString()];
+        aObj.submitted = !!sub;
+        aObj.submission = sub || null;
+        return aObj;
+      });
+    }
+    
     successResponse(res, {
-      assignments,
+      assignments: enrichedAssignments,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / parseInt(limit)),
       },
     }, 'Assignments fetched successfully');
   } catch (error) {
@@ -191,8 +255,8 @@ const deleteAssignment = async (req, res) => {
       return errorResponse(res, 'Assignment not found', 404);
     }
     
-    // Check if user is the teacher of this assignment
-    if (assignment.teacher.toString() !== req.user.id) {
+    // Check if user is the teacher of this assignment (or HOD/admin)
+    if (assignment.teacher.toString() !== req.user.id && req.user.role !== 'hod' && req.user.role !== 'admin') {
       return errorResponse(res, 'Not authorized to delete this assignment', 403);
     }
     
@@ -231,10 +295,24 @@ const submitAssignment = async (req, res) => {
       return errorResponse(res, 'Only students can submit assignments', 403);
     }
     
-    // Check if student is enrolled in the class
+    // Check if student is enrolled in the class OR is from the same department
     const classItem = await Class.findById(assignment.class);
-    if (!classItem.students.includes(req.user.id)) {
-      return errorResponse(res, 'Not enrolled in this class', 403);
+    if (classItem) {
+      const isEnrolled = classItem.students.some(s => s.toString() === req.user.id.toString());
+      if (!isEnrolled) {
+        // Also allow if student is in the same department as the assignment teacher
+        const User = require('../models/User');
+        const [student, teacher] = await Promise.all([
+          User.findById(req.user.id).select('department'),
+          User.findById(assignment.teacher).select('department role'),
+        ]);
+        const { normalizeDepartmentName } = require('../utils/departmentCatalog');
+        const studentDept  = normalizeDepartmentName(student?.department) || student?.department;
+        const teacherDept  = normalizeDepartmentName(teacher?.department) || teacher?.department;
+        if (!studentDept || !teacherDept || studentDept !== teacherDept) {
+          return errorResponse(res, 'Not enrolled in this class', 403);
+        }
+      }
     }
     
     // Check if submission already exists
@@ -312,7 +390,7 @@ const getSubmissionsForAssignment = async (req, res) => {
     }
     
     // Check if user is the teacher of this assignment
-    if (assignment.teacher.toString() !== req.user.id) {
+    if (assignment.teacher.toString() !== req.user.id && req.user.role !== 'hod') {
       return errorResponse(res, 'Not authorized to view submissions for this assignment', 403);
     }
     
@@ -339,9 +417,9 @@ const gradeSubmission = async (req, res) => {
       return errorResponse(res, 'Submission not found', 404);
     }
     
-    // Check if user is the teacher of this assignment
+    // Check if user is the teacher of this assignment (or HOD)
     const assignment = await Assignment.findById(submission.assignment);
-    if (assignment.teacher.toString() !== req.user.id) {
+    if (assignment.teacher.toString() !== req.user.id && req.user.role !== 'hod') {
       return errorResponse(res, 'Not authorized to grade this submission', 403);
     }
     

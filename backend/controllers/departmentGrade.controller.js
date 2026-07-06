@@ -100,6 +100,7 @@ const getStudentDepartmentGrade = async (req, res) => {
     const { studentId } = req.params;
     const teacherDepartment = req.user.department;
 
+    // Get department grade
     const departmentGrade = await DepartmentGrade.findOne({
       student: studentId,
       department: teacherDepartment
@@ -107,15 +108,56 @@ const getStudentDepartmentGrade = async (req, res) => {
       .populate({ path: 'student', select: 'name email studentId' })
       .populate({ path: 'lastUpdatedBy', select: 'name email' });
 
-    if (!departmentGrade) {
-      return errorResponse(res, 'Department grade not found for this student', 404);
+    // Get all grades for this student from Grade model
+    const Grade = require('../models/Grade');
+    const grades = await Grade.find({ student: studentId })
+      .populate({ path: 'class', select: 'name code credits' })
+      .populate({ path: 'assignment', select: 'title' })
+      .sort({ createdAt: -1 });
+
+    // Use CGPA from department grade or fallback to 0
+    let cgpa = 0;
+    if (departmentGrade) {
+      cgpa = departmentGrade.cgpa;
     }
 
-    successResponse(res, departmentGrade, 'Department grade fetched successfully');
+    successResponse(res, { 
+      departmentGrade,
+      grades: grades.map(g => ({
+        _id: g._id,
+        name: g.name,
+        type: g.type,
+        points: g.points,
+        maxPoints: g.maxPoints,
+        percentage: g.percentage,
+        grade: g.letterGrade || calculateLetterGrade(g.percentage),
+        class: g.class,
+        assignment: g.assignment,
+        createdAt: g.createdAt,
+        credits: g.class?.credits || 3
+      })),
+      cgpa
+    }, 'Student grades fetched successfully');
   } catch (error) {
-    errorResponse(res, 'Failed to fetch department grade', 500, error.message);
+    errorResponse(res, 'Failed to fetch student grades', 500, error.message);
   }
 };
+
+// Helper function to calculate letter grade from percentage
+function calculateLetterGrade(percentage) {
+  if (percentage >= 90) return 'A+';
+  if (percentage >= 85) return 'A';
+  if (percentage >= 80) return 'A-';
+  if (percentage >= 75) return 'B+';
+  if (percentage >= 70) return 'B';
+  if (percentage >= 65) return 'B-';
+  if (percentage >= 60) return 'C+';
+  if (percentage >= 55) return 'C';
+  if (percentage >= 50) return 'C-';
+  if (percentage >= 45) return 'D+';
+  if (percentage >= 40) return 'D';
+  return 'F';
+}
 
 // Export department grades to CSV/XLSX
 const exportDepartmentGrades = async (req, res) => {

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Department = require('./models/Department');
+const { SUPPORTED_DEPARTMENTS, DEPARTMENT_DEFAULTS } = require('./utils/departmentCatalog');
 require('dotenv').config();
 
 // Connect to MongoDB
@@ -14,12 +15,15 @@ const connectDB = async () => {
 };
 
 // Department data
-const departments = [
-  { name: 'CSE', hod: 'Dr. Anil Verma', faculty: 15, students: 120, established: 2005 },
-  { name: 'IT', hod: 'Dr. Suresh Iyer', faculty: 12, students: 100, established: 2008 },
-  { name: 'CS-DS', hod: 'Dr. Priya Singh', faculty: 10, students: 80, established: 2015 },
-  { name: 'CSE-AIML', hod: 'Dr. Meena Reddy', faculty: 8, students: 60, established: 2020 }
-];
+const departments = SUPPORTED_DEPARTMENTS.map(name => ({
+  ...DEPARTMENT_DEFAULTS[name],
+  hod: {
+    CSE: 'Dr. Anil Verma',
+    IT: 'Dr. Suresh Iyer',
+    'CS-DS': 'Dr. Priya Singh',
+    'CSE-AIML': 'Dr. Meena Reddy',
+  }[name],
+}));
 
 // Create departments
 const createDepartments = async () => {

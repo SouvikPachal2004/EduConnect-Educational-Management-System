@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -14,6 +14,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/teacher.css">
+    <link rel="stylesheet" href="css/notifications.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+    #studentDetailsModal .modal-content { max-width:600px; border-radius:14px; overflow:hidden; padding:0; }
+    #studentDetailsModal .modal-header { background:linear-gradient(135deg,#667eea,#764ba2) !important; color:#fff !important; padding:1rem 1.4rem !important; border-bottom:none !important; display:flex !important; justify-content:space-between !important; align-items:center !important; }
+    #studentDetailsModal .modal-header h2 { color:#fff !important; margin:0 !important; font-size:1rem !important; }
+    #studentDetailsModal .modal-header .close { color:#fff !important; font-size:1.3rem !important; }
+    #studentDetailsModal .modal-body { padding:1.2rem !important; }
+    </style>
 </head>
 <body>
     <div class="dashboard-container">
@@ -30,6 +39,7 @@
                     </div>
                     <div class="user-info">
                         <h3 id="userName">Loading...</h3>
+                        <p id="userProgram" style="font-size:0.72rem; color:rgba(255,255,255,0.65); margin:0 0 1px; font-weight:500;"></p>
                         <p id="userDepartment">Loading...</p>
                     </div>
                 </div>
@@ -37,12 +47,14 @@
             <ul class="sidebar-menu">
                 <li><a href="#" class="active" data-section="overview"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="#" data-section="classes"><i class="fas fa-video"></i> My Classes</a></li>
+                <li><a href="#" data-section="meetingroom"><i class="fas fa-headset"></i> Meeting Room</a></li>
                 <li><a href="#" data-section="assignments"><i class="fas fa-tasks"></i> Assignments</a></li>
                 <li><a href="#" data-section="students"><i class="fas fa-user-graduate"></i> Students</a></li>
                 <li><a href="#" data-section="resources"><i class="fas fa-book"></i> Resources</a></li>
                 <li><a href="#" data-section="attendance"><i class="fas fa-user-check"></i> Attendance</a></li>
                 <li><a href="#" data-section="grades"><i class="fas fa-chart-line"></i> Grades</a></li>
                 <li><a href="#" data-section="prediction"><i class="fas fa-brain"></i> Predictions</a></li>
+                <li><a href="#" data-section="announcements"><i class="fas fa-bullhorn"></i> Announcements</a></li>
                 <li><a href="#" data-section="calendar"><i class="fas fa-calendar-alt"></i> Calendar</a></li>
                 <li><a href="#" data-section="messages"><i class="fas fa-envelope"></i> Messages</a></li>
             </ul>
@@ -130,60 +142,103 @@
 
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="card-title">Today's Classes</h2>
+                        <h2 class="card-title">My Assigned Subjects</h2>
                         <a href="#" class="btn btn-outline btn-sm">View Schedule</a>
                     </div>
                     <div class="card-body">
-                        <ul class="class-list">
-                            <li class="class-item">
-                                <div class="class-time">
-                                    <div class="time">9:00</div>
-                                    <div class="ampm">AM</div>
-                                </div>
-                                <div class="class-details">
-                                    <div class="class-name">Data Structures</div>
-                                    <div class="class-info">
-                                        <i class="fas fa-map-marker-alt"></i> Room 205
-                                        <i class="fas fa-users ml-3"></i> 45 students
-                                    </div>
-                                </div>
-                                <div class="class-action">
-                                    <a href="#" class="btn btn-primary btn-sm start-class" data-class-id="ds201">Start Class</a>
-                                </div>
-                            </li>
-                            <li class="class-item">
-                                <div class="class-time">
-                                    <div class="time">11:00</div>
-                                    <div class="ampm">AM</div>
-                                </div>
-                                <div class="class-details">
-                                    <div class="class-name">Algorithms</div>
-                                    <div class="class-info">
-                                        <i class="fas fa-map-marker-alt"></i> Room 301
-                                        <i class="fas fa-users ml-3"></i> 38 students
-                                    </div>
-                                </div>
-                                <div class="class-action">
-                                    <a href="#" class="btn btn-primary btn-sm start-class" data-class-id="algo301">Start Class</a>
-                                </div>
-                            </li>
-                            <li class="class-item">
-                                <div class="class-time">
-                                    <div class="time">2:00</div>
-                                    <div class="ampm">PM</div>
-                                </div>
-                                <div class="class-details">
-                                    <div class="class-name">Database Systems</div>
-                                    <div class="class-info">
-                                        <i class="fas fa-map-marker-alt"></i> Lab 101
-                                        <i class="fas fa-users ml-3"></i> 42 students
-                                    </div>
-                                </div>
-                                <div class="class-action">
-                                    <a href="#" class="btn btn-primary btn-sm start-class" data-class-id="db301">Start Class</a>
-                                </div>
+                        <ul class="class-list" id="dashboardClassList" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0;">
+                            <li class="class-item" style="color:#94a3b8; padding:1rem;">
+                                <i class="fas fa-spinner fa-spin"></i> Loading assigned subjects...
                             </li>
                         </ul>
+                    </div>
+                </div>
+
+                <!-- Start Class  Set Time Modal -->
+                <div id="startClassModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:3100;">
+                    <div style="background:#fff; border-radius:16px; padding:2rem; width:90%; max-width:460px; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem;">
+                            <h3 style="margin:0; color:#1e293b; font-size:1.1rem;"><i class="fas fa-video" style="color:#667eea;"></i> Start Class</h3>
+                            <button onclick="closeStartClassModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#64748b;">&times;</button>
+                        </div>
+                        <p id="startClassSubjectName" style="color:#667eea; font-weight:600; margin-bottom:1.2rem;"></p>
+
+                        <div style="background:#ede9fe; border-radius:10px; padding:1rem; display:flex; gap:0.7rem; align-items:flex-start; margin-bottom:1.5rem;">
+                            <i class="fas fa-circle-info" style="color:#7c3aed; margin-top:0.2rem;"></i>
+                            <div style="font-size:0.85rem; color:#5b21b6;">
+                                You can start the virtual class 15 minutes before the scheduled time. The meeting link will be sent to all enrolled students.
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:0.75rem; margin-bottom:1rem;">
+                            <button onclick="startClassVirtual()" id="startVirtualBtn" style="width:100%; padding:0.85rem; border:2px solid #667eea; border-radius:10px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; cursor:pointer; font-weight:600; font-size:0.95rem;">
+                                <i class="fas fa-video"></i> Start Virtual Class
+                            </button>
+                        </div>
+                        
+                        <div style="text-align:center;">
+                            <button onclick="closeStartClassModal()" style="padding:0.6rem 1.2rem; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; color:#374151;">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Class Mode Update Modal -->
+                <div id="classModeModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:3000; align-items:center; justify-content:center;">
+                    <div style="background:#fff; border-radius:14px; padding:2rem; width:90%; max-width:520px; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                            <h3 style="margin:0; color:#1e293b; font-size:1.1rem;"><i class="fas fa-cog"></i> Update Class Mode</h3>
+                            <button onclick="closeClassModeModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#64748b;">&times;</button>
+                        </div>
+                        <p id="classModeClassName" style="color:#667eea; font-weight:600; margin-bottom:1.2rem;"></p>
+
+                        <!-- Mode Toggle -->
+                        <div style="display:flex; gap:0.75rem; margin-bottom:1.2rem;">
+                            <button id="modePhysicalBtn" onclick="selectClassMode('physical')"
+                                style="flex:1; padding:0.75rem; border:2px solid #667eea; border-radius:10px; background:#667eea; color:#fff; cursor:pointer; font-weight:600; font-size:0.95rem;">
+                                Physical
+                            </button>
+                            <button id="modeVirtualBtn" onclick="selectClassMode('virtual')"
+                                style="flex:1; padding:0.75rem; border:2px solid #e2e8f0; border-radius:10px; background:#fff; color:#64748b; cursor:pointer; font-weight:600; font-size:0.95rem;">
+                                Virtual
+                            </button>
+                        </div>
+
+                        <!-- Physical: Room input -->
+                        <div id="physicalFields">
+                            <label style="font-weight:600; color:#374151; font-size:0.9rem;">Room / Location</label>
+                            <input type="text" id="classModeRoom" placeholder="e.g. Room 205, Lab 3"
+                                style="width:100%; padding:0.6rem 0.8rem; border:1px solid #d1d5db; border-radius:8px; margin-top:0.4rem; font-size:0.95rem; box-sizing:border-box;">
+                        </div>
+
+                        <!-- Virtual: Date and Time fields -->
+                        <div id="virtualFields" style="display:none;">
+                            <div style="margin-bottom:1rem;">
+                                <label style="font-weight:600; color:#374151; font-size:0.9rem; display:block; margin-bottom:0.4rem;">Class Date</label>
+                                <input type="date" id="virtualClassDate"
+                                    style="width:100%; padding:0.6rem 0.8rem; border:1px solid #d1d5db; border-radius:8px; font-size:0.95rem; box-sizing:border-box;">
+                            </div>
+                            <div style="margin-bottom:1rem;">
+                                <label style="font-weight:600; color:#374151; font-size:0.9rem; display:block; margin-bottom:0.4rem;">Start Time</label>
+                                <input type="time" id="virtualClassTime"
+                                    style="width:100%; padding:0.6rem 0.8rem; border:1px solid #d1d5db; border-radius:8px; font-size:0.95rem; box-sizing:border-box;">
+                            </div>
+                            <div style="background:#ede9fe; border-radius:10px; padding:1rem; display:flex; gap:0.7rem; align-items:flex-start;">
+                                <i class="fas fa-circle-info" style="color:#7c3aed; margin-top:0.2rem;"></i>
+                                <div style="font-size:0.85rem; color:#5b21b6;">
+                                    Schedule your virtual class. The meeting link will be created when you click "Start Class" 15 minutes before the scheduled time.
+                                </div>
+                            </div>
+                        </div>
+
+                        <p style="color:#94a3b8; font-size:0.8rem; margin:0.8rem 0 1.2rem;">
+                            <i class="fas fa-info-circle"></i> All enrolled students will receive an inbox notification about this change.
+                        </p>
+                        <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+                            <button onclick="closeClassModeModal()" style="padding:0.6rem 1.2rem; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; color:#374151;">Cancel</button>
+                            <button onclick="saveClassMode()" id="saveClassModeBtn" style="padding:0.6rem 1.4rem; border:none; border-radius:8px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; cursor:pointer; font-weight:600;">
+                                <i class="fas fa-save"></i> Save & Notify Students
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -246,13 +301,27 @@
 
             <!-- My Classes Section -->
             <section class="content-section" id="classes">
+                <!-- Assigned Subjects Card -->
+                <div class="card" id="assignedSubjectsCard">
+                    <div class="card-header">
+                        <h2 class="card-title"><i class="fas fa-book-open" style="color:#667eea;margin-right:8px;"></i>Subjects Assigned to Me</h2>
+                        <span style="font-size:0.85rem;color:#64748b;">HOD assigns subjects  create a class for each one below</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="assignedSubjectsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
+                            <p style="color:#94a3b8;">Loading assigned subjects...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Classes Card -->
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title">My Classes</h2>
                         <button id="createClassBtn" class="btn btn-primary btn-sm">Create New Class</button>
                     </div>
                     <div class="card-body">
-                        <ul class="class-list">
+                        <ul class="class-list" id="teacherClassList">
                             <li class="class-item">
                                 <div class="class-details">
                                     <div class="class-name">Data Structures</div>
@@ -310,128 +379,94 @@
                 </div>
             </section>
 
-            <!-- Assignments Section -->
-            <section class="content-section" id="assignments">
+            <!-- Meeting Room Section (Teacher) -->
+            <section class="content-section" id="meetingroom">
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="card-title">Assignments</h2>
-                        <button id="createAssignmentBtn" class="btn btn-primary btn-sm">Create Assignment</button>
+                        <h2 class="card-title"><i class="fas fa-headset" style="color:#667eea;margin-right:8px;"></i>Meeting Room</h2>
                     </div>
                     <div class="card-body">
-                        <div class="assignment-tabs">
-                            <button class="tab-btn active" data-tab="pending">Pending Grading</button>
-                            <button class="tab-btn" data-tab="published">Published</button>
-                            <button class="tab-btn" data-tab="drafts">Drafts</button>
+                        <p style="color:#64748b; font-size:0.9rem; margin-bottom:1rem;">
+                            Meeting invitations from your HOD appear here. Click Join to enter the live meeting room.
+                        </p>
+                        <div id="teacherMeetingInvites">
+                            <p style="color:#94a3b8; text-align:center; padding:1.5rem;">Loading invitations...</p>
                         </div>
-                        
-                        <div class="tab-content active" id="pending">
-                            <ul class="assignment-list">
-                                <li class="assignment-item">
-                                    <div class="assignment-icon">
-                                        <i class="fas fa-file-code"></i>
-                                    </div>
-                                    <div class="assignment-details">
-                                        <div class="assignment-title">Binary Trees Implementation</div>
-                                        <div class="assignment-meta">
-                                            <i class="fas fa-book"></i> Data Structures
-                                            <i class="fas fa-users ml-3"></i> 42 submissions
-                                            <i class="fas fa-calendar ml-3"></i> Due: Oct 5, 2025
-                                        </div>
-                                    </div>
-                                    <div class="assignment-action">
-                                        <a href="#" class="btn btn-primary btn-sm grade-assignment" data-assignment-id="btrees">Grade</a>
-                                    </div>
-                                </li>
-                                <li class="assignment-item">
-                                    <div class="assignment-icon">
-                                        <i class="fas fa-file-code"></i>
-                                    </div>
-                                    <div class="assignment-details">
-                                        <div class="assignment-title">Graph Algorithms Project</div>
-                                        <div class="assignment-meta">
-                                            <i class="fas fa-book"></i> Algorithms
-                                            <i class="fas fa-users ml-3"></i> 35 submissions
-                                            <i class="fas fa-calendar ml-3"></i> Due: Oct 10, 2025
-                                        </div>
-                                    </div>
-                                    <div class="assignment-action">
-                                        <a href="#" class="btn btn-primary btn-sm grade-assignment" data-assignment-id="graphalgo">Grade</a>
-                                    </div>
-                                </li>
-                                <li class="assignment-item">
-                                    <div class="assignment-icon">
-                                        <i class="fas fa-file-alt"></i>
-                                    </div>
-                                    <div class="assignment-details">
-                                        <div class="assignment-title">Database Design Report</div>
-                                        <div class="assignment-meta">
-                                            <i class="fas fa-book"></i> Database Systems
-                                            <i class="fas fa-users ml-3"></i> 38 submissions
-                                            <i class="fas fa-calendar ml-3"></i> Due: Oct 8, 2025
-                                        </div>
-                                    </div>
-                                    <div class="assignment-action">
-                                        <a href="#" class="btn btn-primary btn-sm grade-assignment" data-assignment-id="dbdesign">Grade</a>
-                                    </div>
-                                </li>
-                            </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Assignments Section -->
+            <section class="content-section" id="assignments">
+                <!-- Stats Row -->
+                <div class="stats-grid" style="margin-bottom:1.5rem;">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Total Assignments</div>
+                            <div class="stat-card-icon teal"><i class="fas fa-tasks"></i></div>
                         </div>
-                        
-                        <div class="tab-content" id="published">
-                            <ul class="assignment-list">
-                                <li class="assignment-item">
-                                    <div class="assignment-icon">
-                                        <i class="fas fa-file-code"></i>
-                                    </div>
-                                    <div class="assignment-details">
-                                        <div class="assignment-title">Sorting Algorithms Analysis</div>
-                                        <div class="assignment-meta">
-                                            <i class="fas fa-book"></i> Algorithms
-                                            <i class="fas fa-users ml-3"></i> 38 students
-                                            <i class="fas fa-calendar ml-3"></i> Due: Oct 15, 2025
-                                        </div>
-                                    </div>
-                                    <div class="assignment-action">
-                                        <a href="#" class="btn btn-outline btn-sm view-assignment" data-assignment-id="sorting">View</a>
-                                    </div>
-                                </li>
-                                <li class="assignment-item">
-                                    <div class="assignment-icon">
-                                        <i class="fas fa-file-code"></i>
-                                    </div>
-                                    <div class="assignment-details">
-                                        <div class="assignment-title">SQL Queries Practice</div>
-                                        <div class="assignment-meta">
-                                            <i class="fas fa-book"></i> Database Systems
-                                            <i class="fas fa-users ml-3"></i> 42 students
-                                            <i class="fas fa-calendar ml-3"></i> Due: Oct 20, 2025
-                                        </div>
-                                    </div>
-                                    <div class="assignment-action">
-                                        <a href="#" class="btn btn-outline btn-sm view-assignment" data-assignment-id="sqlqueries">View</a>
-                                    </div>
-                                </li>
-                            </ul>
+                        <div class="stat-card-value" id="asgTotalCount"></div>
+                        <div class="stat-card-change positive"><i class="fas fa-info-circle"></i> All assignments</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Pending Grading</div>
+                            <div class="stat-card-icon orange"><i class="fas fa-clock"></i></div>
                         </div>
-                        
-                        <div class="tab-content" id="drafts">
-                            <ul class="assignment-list">
-                                <li class="assignment-item">
-                                    <div class="assignment-icon">
-                                        <i class="fas fa-file-code"></i>
-                                    </div>
-                                    <div class="assignment-details">
-                                        <div class="assignment-title">Software Development Lifecycle</div>
-                                        <div class="assignment-meta">
-                                            <i class="fas fa-book"></i> Software Engineering
-                                            <i class="fas fa-clock ml-3"></i> Last edited: Oct 1, 2025
-                                        </div>
-                                    </div>
-                                    <div class="assignment-action">
-                                        <a href="#" class="btn btn-primary btn-sm edit-assignment" data-assignment-id="sdlc">Edit</a>
-                                    </div>
-                                </li>
-                            </ul>
+                        <div class="stat-card-value" id="asgPendingGrade"></div>
+                        <div class="stat-card-change negative"><i class="fas fa-exclamation-circle"></i> Needs attention</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Published</div>
+                            <div class="stat-card-icon blue"><i class="fas fa-check-circle"></i></div>
+                        </div>
+                        <div class="stat-card-value" id="asgPublishedCount"></div>
+                        <div class="stat-card-change positive"><i class="fas fa-arrow-up"></i> Active</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-title">Drafts</div>
+                            <div class="stat-card-icon red"><i class="fas fa-file-alt"></i></div>
+                        </div>
+                        <div class="stat-card-value" id="asgDraftCount"></div>
+                        <div class="stat-card-change"><i class="fas fa-info-circle"></i> Not published</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">My Assignments</h2>
+                        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                            <select id="asgClassFilter" class="form-control" style="width:auto;" onchange="loadTeacherAssignments()">
+                                <option value="">All Classes</option>
+                            </select>
+                            <button id="createAssignmentBtn" class="btn btn-primary btn-sm" onclick="openCreateAssignmentModal()">
+                                <i class="fas fa-plus"></i> Create Assignment
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <div style="display:flex;gap:0;border-bottom:2px solid #f1f5f9;padding:0 1.5rem;">
+                            <button class="asg-tab active" data-filter="all" onclick="setAsgFilter('all',this)"
+                                style="padding:0.75rem 1.2rem;background:none;border:none;cursor:pointer;font-size:0.88rem;font-weight:600;color:#667eea;border-bottom:2px solid #667eea;margin-bottom:-2px;">
+                                All
+                            </button>
+                            <button class="asg-tab" data-filter="published" onclick="setAsgFilter('published',this)"
+                                style="padding:0.75rem 1.2rem;background:none;border:none;cursor:pointer;font-size:0.88rem;font-weight:600;color:#64748b;border-bottom:2px solid transparent;margin-bottom:-2px;">
+                                Published
+                            </button>
+                            <button class="asg-tab" data-filter="pending_grade" onclick="setAsgFilter('pending_grade',this)"
+                                style="padding:0.75rem 1.2rem;background:none;border:none;cursor:pointer;font-size:0.88rem;font-weight:600;color:#64748b;border-bottom:2px solid transparent;margin-bottom:-2px;">
+                                Pending Grade
+                            </button>
+                            <button class="asg-tab" data-filter="draft" onclick="setAsgFilter('draft',this)"
+                                style="padding:0.75rem 1.2rem;background:none;border:none;cursor:pointer;font-size:0.88rem;font-weight:600;color:#64748b;border-bottom:2px solid transparent;margin-bottom:-2px;">
+                                Drafts
+                            </button>
+                        </div>
+                        <div id="assignmentListContainer" style="padding:1rem;">
+                            <div style="text-align:center;padding:2rem;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Loading assignments...</div>
                         </div>
                     </div>
                 </div>
@@ -439,15 +474,71 @@
 
             <!-- Students Section -->
             <section class="content-section" id="students">
-                <div class="student-list-card">
+                <div class="card">
                     <div class="card-header">
-                        <h4>Enrolled Students</h4>
-                        <div class="search-box">
-                            <input type="text" placeholder="Search students..." class="form-control" id="studentSearch">
-                        </div>
+                        <h2 class="card-title">Student Performance Overview</h2>
+                        <button class="btn btn-outline btn-sm" onclick="exportTeacherStudentReport()"><i class="fas fa-download"></i> Export Report</button>
                     </div>
-                    <div class="student-grid" id="studentGrid">
-                        <!-- Dynamic student cards will be inserted here -->
+                    <div class="card-body">
+                        <!-- Stats row -->
+                        <div class="stats-grid" style="margin-bottom:1.5rem;">
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Total Students</div>
+                                    <div class="stat-card-icon teal"><i class="fas fa-user-graduate"></i></div>
+                                </div>
+                                <div class="stat-card-value" id="teacherPerfTotal"></div>
+                                <div class="stat-card-change positive"><i class="fas fa-user-graduate"></i> Department total</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Avg. CGPA</div>
+                                    <div class="stat-card-icon blue"><i class="fas fa-chart-line"></i></div>
+                                </div>
+                                <div class="stat-card-value" id="teacherPerfAvgCgpa"></div>
+                                <div class="stat-card-change"><i class="fas fa-info-circle"></i> <span id="teacherPerfCgpaLabel">Avg CGPA</span></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">At-Risk Students</div>
+                                    <div class="stat-card-icon orange"><i class="fas fa-exclamation-triangle"></i></div>
+                                </div>
+                                <div class="stat-card-value" id="teacherPerfAtRisk"></div>
+                                <div class="stat-card-change negative"><i class="fas fa-exclamation-triangle"></i> CGPA below 7.5</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-title">Safe Students</div>
+                                    <div class="stat-card-icon red"><i class="fas fa-graduation-cap"></i></div>
+                                </div>
+                                <div class="stat-card-value" id="teacherPerfSafe"></div>
+                                <div class="stat-card-change positive"><i class="fas fa-check-circle"></i> CGPA above 8.0</div>
+                            </div>
+                        </div>
+
+                        <!-- Search box -->
+                        <div style="margin-bottom:1rem;">
+                            <input type="text" id="studentSearch" placeholder="Search students..." class="form-control" style="max-width:300px;" oninput="filterTeacherStudentTable(this.value)">
+                        </div>
+
+                        <!-- Table -->
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>GPA</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teacherStudentTableBody">
+                                    <tr><td colspan="6" style="text-align:center;padding:2rem;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -511,143 +602,48 @@
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title">Course Resources</h2>
-                        <button id="uploadResourceBtn" class="btn btn-primary btn-sm">Upload Resource</button>
+                        <button class="btn btn-primary btn-sm" onclick="openTeacherResourceModal()">
+                            <i class="fas fa-upload"></i> Upload Resource
+                        </button>
+                    </div>
+                    <!-- Stats -->
+                    <div class="card-body" style="padding-bottom:0;">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-card-header"><div class="stat-card-title">Total Resources</div><div class="stat-card-icon teal"><i class="fas fa-folder"></i></div></div>
+                                <div class="stat-card-value" id="tResTotal"></div>
+                                <div class="stat-card-change positive" id="tResTotalSub"><i class="fas fa-info-circle"></i> Loading...</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header"><div class="stat-card-title">Documents</div><div class="stat-card-icon blue"><i class="fas fa-file-alt"></i></div></div>
+                                <div class="stat-card-value" id="tResDocs"></div>
+                                <div class="stat-card-change"><i class="fas fa-info-circle"></i> PDF, DOC, PPT</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header"><div class="stat-card-title">Media Files</div><div class="stat-card-icon orange"><i class="fas fa-photo-video"></i></div></div>
+                                <div class="stat-card-value" id="tResMedia"></div>
+                                <div class="stat-card-change"><i class="fas fa-info-circle"></i> Videos, Images</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header"><div class="stat-card-title">Recent Uploads</div><div class="stat-card-icon green"><i class="fas fa-clock"></i></div></div>
+                                <div class="stat-card-value" id="tResRecent"></div>
+                                <div class="stat-card-change positive"><i class="fas fa-arrow-up"></i> Last 7 days</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <div class="resource-tabs">
-                            <button class="tab-btn active" data-tab="all">All Resources</button>
-                            <button class="tab-btn" data-tab="documents">Documents</button>
-                            <button class="tab-btn" data-tab="videos">Videos</button>
-                            <button class="tab-btn" data-tab="links">Links</button>
+                        <div class="resource-tabs" style="margin-bottom:1rem;">
+                            <button class="tab-btn active" onclick="filterTeacherResources('all',this)" data-rfilter="all">All Resources</button>
+                            <button class="tab-btn" onclick="filterTeacherResources('document',this)" data-rfilter="document">Documents</button>
+                            <button class="tab-btn" onclick="filterTeacherResources('video',this)" data-rfilter="video">Videos</button>
+                            <button class="tab-btn" onclick="filterTeacherResources('link',this)" data-rfilter="link">Links</button>
                         </div>
-                        
-                        <div class="tab-content active" id="all">
-                            <div class="resource-grid">
-                                <div class="resource-card">
-                                    <div class="resource-icon">
-                                        <i class="fas fa-file-pdf"></i>
-                                    </div>
-                                    <div class="resource-body">
-                                        <h3 class="resource-title">Data Structures Textbook</h3>
-                                        <p class="resource-meta">PDF • 15.2 MB</p>
-                                        <div class="resource-actions">
-                                            <a href="#" class="btn btn-primary btn-sm download-resource" data-resource-id="dstextbook">Download</a>
-                                            <a href="#" class="btn btn-outline btn-sm share-resource" data-resource-id="dstextbook">Share</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="resource-card">
-                                    <div class="resource-icon">
-                                        <i class="fas fa-file-video"></i>
-                                    </div>
-                                    <div class="resource-body">
-                                        <h3 class="resource-title">Graph Algorithms Lecture</h3>
-                                        <p class="resource-meta">MP4 • 320 MB</p>
-                                        <div class="resource-actions">
-                                            <a href="#" class="btn btn-primary btn-sm download-resource" data-resource-id="graphlecture">Download</a>
-                                            <a href="#" class="btn btn-outline btn-sm share-resource" data-resource-id="graphlecture">Share</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="resource-card">
-                                    <div class="resource-icon">
-                                        <i class="fas fa-file-powerpoint"></i>
-                                    </div>
-                                    <div class="resource-body">
-                                        <h3 class="resource-title">Database Design Slides</h3>
-                                        <p class="resource-meta">PPTX • 8.7 MB</p>
-                                        <div class="resource-actions">
-                                            <a href="#" class="btn btn-primary btn-sm download-resource" data-resource-id="dbslides">Download</a>
-                                            <a href="#" class="btn btn-outline btn-sm share-resource" data-resource-id="dbslides">Share</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="resource-card">
-                                    <div class="resource-icon">
-                                        <i class="fas fa-link"></i>
-                                    </div>
-                                    <div class="resource-body">
-                                        <h3 class="resource-title">Software Engineering Resources</h3>
-                                        <p class="resource-meta">External Link</p>
-                                        <div class="resource-actions">
-                                            <a href="#" class="btn btn-primary btn-sm open-link" data-resource-id="seresources">Open</a>
-                                            <a href="#" class="btn btn-outline btn-sm share-resource" data-resource-id="seresources">Share</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="tab-content" id="documents">
-                            <div class="resource-grid">
-                                <div class="resource-card">
-                                    <div class="resource-icon">
-                                        <i class="fas fa-file-pdf"></i>
-                                    </div>
-                                    <div class="resource-body">
-                                        <h3 class="resource-title">Data Structures Textbook</h3>
-                                        <p class="resource-meta">PDF • 15.2 MB</p>
-                                        <div class="resource-actions">
-                                            <a href="#" class="btn btn-primary btn-sm download-resource" data-resource-id="dstextbook">Download</a>
-                                            <a href="#" class="btn btn-outline btn-sm share-resource" data-resource-id="dstextbook">Share</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="resource-card">
-                                    <div class="resource-icon">
-                                        <i class="fas fa-file-powerpoint"></i>
-                                    </div>
-                                    <div class="resource-body">
-                                        <h3 class="resource-title">Database Design Slides</h3>
-                                        <p class="resource-meta">PPTX • 8.7 MB</p>
-                                        <div class="resource-actions">
-                                            <a href="#" class="btn btn-primary btn-sm download-resource" data-resource-id="dbslides">Download</a>
-                                            <a href="#" class="btn btn-outline btn-sm share-resource" data-resource-id="dbslides">Share</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="tab-content" id="videos">
-                            <div class="resource-grid">
-                                <div class="resource-card">
-                                    <div class="resource-icon">
-                                        <i class="fas fa-file-video"></i>
-                                    </div>
-                                    <div class="resource-body">
-                                        <h3 class="resource-title">Graph Algorithms Lecture</h3>
-                                        <p class="resource-meta">MP4 • 320 MB</p>
-                                        <div class="resource-actions">
-                                            <a href="#" class="btn btn-primary btn-sm download-resource" data-resource-id="graphlecture">Download</a>
-                                            <a href="#" class="btn btn-outline btn-sm share-resource" data-resource-id="graphlecture">Share</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="tab-content" id="links">
-                            <div class="resource-grid">
-                                <div class="resource-card">
-                                    <div class="resource-icon">
-                                        <i class="fas fa-link"></i>
-                                    </div>
-                                    <div class="resource-body">
-                                        <h3 class="resource-title">Software Engineering Resources</h3>
-                                        <p class="resource-meta">External Link</p>
-                                        <div class="resource-actions">
-                                            <a href="#" class="btn btn-primary btn-sm open-link" data-resource-id="seresources">Open</a>
-                                            <a href="#" class="btn btn-outline btn-sm share-resource" data-resource-id="seresources">Share</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div id="teacherResourceGrid" class="resource-grid">
+                            <div style="grid-column:1/-1;text-align:center;padding:2rem;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Loading resources...</div>
                         </div>
                     </div>
                 </div>
             </section>
-
             <!-- Attendance Section -->
             <section class="content-section" id="attendance">
                 <div class="card">
@@ -777,6 +773,21 @@
             </section>
 
             <!-- Messages Section -->
+            <!-- Announcements Section -->
+            <section class="content-section" id="announcements">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><i class="fas fa-bullhorn" style="color:#667eea;margin-right:8px;"></i>College Announcements</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="teacherAnnouncementsList">
+                            <p style="color:#94a3b8;text-align:center;padding:1rem;">Loading announcements...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Messages Section -->
             <section class="content-section" id="messages">
                 <div class="card">
                     <div class="card-header">
@@ -787,112 +798,122 @@
                         <div class="message-tabs">
                             <button class="tab-btn active" data-tab="inbox">Inbox</button>
                             <button class="tab-btn" data-tab="sent">Sent</button>
-                            <button class="tab-btn" data-tab="drafts">Drafts</button>
                         </div>
-                        
                         <div class="tab-content active" id="inbox">
-                            <ul class="message-list">
-                                <li class="message-item unread">
-                                    <div class="message-icon">
-                                        <i class="fas fa-user-graduate"></i>
-                                    </div>
-                                    <div class="message-details">
-                                        <div class="message-title">Anurag Ray - Assignment Submission</div>
-                                        <div class="message-meta">
-                                            <i class="fas fa-clock"></i> 2 hours ago
-                                        </div>
-                                        <div class="message-preview">
-                                            I have submitted my Binary Trees assignment. Please let me know if you need any changes...
-                                        </div>
-                                    </div>
-                                    <div class="message-actions">
-                                        <a href="#" class="btn btn-sm btn-outline view-message" data-message-id="msg1">View</a>
-                                    </div>
-                                </li>
-                                <li class="message-item">
-                                    <div class="message-icon">
-                                        <i class="fas fa-user-tie"></i>
-                                    </div>
-                                    <div class="message-details">
-                                        <div class="message-title">Dr. Suresh Kumar - Department Meeting</div>
-                                        <div class="message-meta">
-                                            <i class="fas fa-clock"></i> Yesterday
-                                        </div>
-                                        <div class="message-preview">
-                                            Please attend the department meeting scheduled for tomorrow at 10 AM in Conference Room A...
-                                        </div>
-                                    </div>
-                                    <div class="message-actions">
-                                        <a href="#" class="btn btn-sm btn-outline view-message" data-message-id="msg2">View</a>
-                                    </div>
-                                </li>
-                                <li class="message-item unread">
-                                    <div class="message-icon">
-                                        <i class="fas fa-user-graduate"></i>
-                                    </div>
-                                    <div class="message-details">
-                                        <div class="message-title">Priya Sharma - Doubt Clarification</div>
-                                        <div class="message-meta">
-                                            <i class="fas fa-clock"></i> 2 days ago
-                                        </div>
-                                        <div class="message-preview">
-                                            I have a doubt regarding the Graph Algorithms lecture. Can you please clarify...
-                                        </div>
-                                    </div>
-                                    <div class="message-actions">
-                                        <a href="#" class="btn btn-sm btn-outline view-message" data-message-id="msg3">View</a>
-                                    </div>
-                                </li>
-                            </ul>
+                            <div class="message-list" id="teacherInboxMessages">
+                                <p style="color:#94a3b8;text-align:center;padding:1.5rem;"><i class="fas fa-spinner fa-spin"></i> Loading messages...</p>
+                            </div>
                         </div>
-                        
                         <div class="tab-content" id="sent">
-                            <ul class="message-list">
-                                <li class="message-item">
-                                    <div class="message-icon">
-                                        <i class="fas fa-user-graduate"></i>
-                                    </div>
-                                    <div class="message-details">
-                                        <div class="message-title">To: Data Structures Class</div>
-                                        <div class="message-meta">
-                                            <i class="fas fa-clock"></i> 3 days ago
-                                        </div>
-                                        <div class="message-preview">
-                                            Reminder: Binary Trees assignment is due on October 5. Please submit your work before the deadline...
-                                        </div>
-                                    </div>
-                                    <div class="message-actions">
-                                        <a href="#" class="btn btn-sm btn-outline view-message" data-message-id="msg4">View</a>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                        
-                        <div class="tab-content" id="drafts">
-                            <ul class="message-list">
-                                <li class="message-item">
-                                    <div class="message-icon">
-                                        <i class="fas fa-file-alt"></i>
-                                    </div>
-                                    <div class="message-details">
-                                        <div class="message-title">To: Algorithms Class</div>
-                                        <div class="message-meta">
-                                            <i class="fas fa-clock"></i> Last edited: 1 day ago
-                                        </div>
-                                        <div class="message-preview">
-                                            Draft message about the upcoming project presentation...
-                                        </div>
-                                    </div>
-                                    <div class="message-actions">
-                                        <a href="#" class="btn btn-sm btn-primary edit-message" data-message-id="msg5">Edit</a>
-                                    </div>
-                                </li>
-                            </ul>
+                            <div class="message-list" id="teacherSentMessages">
+                                <p style="color:#94a3b8;text-align:center;padding:1.5rem;">Loading sent messages...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
+
+            <!-- Compose Message Modal -->
+            <div id="teacherComposeModal" class="modal" style="display:none;">
+                <div class="modal-content" style="max-width:600px;">
+                    <div class="modal-header">
+                        <h2>Compose Message</h2>
+                        <span class="close">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <form id="teacherMessageForm">
+                            <div class="form-group">
+                                <label for="teacherMsgTo">To</label>
+                                <select id="teacherMsgTo" class="form-control" required>
+                                    <option value="">Select Recipient</option>
+                                    <option value="__all_students__"> All My Students</option>
+                                    <option value="__hod__"> Department HOD</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="teacherMsgSubject">Subject</label>
+                                <input type="text" id="teacherMsgSubject" class="form-control" required placeholder="Message subject">
+                            </div>
+                            <div class="form-group">
+                                <label for="teacherMsgContent">Message</label>
+                                <textarea id="teacherMsgContent" class="form-control" rows="5" required placeholder="Write your message..."></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Send Message</button>
+                                <button type="button" class="btn btn-outline cancel-btn">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Detail Modal -->
+            <div id="teacherMsgDetailModal" class="modal" style="display:none;">
+                <div class="modal-content" style="max-width:700px;">
+                    <div class="modal-header">
+                        <h2>Message Details</h2>
+                        <span class="close">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+                            <div><strong id="teacherMsgFromLabel">From:</strong> <span id="teacherMsgFrom"></span></div>
+                            <div><strong>Date:</strong> <span id="teacherMsgDate"></span></div>
+                        </div>
+                        <div style="margin-bottom:1rem;"><strong>Subject:</strong> <span id="teacherMsgSubjectDetail"></span></div>
+                        <div style="background:#f8fafc; border-radius:8px; padding:1rem; margin-bottom:1.5rem;">
+                            <p id="teacherMsgContentDetail" style="margin:0; white-space:pre-wrap;"></p>
+                        </div>
+                        <div id="teacherReplyThread" style="display:none; margin-bottom:1.5rem;">
+                            <h4 style="color:#667eea; margin-bottom:0.75rem; font-size:0.95rem;"><i class="fas fa-comments"></i> Replies</h4>
+                            <div id="teacherReplyList" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+                        </div>
+                        <div id="teacherReplyBox" style="display:none; margin-bottom:1rem;">
+                            <textarea id="teacherReplyContent" class="form-control" rows="3" placeholder="Type your reply..."></textarea>
+                            <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+                                <button class="btn btn-primary" id="teacherSendReplyBtn">Send Reply</button>
+                                <button class="btn btn-outline" onclick="document.getElementById('teacherReplyBox').style.display='none'">Cancel</button>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                            <button class="btn btn-primary" id="teacherReplyBtn"><i class="fas fa-reply"></i> Reply</button>
+                            <button class="btn btn-outline close-detail"><i class="fas fa-times"></i> Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
+    </div>
+
+    <!-- Create Class for Subject Modal -->
+    <div id="createSubjectClassModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Class for Subject</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="subjectClassInfo" style="margin-bottom:1rem;padding:1rem;background:linear-gradient(135deg,#f0f4ff,#e8f0fe);border-radius:10px;border-left:4px solid #667eea;"></div>
+                <form id="createSubjectClassForm">
+                    <input type="hidden" id="subjectClassSubjectId">
+                    <div class="form-group">
+                        <label>Description (optional)</label>
+                        <textarea id="subjectClassDescription" class="form-control" rows="3" placeholder="Additional description for this class"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Schedule (optional)</label>
+                        <input type="text" id="subjectClassSchedule" class="form-control" placeholder="e.g., Mon, Wed, Fri - 9:00 AM">
+                    </div>
+                    <div class="form-group">
+                        <label>Location (optional)</label>
+                        <input type="text" id="subjectClassLocation" class="form-control" placeholder="e.g., Room 205">
+                    </div>
+                    <p style="font-size:0.85rem;color:#64748b;margin-bottom:1rem;">
+                        <i class="fas fa-info-circle"></i> All students from your department will be automatically enrolled.
+                    </p>
+                    <button type="submit" class="btn btn-primary">Create Class &amp; Enroll Students</button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Create Class Modal -->
@@ -931,102 +952,137 @@
     </div>
 
     <!-- Create Assignment Modal -->
+    <!-- Create Assignment Modal (Dynamic) -->
     <div id="createAssignmentModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width:580px;">
             <div class="modal-header">
-                <h2>Create Assignment</h2>
-                <span class="close">&times;</span>
+                <h2><i class="fas fa-plus-circle" style="color:#667eea;margin-right:8px;"></i>Create Assignment</h2>
+                <span class="close" onclick="document.getElementById('createAssignmentModal').style.display='none'">&times;</span>
             </div>
             <div class="modal-body">
-                <form id="createAssignmentForm">
+                <form id="createAssignmentForm" enctype="multipart/form-data">
                     <div class="form-group">
-                        <label for="assignmentTitle">Assignment Title</label>
-                        <input type="text" id="assignmentTitle" class="form-control" required>
+                        <label for="assignmentTitle">Assignment Title <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="assignmentTitle" class="form-control" required placeholder="e.g. Linked List Implementation">
                     </div>
                     <div class="form-group">
-                        <label for="assignmentClass">Class</label>
+                        <label for="assignmentClass">Subject / Class <span style="color:#ef4444;">*</span></label>
                         <select id="assignmentClass" class="form-control" required>
-                            <option value="">Select a class</option>
-                            <option value="ds201">Data Structures</option>
-                            <option value="algo301">Algorithms</option>
-                            <option value="db301">Database Systems</option>
-                            <option value="se401">Software Engineering</option>
+                            <option value="">Loading classes...</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="assignmentDescription">Description</label>
-                        <textarea id="assignmentDescription" class="form-control" rows="4" required></textarea>
+                        <label for="assignmentDescription">Description / Instructions <span style="color:#ef4444;">*</span></label>
+                        <textarea id="assignmentDescription" class="form-control" rows="4" required placeholder="Describe what students should do..."></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="assignmentDueDate">Due Date</label>
+                        <label for="assignmentDueDate">Deadline <span style="color:#ef4444;">*</span></label>
                         <input type="datetime-local" id="assignmentDueDate" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label for="assignmentPoints">Total Points</label>
-                        <input type="number" id="assignmentPoints" class="form-control" min="1" required>
+                        <label for="assignmentPoints">Total Marks <span style="color:#ef4444;">*</span></label>
+                        <input type="number" id="assignmentPoints" class="form-control" min="1" max="1000" value="100" required>
                     </div>
                     <div class="form-group">
-                        <label for="assignmentFile">Attachment (Optional)</label>
-                        <input type="file" id="assignmentFile" class="form-control">
-                        <label for="assignmentFile" class="file-label">Choose file</label>
+                        <label for="assignmentFile">Attachment <small style="color:#94a3b8;">(PDF, Word, PPT, any file  optional)</small></label>
+                        <input type="file" id="assignmentFile" class="form-control"
+                               accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png,.mp4,.avi">
+                        <small style="color:#94a3b8;display:block;margin-top:4px;">Max 50MB. Students will be able to download this.</small>
                     </div>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="saveAsDraft"> Save as Draft
-                        </label>
+                    <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;">
+                        <input type="checkbox" id="saveAsDraft" style="width:auto;">
+                        <label for="saveAsDraft" style="margin:0;">Save as draft (don't publish to students yet)</label>
                     </div>
-                    <button type="button" class="btn btn-secondary" onclick="showAssignmentPreview()">Preview</button>
-                    <button type="submit" class="btn btn-primary">Create Assignment</button>
+                    <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem;">
+                        <button type="button" class="btn btn-outline" onclick="document.getElementById('createAssignmentModal').style.display='none'">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="createAsgSubmitBtn">
+                            <i class="fas fa-paper-plane"></i> Create & Publish
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Upload Resource Modal -->
-    <div id="uploadResourceModal" class="modal">
-        <div class="modal-content">
+    <!-- View Submissions Modal -->
+    <div id="viewSubmissionsModal" class="modal">
+        <div class="modal-content" style="max-width:800px;">
             <div class="modal-header">
-                <h2>Upload Resource</h2>
-                <span class="close">&times;</span>
+                <h2><i class="fas fa-users" style="color:#667eea;margin-right:8px;"></i>Submissions  <span id="submissionsAsgTitle"></span></h2>
+                <span class="close" onclick="document.getElementById('viewSubmissionsModal').style.display='none'">&times;</span>
+            </div>
+            <div class="modal-body" style="padding:0;">
+                <div id="submissionsContainer" style="padding:1rem;">
+                    <div style="text-align:center;padding:2rem;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Loading submissions...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grade Submission Modal -->
+    <div id="gradeSubmissionModal" class="modal">
+        <div class="modal-content" style="max-width:480px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-star" style="color:#f59e0b;margin-right:8px;"></i>Grade Submission</h2>
+                <span class="close" onclick="document.getElementById('gradeSubmissionModal').style.display='none'">&times;</span>
             </div>
             <div class="modal-body">
-                <form id="uploadResourceForm">
+                <input type="hidden" id="gradeSubId">
+                <input type="hidden" id="gradeAsgMaxPts">
+                <div id="gradeStudentInfo" style="background:#f8fafc;border-radius:10px;padding:1rem;margin-bottom:1rem;font-size:0.9rem;"></div>
+                <div class="form-group">
+                    <label>Points <span style="color:#ef4444;">*</span> <span id="gradeMaxLabel" style="color:#94a3b8;font-size:0.82rem;"></span></label>
+                    <input type="number" id="gradePoints" class="form-control" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Feedback <small style="color:#94a3b8;">(optional)</small></label>
+                    <textarea id="gradeFeedback" class="form-control" rows="3" placeholder="Write feedback for the student..."></textarea>
+                </div>
+                <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+                    <button class="btn btn-outline" onclick="document.getElementById('gradeSubmissionModal').style.display='none'">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitGradeFromModal()">
+                        <i class="fas fa-check"></i> Save Grade
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Resource Modal (Dynamic) -->
+    <div id="uploadResourceModal" class="modal">
+        <div class="modal-content" style="max-width:560px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-upload" style="color:#667eea;margin-right:8px;"></i>Upload Resource</h2>
+                <span class="close" onclick="closeTeacherResourceModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="teacherResourceForm" enctype="multipart/form-data">
                     <div class="form-group">
-                        <label for="resourceTitle">Resource Title</label>
-                        <input type="text" id="resourceTitle" class="form-control" required>
+                        <label>Resource Title <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="tResTitle" class="form-control" required placeholder="e.g. Data Structures Lecture Notes">
                     </div>
                     <div class="form-group">
-                        <label for="resourceClass">Class</label>
-                        <select id="resourceClass" class="form-control" required>
-                            <option value="">Select a class</option>
-                            <option value="ds201">Data Structures</option>
-                            <option value="algo301">Algorithms</option>
-                            <option value="db301">Database Systems</option>
-                            <option value="se401">Software Engineering</option>
+                        <label>Class / Subject <span style="color:#ef4444;">*</span></label>
+                        <select id="tResClass" class="form-control" required>
+                            <option value="">Select class...</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="resourceType">Resource Type</label>
-                        <select id="resourceType" class="form-control" required>
-                            <option value="">Select type</option>
-                            <option value="document">Document</option>
-                            <option value="video">Video</option>
-                            <option value="link">External Link</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="fileUploadGroup">
-                        <label for="resourceFile">Upload File</label>
-                        <input type="file" id="resourceFile" class="form-control">
-                    </div>
-                    <div class="form-group" id="linkUrlGroup" style="display: none;">
-                        <label for="resourceUrl">URL</label>
-                        <input type="url" id="resourceUrl" class="form-control">
+                        <label>Description <small style="color:#94a3b8;">(optional)</small></label>
+                        <textarea id="tResDesc" class="form-control" rows="2" placeholder="Brief description..."></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="resourceDescription">Description</label>
-                        <textarea id="resourceDescription" class="form-control" rows="3"></textarea>
+                        <label>Upload File <span style="color:#ef4444;">*</span></label>
+                        <input type="file" id="tResFile" class="form-control" required
+                               accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png,.mp4,.avi,.mov">
+                        <small style="color:#94a3b8;margin-top:4px;display:block;">PDF, Word, PPT, Excel, Images, Videos  Max 50MB</small>
                     </div>
-                    <button type="submit" class="btn btn-primary">Upload Resource</button>
+                    <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem;">
+                        <button type="button" class="btn btn-outline" onclick="closeTeacherResourceModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="tResUploadBtn">
+                            <i class="fas fa-upload"></i> Upload & Share with Students
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -1307,7 +1363,7 @@
                                     </div>
                                     <div class="resource-body">
                                         <h3 class="resource-title">Data Structures Textbook</h3>
-                                        <p class="resource-meta">PDF • 15.2 MB</p>
+                                        <p class="resource-meta">PDF  15.2 MB</p>
                                         <div class="resource-actions">
                                             <button class="btn btn-sm btn-primary download-btn">Download</button>
                                             <button class="btn btn-sm btn-outline share-btn">Share</button>
@@ -1320,7 +1376,7 @@
                                     </div>
                                     <div class="resource-body">
                                         <h3 class="resource-title">Graph Algorithms Lecture</h3>
-                                        <p class="resource-meta">MP4 • 320 MB</p>
+                                        <p class="resource-meta">MP4  320 MB</p>
                                         <div class="resource-actions">
                                             <button class="btn btn-sm btn-primary download-btn">Download</button>
                                             <button class="btn btn-sm btn-outline share-btn">Share</button>
@@ -1333,7 +1389,7 @@
                                     </div>
                                     <div class="resource-body">
                                         <h3 class="resource-title">Database Design Slides</h3>
-                                        <p class="resource-meta">PPTX • 8.7 MB</p>
+                                        <p class="resource-meta">PPTX  8.7 MB</p>
                                         <div class="resource-actions">
                                             <button class="btn btn-sm btn-primary download-btn">Download</button>
                                             <button class="btn btn-sm btn-outline share-btn">Share</button>
@@ -1350,144 +1406,55 @@
 
     <!-- Student Details Modal -->
     <div id="studentDetailsModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Student Details</h2>
-                <span class="close">&times;</span>
+        <div class="modal-content" style="max-width:600px; border-radius:14px; overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:1rem 1.4rem;display:flex;justify-content:space-between;align-items:center;">
+                <h2 style="margin:0;font-size:1rem;color:#fff;"><i class="fas fa-user-graduate"></i> Student Details</h2>
+                <span class="close" style="color:#fff;font-size:1.3rem;cursor:pointer;line-height:1;">&times;</span>
             </div>
-            <div class="modal-body">
-                <div class="student-profile-card">
-                    <div class="profile-header">
-                        <div class="student-avatar large">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                        <div class="profile-info">
-                            <h3 id="studentDetailName">Anurag Ray</h3>
-                            <p id="studentDetailId">CS2021001</p>
-                            <p id="studentDetailEmail">anurag.ray@college.edu</p>
-                        </div>
-                        <div class="profile-actions">
-                            <button class="btn btn-primary message-student-btn">Message Student</button>
-                        </div>
+            <div class="modal-body" style="padding:1.2rem;">
+                <!-- Profile row -->
+                <div style="display:flex;align-items:center;gap:0.85rem;margin-bottom:1rem;">
+                    <div style="width:46px;height:46px;background:linear-gradient(135deg,#ede9fe,#ddd6fe);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fas fa-user-graduate" style="font-size:1.2rem;color:#7c3aed;"></i>
                     </div>
-                    
-                    <div class="profile-stats">
-                        <div class="stat-card">
-                            <div class="stat-value">92%</div>
-                            <div class="stat-label">Attendance</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">85%</div>
-                            <div class="stat-label">Assignments</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">88%</div>
-                            <div class="stat-label">Overall Grade</div>
-                        </div>
+                    <div style="flex:1;min-width:0;">
+                        <div id="studentDetailName" style="font-weight:700;font-size:1rem;color:#1e293b;"></div>
+                        <div id="studentDetailId" style="color:#64748b;font-size:0.82rem;"></div>
+                        <div id="studentDetailEmail" style="color:#94a3b8;font-size:0.78rem;"></div>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;flex-shrink:0;">
+                        <button id="studentDetailMsgBtn" style="padding:0.3rem 0.8rem;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:600;white-space:nowrap;"><i class="fas fa-envelope"></i> Message</button>
+                        <button onclick="document.getElementById('studentDetailsModal').style.display='none'" style="padding:0.3rem 0.7rem;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:0.78rem;color:#374151;">Close</button>
                     </div>
                 </div>
-                
-                <div class="student-tabs">
-                    <button class="tab-btn active" data-tab="performance">Performance</button>
-                    <button class="tab-btn" data-tab="attendance">Attendance</button>
-                    <button class="tab-btn" data-tab="assignments">Assignments</button>
-                </div>
-                
-                <div class="tab-content active" id="performance">
-                    <div class="performance-chart">
-                        <h4>Performance Overview</h4>
-                        <div class="chart-container">
-                            <div class="chart-placeholder">
-                                <i class="fas fa-chart-line"></i>
-                                <p>Performance chart visualization</p>
-                            </div>
-                        </div>
+                <!-- GPA + Status -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:1rem;">
+                    <div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #ddd6fe;border-radius:8px;padding:0.6rem 0.8rem;">
+                        <div style="font-size:0.68rem;color:#7c3aed;text-transform:uppercase;font-weight:700;">Overall GPA</div>
+                        <div id="studentDetailGpa" style="font-size:1.5rem;font-weight:800;color:#667eea;line-height:1.2;"></div>
+                        <div style="font-size:0.65rem;color:#a78bfa;">out of 10.0</div>
+                    </div>
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.6rem 0.8rem;">
+                        <div style="font-size:0.68rem;color:#64748b;text-transform:uppercase;font-weight:700;">Status</div>
+                        <div id="studentDetailStatus" style="font-size:1rem;font-weight:700;color:#1e293b;margin-top:0.3rem;"></div>
                     </div>
                 </div>
-                
-                <div class="tab-content" id="attendance">
-                    <div class="attendance-records">
-                        <h4>Attendance Records</h4>
-                        <div class="attendance-summary">
-                            <div class="summary-item">
-                                <div class="summary-label">Total Classes</div>
-                                <div class="summary-value">24</div>
-                            </div>
-                            <div class="summary-item">
-                                <div class="summary-label">Present</div>
-                                <div class="summary-value">22</div>
-                            </div>
-                            <div class="summary-item">
-                                <div class="summary-label">Absent</div>
-                                <div class="summary-value">2</div>
-                            </div>
-                            <div class="summary-item">
-                                <div class="summary-label">Percentage</div>
-                                <div class="summary-value">92%</div>
-                            </div>
-                        </div>
-                        <div class="attendance-list">
-                            <div class="attendance-record">
-                                <div class="record-date">Oct 1, 2025</div>
-                                <div class="record-status"><span class="badge badge-success">Present</span></div>
-                            </div>
-                            <div class="attendance-record">
-                                <div class="record-date">Sep 29, 2025</div>
-                                <div class="record-status"><span class="badge badge-success">Present</span></div>
-                            </div>
-                            <div class="attendance-record">
-                                <div class="record-date">Sep 27, 2025</div>
-                                <div class="record-status"><span class="badge badge-danger">Absent</span></div>
-                            </div>
-                            <div class="attendance-record">
-                                <div class="record-date">Sep 24, 2025</div>
-                                <div class="record-status"><span class="badge badge-success">Present</span></div>
-                            </div>
-                        </div>
+                <!-- Chart -->
+                <div style="background:linear-gradient(135deg,#faf5ff,#f5f3ff);border:1px solid #e9d5ff;border-radius:10px;padding:0.9rem;margin-bottom:1rem;">
+                    <div style="font-size:0.8rem;font-weight:700;color:#7c3aed;margin-bottom:0.4rem;"><i class="fas fa-chart-line"></i> Year-wise CGPA &amp; Prediction</div>
+                    <div style="position:relative;height:150px;width:100%;">
+                        <canvas id="teacherStudentCgpaChart"></canvas>
                     </div>
+                    <p id="teacherStudentChartNote" style="color:#a78bfa;font-size:0.72rem;text-align:center;margin:0.25rem 0 0;"></p>
                 </div>
-                
-                <div class="tab-content" id="assignments">
-                    <div class="assignment-records">
-                        <h4>Assignment Submissions</h4>
-                        <div class="assignment-list">
-                            <div class="assignment-record">
-                                <div class="record-info">
-                                    <div class="record-title">Binary Trees Implementation</div>
-                                    <div class="record-meta">Due: Oct 5, 2025</div>
-                                </div>
-                                <div class="record-grade">85%</div>
-                                <div class="record-status">
-                                    <span class="badge badge-success">Submitted</span>
-                                </div>
-                            </div>
-                            <div class="assignment-record">
-                                <div class="record-info">
-                                    <div class="record-title">Linked List Operations</div>
-                                    <div class="record-meta">Due: Sep 28, 2025</div>
-                                </div>
-                                <div class="record-grade">92%</div>
-                                <div class="record-status">
-                                    <span class="badge badge-success">Submitted</span>
-                                </div>
-                            </div>
-                            <div class="assignment-record">
-                                <div class="record-info">
-                                    <div class="record-title">Array Manipulation</div>
-                                    <div class="record-meta">Due: Sep 21, 2025</div>
-                                </div>
-                                <div class="record-grade">78%</div>
-                                <div class="record-status">
-                                    <span class="badge badge-success">Submitted</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Courses -->
+                <div>
+                    <div style="font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.4rem;"><i class="fas fa-book" style="color:#667eea;"></i> Enrolled Courses</div>
+                    <div id="studentDetailCourses" style="color:#64748b;font-size:0.83rem;"></div>
                 </div>
             </div>
         </div>
     </div>
-
     <!-- Assignment Details Modal -->
     <div id="assignmentDetailsModal" class="modal">
         <div class="modal-content">
@@ -1670,7 +1637,9 @@
         </div>
     </div>
 
+    <script src="js/notifications.js"></script>
     <script src="js/teacher.js"></script>
+    <script src="js/teacher-assignments.js?v=1.3&t=20260612d"></script>
     <script>
         // Initialize modal functionality
         document.addEventListener('DOMContentLoaded', function() {
@@ -1737,7 +1706,7 @@
             }
             
             // Fetch current user data from backend
-            fetch('http://localhost:5002/api/auth/me', {
+            fetch('/api/auth/me', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${authToken}`,
@@ -1781,5 +1750,90 @@
             }
         });
     </script>
+
+    <!-- Enrollment Management Modal -->
+    <div id="enrollmentManagementModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-users"></i> Enrollment Management</h2>
+                <button class="modal-close" onclick="closeEnrollmentModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 id="enrollmentClassName" style="color: #667eea;">Loading...</h3>
+                    <p id="enrollmentClassInfo" style="color: #64748b; margin-top: 0.5rem;">Loading class information...</p>
+                </div>
+
+                <!-- Enrollment Stats -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 12px; color: white;">
+                        <div style="font-size: 0.85rem; opacity: 0.9;">Total Invited</div>
+                        <div id="statTotal" style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem;">-</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); padding: 1.5rem; border-radius: 12px; color: white;">
+                        <div style="font-size: 0.85rem; opacity: 0.9;">Enrolled</div>
+                        <div id="statEnrolled" style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem;">-</div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div style="display: flex; gap: 1rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem;">
+                    <button class="enrollment-tab-btn active" data-tab="enrolled" onclick="switchEnrollmentTab('enrolled')" style="padding: 0.75rem 1.5rem; border: none; background: none; cursor: pointer; font-weight: 600; color: #64748b; border-bottom: 3px solid transparent; transition: all 0.3s;">
+                         Enrolled Students
+                    </button>
+                </div>
+
+                <!-- Enrolled Students Table -->
+                <div id="enrolledTab" class="enrollment-tab-content">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Student Name</th>
+                                <th>Email</th>
+                                <th>Enrolled On</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="enrolledStudentsTable">
+                            <tr><td colspan="5" style="text-align:center; padding:2rem;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .enrollment-tab-btn.active {
+        color: #667eea !important;
+        border-bottom-color: #667eea !important;
+    }
+
+    .enrollment-tab-btn:hover {
+        color: #667eea !important;
+    }
+
+    #enrollmentManagementModal .modal-content {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    #enrollmentManagementModal .data-table {
+        margin-top: 0;
+    }
+
+    #enrollmentManagementModal .data-table th {
+        background: #f8fafc;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+    </style>
 </body>
 </html>
+
+

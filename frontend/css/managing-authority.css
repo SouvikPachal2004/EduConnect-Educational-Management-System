@@ -600,8 +600,9 @@ body {
 }
 
 .btn-sm {
-    padding: 0.35rem 0.7rem;
+    padding: 0.25rem 0.6rem;
     font-size: 0.75rem;
+    border-radius: 5px;
 }
 
 .btn-danger {
@@ -611,6 +612,21 @@ body {
 
 .btn-danger:hover {
     background-color: #D32F2F;
+}
+
+.btn-success {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #388E3C;
+}
+
+/* Modal form action buttons — compact */
+.form-actions .btn {
+    padding: 0.45rem 1rem;
+    font-size: 0.82rem;
 }
 
 /* Forms */

@@ -1,20 +1,22 @@
-const Resource = require('../models/Resource');
+﻿const Resource = require('../models/Resource');
 const Class = require('../models/Class');
 const { successResponse, errorResponse } = require('../utils/response.utils');
 
 // Create resource
 const createResource = async (req, res) => {
   try {
-    const { title, description, classId, fileType, fileUrl, isPublic } = req.body;
+    const { title, description, classId, resourceType, url, urlType, isPublic } = req.body;
     
     // Check if class exists
-    const classItem = await Class.findById(classId);
+    const classItem = await Class.findById(classId).populate('students', '_id');
     if (!classItem) {
       return errorResponse(res, 'Class not found', 404);
     }
     
-    // Check if user is the teacher of this class
-    if (classItem.teacher.toString() !== req.user.id) {
+    // Check if user is the teacher of this class OR an HOD
+    const user = await require('../models/User').findById(req.user.id).select('role department');
+    const isHod = user && user.role === 'hod';
+    if (!isHod && classItem.teacher.toString() !== req.user.id) {
       return errorResponse(res, 'Not authorized to create resources for this class', 403);
     }
     
@@ -23,16 +25,31 @@ const createResource = async (req, res) => {
       description,
       class: classId,
       teacher: req.user.id,
-      fileType,
-      fileUrl,
+      resourceType: resourceType || 'file',
       isPublic: isPublic || false,
     });
     
-    // If file was uploaded, add file info
+    // Handle file upload
     if (req.file) {
       resource.fileName = req.file.originalname;
       resource.filePath = req.file.path;
       resource.fileSize = req.file.size;
+      resource.mimeType = req.file.mimetype;
+      resource.resourceType = 'file';
+    }
+    // Handle URL-based resources
+    else if (url) {
+      resource.url = url;
+      resource.resourceType = resourceType || 'url';
+      resource.urlType = urlType || detectUrlType(url);
+      
+      // Extract YouTube video ID if it's a YouTube URL
+      if (resource.urlType === 'youtube') {
+        const youtubeId = extractYouTubeId(url);
+        if (youtubeId) {
+          resource.thumbnail = `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`;
+        }
+      }
     }
     
     await resource.save();
@@ -43,11 +60,78 @@ const createResource = async (req, res) => {
       { path: 'teacher', select: 'name email' }
     ]);
     
-    successResponse(res, resource, 'Resource created successfully', 201);
+    // If HOD uploaded, count all department students (not just class students)
+    let studentsNotified = classItem.students.length;
+    let notificationMessage = `${classItem.students.length} students in the class can now access it`;
+    
+    if (isHod && user.department) {
+      try {
+        const User = require('../models/User');
+        const { getDepartmentAliases, normalizeDepartmentName } = require('../utils/departmentCatalog');
+        const canonical = normalizeDepartmentName(user.department) || user.department;
+        const aliases = getDepartmentAliases ? getDepartmentAliases(canonical) : [user.department];
+        
+        // Count all students in the department
+        const deptStudentCount = await User.countDocuments({ 
+          role: 'student', 
+          department: { $in: aliases } 
+        });
+        
+        studentsNotified = deptStudentCount;
+        notificationMessage = `all ${deptStudentCount} students in ${user.department} department can now access it`;
+      } catch (err) {
+        console.error('Error counting department students:', err);
+        // Fall back to class students count
+      }
+    }
+    
+    successResponse(res, {
+      resource,
+      studentsNotified,
+      message: `Resource created and ${notificationMessage}`
+    }, 'Resource created successfully', 201);
   } catch (error) {
     errorResponse(res, 'Failed to create resource', 500, error.message);
   }
 };
+
+// Helper function to detect URL type
+function detectUrlType(url) {
+  if (!url) return 'other';
+  
+  const urlLower = url.toLowerCase();
+  
+  if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
+    return 'youtube';
+  } else if (urlLower.includes('drive.google.com') || urlLower.includes('docs.google.com')) {
+    return 'drive';
+  } else if (urlLower.match(/\.(mp4|avi|mov|wmv|flv|webm)$/)) {
+    return 'video';
+  } else {
+    return 'website';
+  }
+}
+
+// Helper function to extract YouTube video ID
+function extractYouTubeId(url) {
+  if (!url) return null;
+  
+  // Handle different YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+    /youtube\.com\/embed\/([^&\n?#]+)/,
+    /youtube\.com\/v\/([^&\n?#]+)/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  
+  return null;
+}
 
 // Get all resources
 const getAllResources = async (req, res) => {
@@ -59,15 +143,43 @@ const getAllResources = async (req, res) => {
     if (classId) filter.class = classId;
     if (fileType) filter.fileType = fileType;
     
-    // If student, only get public resources or resources from their classes
+    // If student, get resources from their classes + resources uploaded by HODs in their department
     if (req.user.role === 'student') {
+      const User = require('../models/User');
+      const student = await User.findById(req.user.id).select('department');
+      
+      // Get student's classes
       const studentClasses = await Class.find({ students: req.user.id });
       const classIds = studentClasses.map(c => c._id);
       
+      // Get HODs from student's department
+      let hodIds = [];
+      if (student && student.department) {
+        const { getDepartmentAliases, normalizeDepartmentName } = require('../utils/departmentCatalog');
+        const canonical = normalizeDepartmentName(student.department) || student.department;
+        const aliases = getDepartmentAliases ? getDepartmentAliases(canonical) : [student.department];
+        
+        const hods = await User.find({ 
+          role: 'hod', 
+          department: { $in: aliases } 
+        }).select('_id');
+        hodIds = hods.map(h => h._id);
+      }
+      
+      // Student can see: public resources OR resources from their classes OR resources uploaded by their dept HOD
       filter.$or = [
-        { isPublic: true },
-        { class: { $in: classIds } }
+        { isPublic: true }, 
+        { class: { $in: classIds } },
+        ...(hodIds.length > 0 ? [{ teacher: { $in: hodIds } }] : [])
       ];
+    }
+    // Teacher sees ONLY resources they personally uploaded
+    else if (req.user.role === 'teacher') {
+      filter.teacher = req.user.id;
+    }
+    // HOD sees ONLY resources they personally uploaded
+    else if (req.user.role === 'hod') {
+      filter.teacher = req.user.id;
     }
     
     // Pagination
@@ -182,17 +294,157 @@ const deleteResource = async (req, res) => {
     if (!resource) {
       return errorResponse(res, 'Resource not found', 404);
     }
-    
-    // Check if user is the teacher who created this resource
+
+    const User = require('../models/User');
+    const requestingUser = await User.findById(req.user.id).select('role department');
+
+    // HOD can delete any resource in their department
+    if (requestingUser && requestingUser.role === 'hod') {
+      const { getDepartmentAliases, normalizeDepartmentName } = require('../utils/departmentCatalog');
+      const canonical = normalizeDepartmentName(requestingUser.department) || requestingUser.department;
+      const aliases = getDepartmentAliases ? getDepartmentAliases(canonical) : [requestingUser.department];
+      const resourceTeacher = await User.findById(resource.teacher).select('department');
+      // Allow if teacher is in same dept, OR HOD uploaded it themselves
+      if (
+        resource.teacher.toString() === req.user.id ||
+        (resourceTeacher && aliases.includes(resourceTeacher.department))
+      ) {
+        await Resource.findByIdAndDelete(req.params.id);
+        return successResponse(res, null, 'Resource deleted successfully');
+      }
+      return errorResponse(res, 'Not authorized to delete this resource', 403);
+    }
+
+    // Teacher/admin: only their own resources
     if (resource.teacher.toString() !== req.user.id) {
       return errorResponse(res, 'Not authorized to delete this resource', 403);
     }
-    
+
     await Resource.findByIdAndDelete(req.params.id);
-    
     successResponse(res, null, 'Resource deleted successfully');
   } catch (error) {
     errorResponse(res, 'Failed to delete resource', 500, error.message);
+  }
+};
+
+// Download resource file
+const downloadResource = async (req, res) => {
+  try {
+    const resource = await Resource.findById(req.params.id);
+    if (!resource) {
+      return errorResponse(res, 'Resource not found', 404);
+    }
+
+    // If it's a URL resource, redirect
+    if (resource.resourceType === 'url' && resource.url) {
+      return res.redirect(resource.url);
+    }
+
+    // If it's a file resource, serve the file
+    if (resource.filePath) {
+      const path = require('path');
+      const fs = require('fs');
+
+      // Try absolute path first, then relative to project root
+      let fullPath = path.isAbsolute(resource.filePath)
+        ? resource.filePath
+        : path.join(__dirname, '../../', resource.filePath);
+
+      // Also try relative to backend folder
+      if (!fs.existsSync(fullPath)) {
+        fullPath = path.join(__dirname, '../', resource.filePath);
+      }
+      // Also try as-is from CWD
+      if (!fs.existsSync(fullPath)) {
+        fullPath = path.resolve(resource.filePath);
+      }
+
+      if (!fs.existsSync(fullPath)) {
+        console.error('File not found at path:', fullPath, '| stored path:', resource.filePath);
+        return errorResponse(res, 'File not found on server', 404);
+      }
+
+      res.setHeader('Content-Disposition', `attachment; filename="${resource.fileName || 'download'}"`);
+      res.setHeader('Content-Type', resource.mimeType || 'application/octet-stream');
+
+      const fileStream = fs.createReadStream(fullPath);
+      fileStream.pipe(res);
+      fileStream.on('error', (error) => {
+        console.error('File stream error:', error);
+        if (!res.headersSent) errorResponse(res, 'Error reading file', 500);
+      });
+    } else {
+      return errorResponse(res, 'No file associated with this resource', 404);
+    }
+  } catch (error) {
+    console.error('Download resource error:', error);
+    if (!res.headersSent) errorResponse(res, 'Failed to download resource', 500, error.message);
+  }
+};
+
+// View resource file (for preview â€” same as download but inline)
+const viewResource = async (req, res) => {
+  try {
+    const resource = await Resource.findById(req.params.id);
+    if (!resource) {
+      return errorResponse(res, 'Resource not found', 404);
+    }
+
+    // If it's a URL resource, redirect
+    if (resource.resourceType === 'url' && resource.url) {
+      return res.redirect(resource.url);
+    }
+
+    if (resource.filePath) {
+      const path = require('path');
+      const fs = require('fs');
+
+      // Try multiple path resolutions
+      let fullPath = path.isAbsolute(resource.filePath)
+        ? resource.filePath
+        : path.join(__dirname, '../../', resource.filePath);
+
+      if (!fs.existsSync(fullPath)) {
+        fullPath = path.join(__dirname, '../', resource.filePath);
+      }
+      if (!fs.existsSync(fullPath)) {
+        fullPath = path.resolve(resource.filePath);
+      }
+
+      if (!fs.existsSync(fullPath)) {
+        console.error('File not found at path:', fullPath, '| stored path:', resource.filePath);
+        return errorResponse(res, 'File not found on server', 404);
+      }
+
+      const ext = (resource.fileName || '').split('.').pop().toLowerCase();
+      const mimeMap = {
+        pdf: 'application/pdf',
+        doc: 'application/msword',
+        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ppt: 'application/vnd.ms-powerpoint',
+        pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        xls: 'application/vnd.ms-excel',
+        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
+        mp4: 'video/mp4', webm: 'video/webm',
+      };
+
+      const mime = resource.mimeType || mimeMap[ext] || 'application/octet-stream';
+      res.setHeader('Content-Type', mime);
+      res.setHeader('Content-Disposition', `inline; filename="${resource.fileName || 'file'}"`);
+
+      const fileStream = fs.createReadStream(fullPath);
+      fileStream.pipe(res);
+      fileStream.on('error', (error) => {
+        console.error('File stream error:', error);
+        if (!res.headersSent) errorResponse(res, 'Error reading file', 500);
+      });
+    } else {
+      return errorResponse(res, 'No file associated with this resource', 404);
+    }
+  } catch (error) {
+    console.error('View resource error:', error);
+    if (!res.headersSent) errorResponse(res, 'Failed to view resource', 500, error.message);
   }
 };
 
@@ -202,4 +454,6 @@ module.exports = {
   getResourceById,
   updateResource,
   deleteResource,
+  downloadResource,
+  viewResource,
 };

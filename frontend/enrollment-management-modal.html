@@ -1,0 +1,80 @@
+<!-- Enrollment Management Modal -->
+<div id="enrollmentManagementModal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-header">
+            <h2><i class="fas fa-users"></i> Enrollment Management</h2>
+            <button class="modal-close" onclick="closeEnrollmentModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: 1.5rem;">
+                <h3 id="enrollmentClassName" style="color: #667eea;">Loading...</h3>
+                <p id="enrollmentClassInfo" style="color: #64748b; margin-top: 0.5rem;">Loading class information...</p>
+            </div>
+
+            <!-- Enrollment Stats -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 12px; color: white;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Total Invited</div>
+                    <div id="statTotal" style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem;">-</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); padding: 1.5rem; border-radius: 12px; color: white;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Enrolled</div>
+                    <div id="statEnrolled" style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem;">-</div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display: flex; gap: 1rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem;">
+                <button class="enrollment-tab-btn active" data-tab="enrolled" onclick="switchEnrollmentTab('enrolled')" style="padding: 0.75rem 1.5rem; border: none; background: none; cursor: pointer; font-weight: 600; color: #64748b; border-bottom: 3px solid transparent; transition: all 0.3s;">
+                    ✅ Enrolled Students
+                </button>
+            </div>
+
+            <!-- Enrolled Students Table -->
+            <div id="enrolledTab" class="enrollment-tab-content">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Student Name</th>
+                            <th>Email</th>
+                            <th>Enrolled On</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="enrolledStudentsTable">
+                        <tr><td colspan="5" style="text-align:center; padding:2rem;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.enrollment-tab-btn.active {
+    color: #667eea !important;
+    border-bottom-color: #667eea !important;
+}
+
+.enrollment-tab-btn:hover {
+    color: #667eea !important;
+}
+
+#enrollmentManagementModal .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+#enrollmentManagementModal .data-table {
+    margin-top: 0;
+}
+
+#enrollmentManagementModal .data-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+</style>

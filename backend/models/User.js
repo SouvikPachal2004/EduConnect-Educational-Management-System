@@ -43,6 +43,24 @@ const userSchema = new mongoose.Schema({
     min: 0,
     max: 10,
   },
+  // Per-semester CGPAs for students (index = semester - 1)
+  semesterCgpas: {
+    type: [Number],
+    default: [],
+  },
+  // Current semester
+  currentSemester: {
+    type: Number,
+    min: 1,
+    max: 12,
+    default: 1,
+  },
+  // Program reference (for students)
+  program: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Program',
+    default: null,
+  },
   profilePicture: {
     type: String,
   },

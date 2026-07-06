@@ -16,6 +16,12 @@ const classSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  credits: {
+    type: Number,
+    default: 3,
+    min: 1,
+    max: 10,
+  },
   teacher: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -31,15 +37,33 @@ const classSchema = new mongoose.Schema({
       enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
     }],
     startTime: {
-      type: String, // Format: "HH:MM"
+      type: String,
     },
     endTime: {
-      type: String, // Format: "HH:MM"
+      type: String,
     },
     location: {
       type: String,
       trim: true,
     },
+    scheduledDate: {
+      type: String, // Format: YYYY-MM-DD
+    },
+    scheduledTime: {
+      type: String, // Format: HH:MM
+    },
+  },
+  // Class mode: virtual (online) or physical (in-person)
+  mode: {
+    type: String,
+    enum: ['virtual', 'physical'],
+    default: 'physical',
+  },
+  // Meeting link for virtual classes
+  meetingLink: {
+    type: String,
+    trim: true,
+    default: '',
   },
   isActive: {
     type: Boolean,

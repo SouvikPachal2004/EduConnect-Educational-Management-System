@@ -3,6 +3,7 @@ const {
   sendMessage,
   getMessagesForUser,
   getMessageById,
+  getReplies,
   saveDraft,
   updateDraft,
   sendDraft,
@@ -19,6 +20,9 @@ router.post('/', sendMessage);
 
 // Get messages for user
 router.get('/', getMessagesForUser);
+
+// Get replies for a message (thread)
+router.get('/:id/replies', getReplies);
 
 // Get specific message
 router.get('/:id', getMessageById);

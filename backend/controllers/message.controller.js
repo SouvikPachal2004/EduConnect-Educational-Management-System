@@ -93,7 +93,7 @@ const getMessagesForUser = async (req, res) => {
     // Get messages
     const messages = await Message.find(filter)
       .populate([
-        { path: 'sender', select: 'name email' },
+        { path: 'sender', select: 'name email role' },
         { path: 'recipients', select: 'name email' }
       ])
       .skip(skip)
@@ -122,7 +122,7 @@ const getMessageById = async (req, res) => {
   try {
     const message = await Message.findById(req.params.id)
       .populate([
-        { path: 'sender', select: 'name email' },
+        { path: 'sender', select: 'name email role' },
         { path: 'recipients', select: 'name email' }
       ]);
       
@@ -131,7 +131,8 @@ const getMessageById = async (req, res) => {
     }
     
     // Check if user is authorized to view this message
-    const isSender = message.sender.toString() === req.user.id;
+    // Use ._id after populate (message.sender is a populated object, not raw ObjectId)
+    const isSender = message.sender._id.toString() === req.user.id;
     const isRecipient = message.recipients.some(recipient => 
       recipient._id.toString() === req.user.id
     );
@@ -160,6 +161,26 @@ const getMessageById = async (req, res) => {
     successResponse(res, message, 'Message fetched successfully');
   } catch (error) {
     errorResponse(res, 'Failed to fetch message', 500, error.message);
+  }
+};
+
+// Get replies for a message (thread)
+const getReplies = async (req, res) => {
+  try {
+    const parentId = req.params.id;
+    const replies = await Message.find({
+      parentMessage: parentId,
+      isDeleted: false
+    })
+      .populate([
+        { path: 'sender', select: 'name email' },
+        { path: 'recipients', select: 'name email' }
+      ])
+      .sort({ createdAt: 1 });
+
+    successResponse(res, replies, 'Replies fetched successfully');
+  } catch (error) {
+    errorResponse(res, 'Failed to fetch replies', 500, error.message);
   }
 };
 
@@ -303,6 +324,7 @@ module.exports = {
   sendMessage,
   getMessagesForUser,
   getMessageById,
+  getReplies,
   saveDraft,
   updateDraft,
   sendDraft,

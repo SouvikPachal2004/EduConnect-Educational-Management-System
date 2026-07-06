@@ -41,28 +41,20 @@ function updateDashboardStats() {
         attendanceRateElement.textContent = studentData.attendance[0].rate;
     }
     
-    // Update average grade (Overall GPA)
+    // Update average grade (Overall GPA) — always read fresh from localStorage
     const averageGradeElement = document.getElementById('averageGrade');
-    const overallGPAElement = document.getElementById('overallGPA');
-    
-    // Get grade from user profile data
+    const overallGPAElement   = document.getElementById('overallGPA');
+
+    // Re-read from localStorage every time (grades may have been updated)
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (currentUser && currentUser.grade) {
-        const grade = parseFloat(currentUser.grade).toFixed(2);
-        if (averageGradeElement) {
-            averageGradeElement.textContent = grade;
-        }
-        if (overallGPAElement) {
-            overallGPAElement.textContent = grade;
-        }
+    const grade = currentUser.grade ? parseFloat(currentUser.grade).toFixed(2) : null;
+
+    if (grade && parseFloat(grade) > 0) {
+        if (averageGradeElement) averageGradeElement.textContent = grade;
+        if (overallGPAElement)   overallGPAElement.textContent   = grade;
     } else {
-        // Fallback to N/A if no grade data available
-        if (averageGradeElement) {
-            averageGradeElement.textContent = '-';
-        }
-        if (overallGPAElement) {
-            overallGPAElement.textContent = '0.00';
-        }
+        if (averageGradeElement) averageGradeElement.textContent = '-';
+        if (overallGPAElement)   overallGPAElement.textContent   = '0.00';
     }
     
     // Update grades table
@@ -118,6 +110,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize upcoming classes
     updateUpcomingClasses();
     
+    // Load college announcements
+    loadCollegeAnnouncements();
+    
     // Initialize announcements
     updateAnnouncements();
     
@@ -130,8 +125,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize assignments
     updateAssignments();
     
-    // Initialize notifications
-    updateNotifications();
+    // Notifications are handled by notifications.js (unified system)
+    // updateNotifications(); -- removed to prevent conflict
     
     // Simulate real-time updates with memory-efficient interval
     if (notificationInterval) {
@@ -154,7 +149,7 @@ function fetchAllStudentData() {
     }
     
     // Fetch current user data
-    fetch('http://localhost:5002/api/auth/me', {
+    fetch('/api/auth/me', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -190,6 +185,17 @@ function fetchAllStudentData() {
             departmentElements.forEach(el => {
                 el.textContent = studentData.department;
             });
+
+            // Update program name in sidebar (shown above department)
+            const programEl = document.getElementById('userProgram');
+            if (programEl) {
+                // Derive program from department name (B.Tech departments)
+                const dept = (data.data.department || '').toUpperCase();
+                let programName = 'B.Tech'; // default for all existing departments
+                if (dept.includes('BCA')) programName = 'BCA';
+                else if (dept.includes('MCA')) programName = 'MCA';
+                programEl.textContent = programName;
+            }
         } else {
             console.error('Failed to fetch user data:', data.message);
         }
@@ -199,7 +205,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch classes data from backend
-    fetch('http://localhost:5002/api/classes', {
+    fetch('/api/classes', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -209,16 +215,47 @@ function fetchAllStudentData() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Transform classes data to match frontend format
-            studentData.classes = data.data.classes.map(cls => ({
-                id: cls._id,
-                name: cls.name,
-                instructor: cls.teacher ? cls.teacher.name : 'Unknown',
-                schedule: cls.schedule ? `${cls.schedule.days.join(', ')} - ${cls.schedule.startTime}` : 'Not scheduled',
-                room: cls.schedule ? cls.schedule.location : 'Not specified',
-                type: 'offline' // Default type
-            }));
+            // Transform classes data — preserve all fields needed for the new card UI
+            studentData.classes = data.data.classes.map(cls => {
+                // Build schedule display: prefer scheduledDate+scheduledTime, fall back to days/startTime
+                let scheduleDisplay = 'Not specified';
+                let scheduledDate = cls.schedule?.scheduledDate || '';
+                let scheduledTime = cls.schedule?.scheduledTime || '';
+
+                if (scheduledDate && scheduledTime) {
+                    // Format: "03 Jul 2026 at 12:00 PM"
+                    const d = new Date(scheduledDate + 'T' + scheduledTime);
+                    const dateStr = d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+                    const [h, m] = scheduledTime.split(':').map(Number);
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
+                    scheduleDisplay = `${dateStr} at ${displayH}:${String(m).padStart(2,'0')} ${ampm}`;
+                } else if (cls.schedule?.days?.length && cls.schedule?.startTime) {
+                    scheduleDisplay = `${cls.schedule.days.join(', ')} ${cls.schedule.startTime}`;
+                } else if (cls.schedule?.startTime) {
+                    scheduleDisplay = cls.schedule.startTime;
+                }
+
+                return {
+                    id: cls._id,
+                    name: cls.name,
+                    code: cls.code || '',
+                    credits: cls.credits || 10,
+                    instructor: cls.teacher ? cls.teacher.name : 'Unknown',
+                    department: cls.teacher ? cls.teacher.department : '',
+                    schedule: scheduleDisplay,
+                    scheduledDate,
+                    scheduledTime,
+                    room: cls.schedule ? (cls.schedule.location || '') : '',
+                    mode: cls.mode || 'physical',
+                    meetingLink: cls.meetingLink || '',
+                };
+            });
             
+            // Update enrolled courses count
+            const enrolledEl = document.getElementById('enrolledCoursesCount');
+            if (enrolledEl) enrolledEl.textContent = studentData.classes.length;
+
             // Update classes UI
             updateStudentClassesList(studentData.classes);
             updateUpcomingClasses();
@@ -231,7 +268,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch assignments data from backend
-    fetch('http://localhost:5002/api/assignments', {
+    fetch('/api/assignments', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -244,29 +281,48 @@ function fetchAllStudentData() {
             // Separate assignments into pending and completed based on submission status
             const allAssignments = data.data.assignments;
             
-            // For now, we'll put all assignments in pending
-            // In a real implementation, we would separate based on submission status
-            studentData.assignments.pending = allAssignments.map(assignment => ({
-                id: assignment._id,
-                title: assignment.title,
-                course: assignment.class ? assignment.class.name : 'Unknown Class',
-                instructor: assignment.teacher ? assignment.teacher.name : 'Unknown',
-                deadline: new Date(assignment.dueDate).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric' 
-                }),
-                time: new Date(assignment.dueDate).toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                }),
-                description: assignment.description,
-                attachments: assignment.attachments || [],
-                submitted: false // Default to not submitted
-            }));
+            // Separate by submitted flag from API
+            studentData.assignments.pending = allAssignments
+                .filter(a => !a.submitted && a.status !== 'closed')
+                .map(assignment => ({
+                    id: assignment._id,
+                    title: assignment.title,
+                    course: assignment.class ? assignment.class.name : 'Unknown Class',
+                    instructor: assignment.teacher ? assignment.teacher.name : 'Unknown',
+                    deadline: new Date(assignment.dueDate).toLocaleDateString('en-US', { 
+                        year: 'numeric', month: 'short', day: 'numeric' 
+                    }),
+                    time: new Date(assignment.dueDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                    description: assignment.description,
+                    attachments: assignment.attachments || [],
+                    submitted: false,
+                    maxPoints: assignment.maxPoints
+                }));
+
+            studentData.assignments.completed = allAssignments
+                .filter(a => a.submitted)
+                .map(assignment => ({
+                    id: assignment._id,
+                    title: assignment.title,
+                    course: assignment.class ? assignment.class.name : 'Unknown Class',
+                    instructor: assignment.teacher ? assignment.teacher.name : 'Unknown',
+                    date: assignment.submission?.submittedAt 
+                        ? new Date(assignment.submission.submittedAt).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' })
+                        : '—',
+                    grade: assignment.submission?.graded 
+                        ? `${assignment.submission.points}/${assignment.maxPoints}`
+                        : 'Pending Review',
+                    submissionId: assignment.submission?._id,
+                    submissionAttachments: assignment.submission?.attachments || [],
+                    feedback: assignment.submission?.feedback || ''
+                }));
             
-            // Update assignments UI
-            updateAssignments();
+            // Update assignments UI (handled by student-grades.js now)
+            if (typeof fetchAssignmentsData === 'function') {
+                // student-grades.js will handle rendering
+            } else {
+                updateAssignments();
+            }
         } else {
             console.error('Failed to fetch assignments data:', data.message);
         }
@@ -276,7 +332,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch resources data from backend
-    fetch('http://localhost:5002/api/resources', {
+    fetch('/api/resources', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -291,8 +347,12 @@ function fetchAllStudentData() {
                 id: resource._id,
                 title: resource.title,
                 instructor: resource.teacher ? resource.teacher.name : 'Unknown',
-                type: resource.fileType || 'PDF',
+                type: resource.resourceType || resource.fileType || 'PDF',
                 size: resource.fileSize ? `${(resource.fileSize / 1024 / 1024).toFixed(1)} MB` : 'Unknown',
+                fileName: resource.fileName,
+                filePath: resource.filePath,
+                url: resource.url,
+                mimeType: resource.mimeType,
                 downloaded: false // Default to not downloaded
             }));
             
@@ -307,7 +367,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch attendance data from backend
-    fetch('http://localhost:5002/api/attendance/summary/student', {
+    fetch('/api/attendance/summary/student', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -317,18 +377,42 @@ function fetchAllStudentData() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            const d = data.data;
+            const rate = d.attendanceRate || 0;
+            const present = d.present || 0;
+            const absent = d.absent || 0;
+            const late = d.late || 0;
+            const total = d.totalClasses || 0;
+
+            // Update summary cards in attendance section
+            const overallEl = document.getElementById('overallAttendance');
+            const attendedEl = document.getElementById('classesAttended');
+            const absencesEl = document.getElementById('absences');
+            const lateEl = document.getElementById('lateArrivals');
+            if (overallEl) overallEl.textContent = `${rate}%`;
+            if (attendedEl) attendedEl.textContent = present;
+            if (absencesEl) absencesEl.textContent = absent;
+            if (lateEl) lateEl.textContent = late;
+
+            // Update attendance rate in overview stats
+            const attendanceRateEl = document.getElementById('attendanceRate');
+            if (attendanceRateEl) attendanceRateEl.textContent = `${rate}%`;
+
             // Transform attendance data to match frontend format
-            // This is a simplified version - in a real implementation, we would have more detailed data
             studentData.attendance = [{
                 course: 'Overall Attendance',
                 instructor: 'All Classes',
-                held: data.data.totalClasses || 0,
-                attended: data.data.present || 0,
-                rate: data.data.attendanceRate ? `${data.data.attendanceRate}%` : '0%',
-                status: data.data.attendanceRate >= 90 ? 'Excellent' : 
-                       data.data.attendanceRate >= 80 ? 'Good' : 
-                       data.data.attendanceRate >= 70 ? 'Satisfactory' : 'Needs Improvement'
+                held: total,
+                attended: present,
+                rate: `${rate}%`,
+                status: rate >= 90 ? 'Excellent' : rate >= 80 ? 'Good' : rate >= 70 ? 'Satisfactory' : 'Needs Improvement'
             }];
+
+            // Populate attendance table
+            updateAttendanceTable(studentData.attendance);
+
+            // Also fetch per-class attendance
+            fetchPerClassAttendance(authToken);
         } else {
             console.error('Failed to fetch attendance data:', data.message);
         }
@@ -338,7 +422,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch grades data from backend
-    fetch('http://localhost:5002/api/grades/student', {
+    fetch('/api/grades/student', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -369,7 +453,7 @@ function fetchAllStudentData() {
     });
     
     // Fetch messages data from backend
-    fetch('http://localhost:5002/api/messages?folder=inbox', {
+    fetch('/api/messages?folder=inbox', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -382,6 +466,8 @@ function fetchAllStudentData() {
             // Transform messages data to match frontend format
             studentData.messages = data.data.messages.map(message => ({
                 id: message._id,
+                _mongoId: String(message._id),
+                _senderId: message.sender ? String(message.sender._id || message.sender) : null,
                 from: message.sender ? message.sender.name : 'Unknown',
                 subject: message.subject || 'No Subject',
                 date: new Date(message.createdAt).toLocaleDateString('en-US', { 
@@ -409,81 +495,129 @@ function fetchAllStudentData() {
     });
 }
 
-// Update student classes list in UI
+// Update student classes list — renders card-based layout with mode/schedule/join
 function updateStudentClassesList(classes) {
-    // Update classes section
-    const classesSection = document.getElementById('classes');
-    if (classesSection) {
-        const classList = classesSection.querySelector('.class-list');
-        if (classList) {
-            classList.innerHTML = '';
-            
+    // ── My Classes section: card grid ──────────────────────
+    const cardGrid = document.getElementById('studentClassCards');
+    if (cardGrid) {
+        if (!classes || classes.length === 0) {
+            cardGrid.innerHTML = `<p style="color:#94a3b8; grid-column:1/-1; text-align:center; padding:2rem;">
+                <i class="fas fa-info-circle"></i> No classes yet. Your teacher will enroll you soon.</p>`;
+        } else {
+            cardGrid.innerHTML = '';
             classes.forEach(cls => {
-                const classItem = document.createElement('li');
-                classItem.className = 'class-item';
-                
-                classItem.innerHTML = `
-                    <div class="class-details">
-                        <div class="class-name">${cls.name}</div>
-                        <div class="class-info">
-                            <i class="fas fa-user"></i> ${cls.instructor}
-                            <i class="fas fa-clock ml-3"></i> ${cls.schedule}
+                const isVirtual = cls.mode === 'virtual';
+                const hasLink = isVirtual && cls.meetingLink;
+                const modeBadge = isVirtual
+                    ? `<span style="background:#ede9fe;color:#7c3aed;padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:600;white-space:nowrap;">🖥️ Virtual</span>`
+                    : `<span style="background:#d1fae5;color:#065f46;padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:600;white-space:nowrap;">🏫 Physical</span>`;
+                const locationLine = isVirtual
+                    ? (hasLink
+                        ? `<i class="fas fa-link" style="color:#667eea;"></i> <span style="color:#667eea;">Meeting link available</span>`
+                        : `<i class="fas fa-clock"></i> <span style="color:#94a3b8;">Scheduled — link opens 15 min before class</span>`)
+                    : (cls.room ? `<i class="fas fa-map-marker-alt"></i> ${cls.room}` : `<i class="fas fa-clock"></i> Location TBD`);
+
+                const card = document.createElement('div');
+                card.style.cssText = 'background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:1.3rem; display:flex; flex-direction:column; gap:0.8rem; box-shadow:0 2px 8px rgba(0,0,0,0.05);';
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+                        <div style="min-width:0; flex:1;">
+                            <div style="font-weight:700; font-size:1rem; color:#1e293b; margin-bottom:0.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cls.name}</div>
+                            <div style="font-size:0.82rem; color:#64748b;"><i class="fas fa-code"></i> ${cls.code || 'N/A'}</div>
                         </div>
+                        <div style="flex-shrink:0; margin-top:0.1rem;">${modeBadge}</div>
                     </div>
-                    <div class="class-action">
-                        <a href="#" class="btn btn-primary btn-sm view-class" data-class-id="${cls.id}">View Details</a>
+                    <div style="font-size:0.85rem; color:#374151; display:flex; flex-direction:column; gap:0.4rem;">
+                        <div><i class="fas fa-chalkboard-teacher" style="width:16px;color:#667eea;"></i> ${cls.instructor}</div>
+                        <div><i class="fas fa-calendar-alt" style="width:16px;color:#667eea;"></i> ${cls.schedule}</div>
+                        <div style="margin-top:0.2rem;">${locationLine}</div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.3rem;">
+                        <span style="background:#f0fdf4; color:#15803d; padding:0.2rem 0.65rem; border-radius:20px; font-size:0.75rem; font-weight:600;">✓ Enrolled · ${cls.credits} credits</span>
+                        <button onclick="openStudentClassDetail('${cls.id}')" style="padding:0.45rem 1rem; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:0.82rem; font-weight:600;">
+                            View Details
+                        </button>
                     </div>
                 `;
-                
-                classList.appendChild(classItem);
+                cardGrid.appendChild(card);
             });
         }
     }
-    
-    // Update overview section
+
+    // ── Overview section: keep existing simple list (unchanged) ─
     const overviewSection = document.getElementById('overview');
     if (overviewSection) {
         const classList = overviewSection.querySelector('.class-list');
         if (classList) {
             classList.innerHTML = '';
-            
-            // Show up to 3 upcoming classes
-            const upcomingClasses = classes.slice(0, 3);
-            
+            const upcomingClasses = (classes || []).slice(0, 3);
             upcomingClasses.forEach(cls => {
+                const timeParts = cls.schedule.split(' - ');
+                const time = timeParts.length > 1 ? timeParts[1] : '';
                 const classItem = document.createElement('li');
                 classItem.className = 'class-item';
-                
-                // Extract time from schedule
-                const timeParts = cls.schedule.split(' - ');
-                const time = timeParts.length > 1 ? timeParts[1] : 'N/A';
-                
                 classItem.innerHTML = `
                     <div class="class-time">
-                        <div class="time">${time.split(':')[0] || 'N/A'}</div>
-                        <div class="ampm">${time.includes('PM') ? 'PM' : time.includes('AM') ? 'AM' : 'N/A'}</div>
+                        <div class="time">${time.split(':')[0] || '--'}</div>
+                        <div class="ampm">${time.includes('PM') ? 'PM' : time.includes('AM') ? 'AM' : ''}</div>
                     </div>
                     <div class="class-details">
                         <div class="class-name">${cls.name}</div>
                         <div class="class-info">
-                            <i class="fas fa-map-marker-alt"></i> ${cls.room}
+                            <i class="fas fa-${cls.mode === 'virtual' ? 'video' : 'map-marker-alt'}"></i> ${cls.mode === 'virtual' ? 'Virtual' : (cls.room || 'TBD')}
                             <i class="fas fa-user ml-3"></i> ${cls.instructor}
                         </div>
                     </div>
                     <div class="class-action">
-                        <a href="#" class="btn btn-primary btn-sm join-class" data-class-id="${cls.id}">Join</a>
+                        <button onclick="openStudentClassDetail('${cls.id}')" class="btn btn-primary btn-sm">View Details</button>
                     </div>
                 `;
-                
                 classList.appendChild(classItem);
             });
-            
-            // If no classes, show a message
             if (upcomingClasses.length === 0) {
-                classList.innerHTML = '<li class="class-item"><div class="class-details"><p>No classes available</p></div></li>';
+                classList.innerHTML = '<li class="class-item"><div class="class-details"><p>No classes yet</p></div></li>';
             }
         }
     }
+}
+
+// Open student class detail modal
+function openStudentClassDetail(classId) {
+    const cls = studentData.classes.find(c => c.id === classId);
+    if (!cls) return;
+
+    document.getElementById('scdClassName').textContent = cls.name;
+    document.getElementById('scdTeacher').textContent = `👤 ${cls.instructor}`;
+    document.getElementById('scdMode').innerHTML = cls.mode === 'virtual'
+        ? '🖥️ Virtual (Online)' : '🏫 Physical (In-Person)';
+    document.getElementById('scdSchedule').textContent = cls.schedule || 'TBD';
+    document.getElementById('scdCredits').textContent = `${cls.credits || 10} Credits`;
+
+    const locEl = document.getElementById('scdLocation');
+    if (cls.mode === 'virtual') {
+        if (cls.meetingLink) {
+            locEl.innerHTML = `<a href="${cls.meetingLink}" target="_blank" style="color:#667eea; text-decoration:none; word-break:break-all;">Click to Join Meeting</a>`;
+        } else {
+            locEl.textContent = 'Meeting link will appear when teacher starts';
+        }
+    } else {
+        locEl.textContent = cls.room || 'Location TBD';
+    }
+
+    document.getElementById('scdStatus').textContent = 'Enrolled · Active';
+
+    // Join button: only show if virtual with a link
+    const joinBtn = document.getElementById('scdJoinBtn');
+    if (cls.mode === 'virtual' && cls.meetingLink) {
+        joinBtn.style.display = 'inline-flex';
+        joinBtn.innerHTML = '<i class="fas fa-play"></i> Join Class';
+        joinBtn.onclick = () => window.open(cls.meetingLink, '_blank');
+    } else {
+        // Physical or virtual with no link yet — no join button needed
+        joinBtn.style.display = 'none';
+    }
+
+    document.getElementById('studentClassDetailModal').style.display = 'block';
 }
 
 // Load student data from localStorage
@@ -628,27 +762,11 @@ function initializeEventListeners() {
         eventListeners.push({element: logoutBtn, event: 'click', handler: handler});
     }
     
-    // Notification icon click
-    const notificationIcon = document.getElementById('notificationIcon');
-    if (notificationIcon) {
-        const handler = function() {
-            toggleNotificationSidebar();
-        };
-        notificationIcon.addEventListener('click', handler);
-        eventListeners.push({element: notificationIcon, event: 'click', handler: handler});
-    }
+    // Notification icon is now handled by notifications.js
+    // The unified notification system will automatically attach event listeners
+    // Removed duplicate handler to prevent conflicts
     
-    // Close notification sidebar
-    const closeNotifications = document.getElementById('closeNotifications');
-    if (closeNotifications) {
-        const handler = function() {
-            toggleNotificationSidebar();
-        };
-        closeNotifications.addEventListener('click', handler);
-        eventListeners.push({element: closeNotifications, event: 'click', handler: handler});
-    }
-    
-    // Notification filters
+    // Notification filters are also handled by notifications.js
     const filterBtns = document.querySelectorAll('.filter-btn');
     filterBtns.forEach(btn => {
         const handler = function() {
@@ -667,27 +785,8 @@ function initializeEventListeners() {
         eventListeners.push({element: btn, event: 'click', handler: handler});
     });
     
-    // Mark all notifications as read
-    const markAllRead = document.getElementById('markAllRead');
-    if (markAllRead) {
-        const handler = function() {
-            markAllNotificationsAsRead();
-        };
-        markAllRead.addEventListener('click', handler);
-        eventListeners.push({element: markAllRead, event: 'click', handler: handler});
-    }
-    
-    // Clear all notifications
-    const clearNotifications = document.getElementById('clearNotifications');
-    if (clearNotifications) {
-        const handler = function() {
-            if (confirm('Are you sure you want to clear all notifications?')) {
-                clearAllNotifications();
-            }
-        };
-        clearNotifications.addEventListener('click', handler);
-        eventListeners.push({element: clearNotifications, event: 'click', handler: handler});
-    }
+    // Mark all / Clear all are handled by notifications.js
+    // No duplicate listeners needed here
     
     // Join class functionality (for all join-class buttons)
     const joinClassHandler = function(e) {
@@ -799,14 +898,22 @@ function initializeEventListeners() {
             const messageData = studentData.messages.find(m => m.id === messageId);
             
             if (messageData) {
+                // Reset reply state
+                document.getElementById('studentReplyBox').style.display = 'none';
+                document.getElementById('studentReplyContent').value = '';
+                document.getElementById('studentReplyThread').style.display = 'none';
+                document.getElementById('studentReplyList').innerHTML = '';
+
                 // Populate modal with message details
                 document.getElementById('messageFrom').textContent = messageData.from;
                 document.getElementById('messageDate').textContent = messageData.date;
                 document.getElementById('messageSubject').textContent = messageData.subject;
-                document.getElementById('messageContent').innerHTML = messageData.content;
+                document.getElementById('messageContent').textContent = messageData.content;
                 
-                // Store current message ID for actions
+                // Store current message ID and sender ID for reply
                 document.getElementById('messageModal').setAttribute('data-message-id', messageId);
+                document.getElementById('messageModal').setAttribute('data-sender-id', messageData._senderId || '');
+                document.getElementById('messageModal').setAttribute('data-mongo-id', messageData._mongoId || messageId);
                 
                 // Show modal
                 document.getElementById('messageModal').style.display = 'block';
@@ -816,6 +923,11 @@ function initializeEventListeners() {
                 saveStudentDataToStorage();
                 updateMessages();
                 updateNotificationBadge();
+
+                // Load reply thread
+                if (messageData._mongoId) {
+                    loadStudentReplyThread(messageData._mongoId);
+                }
             }
         }
     };
@@ -903,16 +1015,14 @@ function initializeEventListeners() {
     window.addEventListener('click', modalClickHandler);
     eventListeners.push({element: window, event: 'click', handler: modalClickHandler});
 
-    // Reply to message
+    // Reply to message — show inline reply box
     const replyMessage = document.getElementById('replyMessage');
     if (replyMessage) {
         const handler = function() {
-            const messageId = document.getElementById('messageModal').getAttribute('data-message-id');
-            const messageData = studentData.messages.find(m => m.id === messageId);
-            
-            if (messageData) {
-                // Open reply modal
-                openReplyModal(messageData);
+            const replyBox = document.getElementById('studentReplyBox');
+            if (replyBox) {
+                replyBox.style.display = 'block';
+                document.getElementById('studentReplyContent').focus();
             }
         };
         replyMessage.addEventListener('click', handler);
@@ -1106,6 +1216,9 @@ function cleanupEventListeners() {
     eventListeners = [];
 }
 
+// Notification sidebar is now handled by the unified notification system (notifications.js)
+// This function has been disabled to prevent duplicate notification panels
+/*
 // Toggle notification sidebar
 function toggleNotificationSidebar() {
     const sidebar = document.getElementById('notificationSidebar');
@@ -1116,136 +1229,45 @@ function toggleNotificationSidebar() {
         markAllNotificationsAsRead();
     }
 }
+*/
 
-// Update notifications in the sidebar
+// ---- NOTIFICATION FUNCTIONS ----
+// These are now handled by the unified notifications.js system.
+// Kept as no-ops so existing calls don't throw errors.
+
 function updateNotifications() {
-    const notificationList = document.getElementById('notificationList');
-    if (!notificationList) return;
-    
-    notificationList.innerHTML = '';
-    
-    if (studentData.notifications.length === 0) {
-        notificationList.innerHTML = '<p class="no-notifications">No notifications at this time.</p>';
-        return;
-    }
-    
-    studentData.notifications.forEach(notification => {
-        const notificationItem = document.createElement('div');
-        notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
-        notificationItem.setAttribute('data-id', notification.id);
-        
-        notificationItem.innerHTML = `
-            <div class="notification-item-header">
-                <div class="notification-item-title">${notification.title}</div>
-                <div class="notification-item-time">${notification.time}</div>
-            </div>
-            <div class="notification-item-content">${notification.message}</div>
-        `;
-        
-        const clickHandler = function() {
-            // Mark as read when clicked
-            if (!notification.read) {
-                notification.read = true;
-                saveStudentDataToStorage();
-                updateNotifications();
-                updateNotificationBadge();
-            }
-        };
-        notificationItem.addEventListener('click', clickHandler);
-        eventListeners.push({element: notificationItem, event: 'click', handler: clickHandler});
-        
-        notificationList.appendChild(notificationItem);
-    });
+    // Handled by window.notificationManager (notifications.js)
 }
 
-// Filter notifications
 function filterNotifications(filter) {
-    const notificationItems = document.querySelectorAll('.notification-item');
-    
-    notificationItems.forEach(item => {
-        if (filter === 'all') {
-            item.style.display = 'block';
-        } else if (filter === 'unread') {
-            item.style.display = item.classList.contains('unread') ? 'block' : 'none';
-        }
-    });
+    // Handled by window.notificationManager (notifications.js)
 }
 
-// Mark all notifications as read
 function markAllNotificationsAsRead() {
-    studentData.notifications.forEach(notification => {
-        notification.read = true;
-    });
-    
-    saveStudentDataToStorage();
-    updateNotifications();
-    updateNotificationBadge();
+    if (window.notificationManager) {
+        window.notificationManager.markAllAsRead();
+    }
 }
 
-// Clear all notifications
 function clearAllNotifications() {
-    studentData.notifications = [];
-    saveStudentDataToStorage();
-    updateNotifications();
-    updateNotificationBadge();
+    if (window.notificationManager) {
+        window.notificationManager.clearAll();
+    }
 }
 
-// Update notification badge
+// Update notification badge — triggers a full reload of live notifications
 function updateNotificationBadge() {
-    // Count unread messages
-    const unreadMessages = studentData.messages.filter(m => !m.read).length;
-    
-    // Count unread notifications
-    const unreadNotifications = studentData.notifications.filter(n => !n.read).length;
-    
-    // Total unread count
-    const totalUnread = unreadMessages + unreadNotifications;
-    
-    const badge = document.querySelector('.notification-badge');
-    
-    if (badge) {
-        if (totalUnread > 0) {
-            badge.textContent = totalUnread;
-            badge.style.display = 'flex';
-        } else {
-            badge.style.display = 'none';
-        }
+    if (window.notificationManager) {
+        window.notificationManager.loadNotifications();
     }
 }
 
 // Update upcoming classes
-function updateUpcomingClasses() {
+async function updateUpcomingClasses() {
     const now = new Date();
-    const currentDay = now.getDay();
+    const today = now.toISOString().split('T')[0];
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
-    
-    // Get today's classes
-    const todayClasses = studentData.classes.filter(cls => {
-        const scheduleDays = cls.schedule.split(' - ')[0].split(', ');
-        const dayMap = { 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6, 'Sun': 0 };
-        
-        return scheduleDays.some(day => {
-            const dayIndex = dayMap[day.substring(0, 3)];
-            return dayIndex === currentDay;
-        });
-    });
-    
-    // Sort by time
-    todayClasses.sort((a, b) => {
-        const timeA = a.schedule.split(' - ')[1];
-        const timeB = b.schedule.split(' - ')[1];
-        
-        const hourA = parseInt(timeA.split(':')[0]);
-        const minuteA = parseInt(timeA.split(':')[1].substring(0, 2));
-        const periodA = timeA.includes('PM') && hourA !== 12 ? 12 : 0;
-        
-        const hourB = parseInt(timeB.split(':')[0]);
-        const minuteB = parseInt(timeB.split(':')[1].substring(0, 2));
-        const periodB = timeB.includes('PM') && hourB !== 12 ? 12 : 0;
-        
-        return (hourA + periodA) * 60 + minuteA - (hourB + periodB) * 60 - minuteB;
-    });
     
     // Find the upcoming classes section in the overview
     const upcomingClassesCard = document.querySelector('#overview .card');
@@ -1254,60 +1276,205 @@ function updateUpcomingClasses() {
     const classList = upcomingClassesCard.querySelector('.class-list');
     if (!classList) return;
     
-    classList.innerHTML = '';
+    classList.innerHTML = '<li class="class-item"><div class="class-details"><p>Loading classes...</p></div></li>';
     
-    // Show up to 3 upcoming classes for today
-    const upcomingClasses = todayClasses.slice(0, 3);
-    
-    if (upcomingClasses.length === 0) {
-        classList.innerHTML = '<li class="class-item"><div class="class-details"><p>No classes scheduled for today</p></div></li>';
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+        classList.innerHTML = '<li class="class-item"><div class="class-details"><p>Please login to view classes</p></div></li>';
         return;
     }
     
-    upcomingClasses.forEach(cls => {
-        const time = cls.schedule.split(' - ')[1];
-        const hour = parseInt(time.split(':')[0]);
-        const minute = parseInt(time.split(':')[1].substring(0, 2));
-        const period = time.includes('PM') && hour !== 12 ? 12 : 0;
-        const totalMinutes = (hour + period) * 60 + minute;
-        const currentTotalMinutes = currentHour * 60 + currentMinute;
-        
-        const isUpcoming = totalMinutes > currentTotalMinutes;
-        const isOngoing = totalMinutes <= currentTotalMinutes && totalMinutes + 60 > currentTotalMinutes;
-        
-        const classItem = document.createElement('li');
-        classItem.className = 'class-item';
-        
-        if (isOngoing) {
-            classItem.classList.add('ongoing');
+    try {
+        // Fetch all classes the student is enrolled in
+        const classesRes = await fetch('/api/classes', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const classesData = await classesRes.json();
+
+        if (!classesData.success || !classesData.data.classes || classesData.data.classes.length === 0) {
+            classList.innerHTML = '<li class="class-item"><div class="class-details"><p>No classes enrolled</p></div></li>';
+            return;
         }
-        
-        // Ensure at least two classes have a "Join" button
-        const showJoinButton = isOngoing || isUpcoming || upcomingClasses.indexOf(cls) < 2;
-        
-        classItem.innerHTML = `
-            <div class="class-time">
-                <div class="time">${time.split(':')[0]}</div>
-                <div class="ampm">${time.includes('PM') ? 'PM' : 'AM'}</div>
-            </div>
-            <div class="class-details">
-                <div class="class-name">${cls.name}</div>
-                <div class="class-info">
-                    <i class="fas fa-map-marker-alt"></i> ${cls.room}
-                    <i class="fas fa-user ml-3"></i> ${cls.instructor}
-                </div>
-            </div>
-            <div class="class-action">
-                ${showJoinButton ? 
-                    `<a href="#" class="btn btn-primary btn-sm join-class" data-class-id="${cls.id}">Join</a>` : 
-                    `<span class="class-status">Completed</span>`
+
+        const allClasses = classesData.data.classes;
+        const upcoming = [];
+        const todayStr = today; // YYYY-MM-DD
+
+        for (const cls of allClasses) {
+            const scheduledDate = cls.schedule?.scheduledDate; // YYYY-MM-DD
+            const scheduledTime = cls.schedule?.scheduledTime; // HH:MM
+
+            // --- Virtual class scheduled via Update Mode (today OR future) ---
+            if (cls.mode === 'virtual' && scheduledDate && scheduledTime) {
+                if (scheduledDate >= todayStr) {
+                    // meetingEnded: class is today, no current link, but check if a meeting was ended
+                    // We detect this by checking if class previously had a meeting that ended
+                    // The backend clears meetingLink when host ends — so no link after start time = ended
+                    const classSchTime = new Date(scheduledDate + 'T' + scheduledTime);
+                    const meetingEnded = !cls.meetingLink && scheduledDate === todayStr && now > classSchTime;
+
+                    upcoming.push({
+                        id: cls._id,
+                        name: cls.name,
+                        date: scheduledDate,
+                        time: scheduledTime,
+                        room: 'Online',
+                        instructor: cls.teacher?.name || 'Unknown',
+                        meetingLink: cls.meetingLink || '',
+                        mode: 'virtual',
+                        hasLiveLink: !!(cls.meetingLink),
+                        meetingEnded
+                    });
                 }
-            </div>
-        `;
-        
-        classList.appendChild(classItem);
-    });
+                continue;
+            }
+
+            // --- Physical class with a weekly schedule (show for today) ---
+            if (cls.schedule?.days?.length && cls.schedule?.startTime) {
+                const dayMap = { 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0 };
+                const isTodayScheduled = cls.schedule.days.some(day => dayMap[day] === now.getDay());
+                if (isTodayScheduled) {
+                    upcoming.push({
+                        id: cls._id,
+                        name: cls.name,
+                        date: todayStr,
+                        time: cls.schedule.startTime,
+                        room: cls.schedule.location || 'Room TBD',
+                        instructor: cls.teacher?.name || 'Unknown',
+                        meetingLink: '',
+                        mode: cls.mode || 'physical',
+                        hasLiveLink: false
+                    });
+                }
+            }
+        }
+
+        // Sort by date then time (soonest first)
+        upcoming.sort((a, b) => {
+            if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+            const [ah, am] = a.time.split(':').map(v => parseInt(v) || 0);
+            const [bh, bm] = b.time.split(':').map(v => parseInt(v) || 0);
+            return (ah * 60 + am) - (bh * 60 + bm);
+        });
+
+        const upcomingClasses = upcoming.slice(0, 5);
+
+        if (upcomingClasses.length === 0) {
+            classList.innerHTML = '<li class="class-item"><div class="class-details"><p>No upcoming classes scheduled</p></div></li>';
+            return;
+        }
+
+        classList.innerHTML = '';
+
+        upcomingClasses.forEach(cls => {
+            const [hour, minute] = cls.time.split(':').map(v => parseInt(v) || 0);
+
+            // Full scheduled datetime
+            const classDateTime = new Date(cls.date);
+            classDateTime.setHours(hour, minute, 0, 0);
+
+            // 15-minute early-access window
+            const joinOpensAt = new Date(classDateTime.getTime() - 15 * 60 * 1000);
+            const classEndsAt  = new Date(classDateTime.getTime() + 90 * 60 * 1000); // 90-min window
+
+            const isToday   = cls.date === todayStr;
+            const withinWindow = now >= joinOpensAt && now <= classEndsAt;
+
+            // ── Action button logic (exact workflow) ──────────────────────
+            // 1. Active link exists → JOIN (teacher started the meeting)
+            // 2. No link + past class + ended flag → CLASS COMPLETED
+            // 3. No link + before/during scheduled time → WAITING FOR TEACHER (not clickable)
+            const canJoin = !!(cls.meetingLink); // link set = teacher started
+
+            const classItem = document.createElement('li');
+            classItem.className = 'class-item';
+            if (canJoin && withinWindow) classItem.classList.add('ongoing');
+
+            // Display time (12-hour)
+            const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+
+            // Date label — "Today" or formatted date
+            const dateLabel = isToday
+                ? 'Today'
+                : classDateTime.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+
+            // Action button / status logic
+            // Action button
+            let actionHtml;
+            if (canJoin) {
+                // Teacher created meeting link → show JOIN
+                const safeLink = cls.meetingLink.replace(/"/g, '&quot;');
+                actionHtml = `<button class="btn btn-primary btn-sm join-class-btn" data-link="${safeLink}">
+                                <i class="fas fa-video"></i> Join
+                              </button>`;
+            } else if (cls.mode === 'virtual') {
+                // No link yet — determine message
+                let waitMsg, bgColor = '#e2e8f0', txtColor = '#94a3b8';
+
+                if (now > classEndsAt) {
+                    // Past the 90-min window with no link = class completed without meeting
+                    waitMsg = 'Class Completed';
+                    bgColor = '#f0fdf4'; txtColor = '#16a34a';
+                } else if (cls.meetingEnded) {
+                    // Meeting was active and ended by host
+                    waitMsg = 'Class Completed';
+                    bgColor = '#f0fdf4'; txtColor = '#16a34a';
+                } else {
+                    // Scheduled but teacher hasn't started yet
+                    waitMsg = 'Waiting for teacher';
+                }
+
+                actionHtml = `<button class="btn btn-sm" disabled
+                    style="background:${bgColor};color:${txtColor};cursor:not-allowed;border:1px solid ${bgColor};padding:0.35rem 0.8rem;border-radius:8px;font-size:0.8rem;font-weight:600;">
+                    <i class="fas fa-${waitMsg === 'Waiting for teacher' ? 'clock' : 'check-circle'}" style="font-size:0.75rem;"></i> ${waitMsg}
+                </button>`;
+            } else {
+                // Physical class
+                actionHtml = `<span class="class-status" style="color:#64748b;font-size:0.82rem;">In-Person</span>`;
+            }
+
+            classItem.innerHTML = `
+                <div class="class-time">
+                    <div class="time">${displayHour}:${String(minute).padStart(2, '0')}</div>
+                    <div class="ampm">${ampm}</div>
+                    <div style="font-size:0.68rem;color:#94a3b8;font-weight:700;margin-top:2px;">${dateLabel}</div>
+                </div>
+                <div class="class-details">
+                    <div class="class-name">${cls.name} ${cls.mode === 'virtual' ? '🎥' : ''}</div>
+                    <div class="class-info">
+                        <i class="fas fa-${cls.mode === 'virtual' ? 'globe' : 'map-marker-alt'}"></i> ${cls.room}
+                        <i class="fas fa-user ml-3"></i> ${cls.instructor}
+                    </div>
+                </div>
+                <div class="class-action">
+                    ${actionHtml}
+                </div>
+            `;
+
+            classList.appendChild(classItem);
+        });
+
+        // Wire Join buttons via delegation (avoids quote-escaping issues)
+        classList.querySelectorAll('.join-class-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const link = this.getAttribute('data-link');
+                if (link) window.open(link, '_blank');
+            });
+        });
+
+    } catch (error) {
+        console.error('Error updating upcoming classes:', error);
+        classList.innerHTML = '<li class="class-item"><div class="class-details"><p>Error loading classes. Please refresh the page.</p></div></li>';
+    }
 }
+
+// Auto-refresh upcoming classes every 15 seconds so Join appears quickly when teacher starts
+setInterval(() => {
+    if (document.getElementById('overview') && document.getElementById('overview').classList.contains('active')) {
+        updateUpcomingClasses();
+    }
+}, 15000);
 
 // Update announcements
 function updateAnnouncements() {
@@ -1344,31 +1511,91 @@ function updateAnnouncements() {
 
 // Update resources
 function updateResources() {
-    const resourceGrid = document.querySelector('#resources .resource-grid');
-    if (!resourceGrid) return;
-    
-    resourceGrid.innerHTML = '';
-    
-    studentData.resources.forEach(resource => {
-        const resourceCard = document.createElement('div');
-        resourceCard.className = 'resource-card';
-        
-        resourceCard.innerHTML = `
-            <div class="resource-icon">
-                <i class="fas ${getResourceIcon(resource.type)}"></i>
-            </div>
-            <div class="resource-body">
-                <h3 class="resource-title">${resource.title}</h3>
-                <p class="resource-meta">${resource.instructor} • ${resource.type} • ${resource.size}</p>
-                <div class="resource-actions">
-                    <a href="#" class="btn btn-primary btn-sm download-resource" data-resource-id="${resource.id}">${resource.downloaded ? 'Downloaded' : 'Download'}</a>
-                    <a href="#" class="btn btn-outline btn-sm view-resource" data-resource-id="${resource.id}">View</a>
+    // Helper: build one resource card HTML
+    function buildCard(resource) {
+        return `
+            <div class="resource-card">
+                <div class="resource-icon">
+                    <i class="fas ${getResourceIcon(resource.type)}"></i>
+                </div>
+                <div class="resource-body">
+                    <h3 class="resource-title">${resource.title}</h3>
+                    <p class="resource-meta">${resource.instructor} &bull; ${resource.type} &bull; ${resource.size}</p>
+                    <div class="resource-actions">
+                        <a href="#" class="btn btn-primary btn-sm download-resource" onclick="downloadResource('${resource.id}'); return false;">${resource.downloaded ? 'Downloaded' : 'Download'}</a>
+                        <a href="#" class="btn btn-outline btn-sm view-resource" onclick="viewResource('${resource.id}'); return false;">View</a>
+                    </div>
                 </div>
             </div>
         `;
-        
-        resourceGrid.appendChild(resourceCard);
+    }
+
+    // Helper: determine category from mimeType + fileName + type field
+    function getCategory(resource) {
+        const mime = (resource.mimeType || '').toLowerCase();
+        const name = (resource.fileName || resource.title || '').toLowerCase();
+        const rtype = (resource.type || '').toLowerCase();
+
+        // Videos
+        if (mime.includes('video') || /\.(mp4|webm|ogg|avi|mov|mkv)$/.test(name) || rtype === 'video') {
+            return 'videos';
+        }
+        // Links / URLs
+        if (rtype === 'url' || rtype === 'youtube' || rtype === 'drive' || rtype === 'website') {
+            return 'links';
+        }
+        // Documents: PDF, Word, PPT, text, spreadsheets, images treated as docs too
+        if (
+            mime.includes('pdf') || mime.includes('word') || mime.includes('document') ||
+            mime.includes('presentation') || mime.includes('spreadsheet') || mime.includes('text') ||
+            mime.includes('image') ||
+            /\.(pdf|doc|docx|ppt|pptx|xls|xlsx|txt|png|jpg|jpeg|gif|webp|csv)$/.test(name) ||
+            rtype === 'pdf' || rtype === 'doc' || rtype === 'docx' ||
+            rtype === 'ppt' || rtype === 'pptx' || rtype === 'file'
+        ) {
+            return 'documents';
+        }
+        // Default to documents for anything else uploaded as a file
+        return 'documents';
+    }
+
+    // Populate all four grids
+    const allGrid  = document.querySelector('#all .resource-grid');
+    const docsGrid = document.querySelector('#documents .resource-grid');
+    const vidsGrid = document.querySelector('#videos .resource-grid');
+    const lnksGrid = document.querySelector('#links .resource-grid');
+
+    if (allGrid)  allGrid.innerHTML  = '';
+    if (docsGrid) docsGrid.innerHTML = '';
+    if (vidsGrid) vidsGrid.innerHTML = '';
+    if (lnksGrid) lnksGrid.innerHTML = '';
+
+    if (!studentData.resources || studentData.resources.length === 0) {
+        const empty = '<p style="color:#94a3b8; padding:1rem; text-align:center;">No resources available.</p>';
+        if (allGrid)  allGrid.innerHTML  = empty;
+        if (docsGrid) docsGrid.innerHTML = empty;
+        if (vidsGrid) vidsGrid.innerHTML = empty;
+        if (lnksGrid) lnksGrid.innerHTML = empty;
+        return;
+    }
+
+    studentData.resources.forEach(resource => {
+        const cardHtml = buildCard(resource);
+        const category = getCategory(resource);
+
+        // Always add to "All Resources"
+        if (allGrid) allGrid.insertAdjacentHTML('beforeend', cardHtml);
+
+        // Add to matching category tab
+        if (category === 'documents' && docsGrid) docsGrid.insertAdjacentHTML('beforeend', cardHtml);
+        if (category === 'videos'    && vidsGrid) vidsGrid.insertAdjacentHTML('beforeend', cardHtml);
+        if (category === 'links'     && lnksGrid) lnksGrid.insertAdjacentHTML('beforeend', cardHtml);
     });
+
+    // Show empty state for tabs that got nothing
+    if (docsGrid && docsGrid.innerHTML === '') docsGrid.innerHTML = '<p style="color:#94a3b8; padding:1rem; text-align:center;">No documents available.</p>';
+    if (vidsGrid && vidsGrid.innerHTML === '') vidsGrid.innerHTML = '<p style="color:#94a3b8; padding:1rem; text-align:center;">No videos available.</p>';
+    if (lnksGrid && lnksGrid.innerHTML === '') lnksGrid.innerHTML = '<p style="color:#94a3b8; padding:1rem; text-align:center;">No links available.</p>';
 }
 
 // Update messages
@@ -1799,266 +2026,429 @@ function getAssignmentIcon(course) {
     }
 }
 
-// Simulate download
+// Real download function
 function simulateDownload(resource) {
-    showNotification(`Downloading ${resource.title} (${resource.size})...`, 'info');
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+        showNotification('Please login to download resources', 'error');
+        return;
+    }
     
-    // Simulate download progress
-    let progress = 0;
-    const interval = setInterval(() => {
-        progress += 10;
-        showNotification(`Download progress: ${progress}%`, 'info');
-        
-        if (progress >= 100) {
-            clearInterval(interval);
-            showNotification(`${resource.title} downloaded successfully`, 'success');
+    // Create download URL
+    const downloadUrl = `/api/resources/${resource.id}/download`;
+    
+    showNotification(`Downloading ${resource.title}...`, 'info');
+    
+    // Create temporary link and trigger download
+    fetch(downloadUrl, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${authToken}`
         }
-    }, 500);
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Download failed');
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        // Create blob URL
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = resource.fileName || resource.title;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        showNotification(`${resource.title} downloaded successfully`, 'success');
+    })
+    .catch(error => {
+        console.error('Download error:', error);
+        showNotification('Failed to download resource. Please try again.', 'error');
+    });
 }
 
 // Open resource viewer
 function openResourceViewer(resource) {
     const modal = document.createElement('div');
     modal.className = 'modal';
-    modal.style.display = 'block';
-    
+    modal.style.cssText = 'display:block; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:10000; overflow:auto;';
+
     const modalContent = document.createElement('div');
     modalContent.className = 'modal-content';
-    modalContent.style.width = '90%';
-    modalContent.style.maxWidth = '1000px';
-    
+    modalContent.style.cssText = 'width:90%; max-width:900px; margin:30px auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.4);';
+
+    const authToken = localStorage.getItem('authToken');
+    const fileUrl = `/api/resources/${resource.id}/download`;
+    const fileName = (resource.fileName || resource.title || '').toLowerCase();
+    const fileType = resource.mimeType || '';
+
+    const isPDF = fileType.includes('pdf') || fileName.endsWith('.pdf');
+    // Check PPT and Excel FIRST (their mimeTypes contain "officedocument" which would falsely match Word)
+    const isPPT  = fileType.includes('presentation') || fileName.endsWith('.ppt') || fileName.endsWith('.pptx');
+    const isExcel = fileType.includes('spreadsheet') || fileType.includes('excel') ||
+                    fileName.endsWith('.xls') || fileName.endsWith('.xlsx') || fileName.endsWith('.csv');
+    // Word only if NOT ppt/excel — avoids matching "officedocument" in pptx/xlsx mimeTypes
+    const isWord = !isPPT && !isExcel && (
+                   fileType.includes('word') || fileType.includes('wordprocessing') ||
+                   fileName.endsWith('.doc') || fileName.endsWith('.docx'));
+    const isImage = fileType.includes('image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+    const isVideo = fileType.includes('video') || /\.(mp4|webm|ogg)$/i.test(fileName);
+
+    // ── Header ────────────────────────────────────────────────────────────────
     const modalHeader = document.createElement('div');
     modalHeader.className = 'modal-header';
+    modalHeader.style.cssText = 'padding:16px 20px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; display:flex; justify-content:space-between; align-items:center;';
     modalHeader.innerHTML = `
-        <h2>${resource.title}</h2>
-        <span class="close">&times;</span>
+        <div>
+            <h2 style="margin:0; font-size:1.1rem; font-weight:700;">${resource.title}</h2>
+            <small style="opacity:0.85;">${resource.instructor} &bull; ${resource.size}</small>
+        </div>
+        <span class="close" style="cursor:pointer; font-size:1.5rem; line-height:1;">&times;</span>
     `;
-    
+
+    // ── Body ──────────────────────────────────────────────────────────────────
     const modalBody = document.createElement('div');
     modalBody.className = 'modal-body';
-    
-    // Create a simulated viewer based on resource type
-    if (resource.type === 'PDF') {
+    modalBody.style.cssText = 'padding:0;';
+
+    if (isPDF) {
+        // ── PDF Viewer using PDF.js ──────────────────────────────────────────
         modalBody.innerHTML = `
-            <div class="pdf-viewer">
-                <div class="pdf-header">
-                    <div class="pdf-info">
-                        <p><strong>Title:</strong> ${resource.title}</p>
-                        <p><strong>Instructor:</strong> ${resource.instructor}</p>
-                        <p><strong>Size:</strong> ${resource.size}</p>
-                    </div>
-                    <div class="pdf-controls">
-                        <button class="btn btn-outline btn-sm" id="prevPage">Previous</button>
-                        <span id="pageInfo">Page 1 of 10</span>
-                        <button class="btn btn-outline btn-sm" id="nextPage">Next</button>
-                        <button class="btn btn-primary btn-sm" id="downloadPdf">Download</button>
-                    </div>
+            <div style="display:flex; flex-direction:column; height:680px;">
+                <!-- Controls bar -->
+                <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; background:#f8f9fc; border-bottom:1px solid #e2e8f0; flex-shrink:0;">
+                    <button id="prevPage" style="padding:6px 14px; border:1px solid #d1d5db; border-radius:6px; background:#fff; cursor:pointer; font-size:13px;" disabled>
+                        &#8592; Previous
+                    </button>
+                    <span id="pageInfo" style="font-size:13px; color:#374151; font-weight:600; min-width:100px; text-align:center;">Loading...</span>
+                    <button id="nextPage" style="padding:6px 14px; border:1px solid #d1d5db; border-radius:6px; background:#fff; cursor:pointer; font-size:13px;" disabled>
+                        Next &#8594;
+                    </button>
+                    <div style="flex:1;"></div>
+                    <button id="zoomOut" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#fff; cursor:pointer;">&#8722;</button>
+                    <span id="zoomLevel" style="font-size:13px; min-width:50px; text-align:center;">100%</span>
+                    <button id="zoomIn" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#fff; cursor:pointer;">&#43;</button>
+                    <button id="downloadPdf" style="padding:6px 16px; border:none; border-radius:6px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; cursor:pointer; font-weight:600;">
+                        &#8595; Download
+                    </button>
                 </div>
-                <div class="pdf-content">
-                    <div class="pdf-page">
-                        <p>This is a simulated PDF viewer for ${resource.title}.</p>
-                        <p>In a real implementation, this would display the actual PDF content.</p>
-                        <div style="height: 500px; background-color: #f5f5f5; display: flex; align-items: center; justify-content: center;">
-                            <p>PDF Content Would Be Displayed Here</p>
-                        </div>
+                <!-- Canvas area -->
+                <div id="pdfContainer" style="flex:1; overflow:auto; background:#525252; display:flex; align-items:flex-start; justify-content:center; padding:20px;">
+                    <div id="loadingMsg" style="color:#fff; margin-top:60px; text-align:center;">
+                        <i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i>
+                        <p style="margin-top:10px;">Loading document...</p>
+                    </div>
+                    <canvas id="pdfCanvas" style="display:none; box-shadow:0 4px 20px rgba(0,0,0,0.5);"></canvas>
+                </div>
+            </div>
+        `;
+
+        // Wire download button
+        modalBody.querySelector('#downloadPdf').addEventListener('click', () => {
+            resource.downloaded = true;
+            saveStudentDataToStorage();
+            updateResources();
+            simulateDownload(resource);
+        });
+
+        // Load PDF after modal is in DOM
+        setTimeout(() => {
+            const canvas     = modalBody.querySelector('#pdfCanvas');
+            const ctx        = canvas.getContext('2d');
+            const pageInfo   = modalBody.querySelector('#pageInfo');
+            const prevBtn    = modalBody.querySelector('#prevPage');
+            const nextBtn    = modalBody.querySelector('#nextPage');
+            const zoomInBtn  = modalBody.querySelector('#zoomIn');
+            const zoomOutBtn = modalBody.querySelector('#zoomOut');
+            const zoomLbl    = modalBody.querySelector('#zoomLevel');
+            const loadingMsg = modalBody.querySelector('#loadingMsg');
+
+            let pdfDoc = null;
+            let currentPage = 1;
+            let scale = 1.5;
+
+            // Set PDF.js worker
+            if (window.pdfjsLib) {
+                pdfjsLib.GlobalWorkerOptions.workerSrc =
+                    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+                // Fetch PDF as ArrayBuffer with auth token
+                fetch(fileUrl, { headers: { 'Authorization': `Bearer ${authToken}` } })
+                    .then(r => {
+                        if (!r.ok) throw new Error('Failed to fetch PDF');
+                        return r.arrayBuffer();
+                    })
+                    .then(buffer => pdfjsLib.getDocument({ data: buffer }).promise)
+                    .then(pdf => {
+                        pdfDoc = pdf;
+                        loadingMsg.style.display = 'none';
+                        canvas.style.display = 'block';
+                        pageInfo.textContent = `Page 1 of ${pdf.numPages}`;
+                        prevBtn.disabled = true;
+                        nextBtn.disabled = pdf.numPages <= 1;
+                        renderPage(currentPage);
+                    })
+                    .catch(err => {
+                        loadingMsg.innerHTML = `<p style="color:#f87171;">Failed to load PDF.<br><small>${err.message}</small></p>`;
+                    });
+
+                function renderPage(num) {
+                    pdfDoc.getPage(num).then(page => {
+                        const viewport = page.getViewport({ scale });
+                        canvas.width  = viewport.width;
+                        canvas.height = viewport.height;
+                        page.render({ canvasContext: ctx, viewport }).promise.then(() => {
+                            pageInfo.textContent = `Page ${num} of ${pdfDoc.numPages}`;
+                            prevBtn.disabled = num <= 1;
+                            nextBtn.disabled = num >= pdfDoc.numPages;
+                            zoomLbl.textContent = Math.round(scale * 100 / 1.5 * 100) + '%';
+                        });
+                    });
+                }
+
+                prevBtn.addEventListener('click', () => {
+                    if (currentPage > 1) { currentPage--; renderPage(currentPage); }
+                });
+                nextBtn.addEventListener('click', () => {
+                    if (pdfDoc && currentPage < pdfDoc.numPages) { currentPage++; renderPage(currentPage); }
+                });
+                zoomInBtn.addEventListener('click', () => {
+                    scale = Math.min(scale + 0.25, 4);
+                    if (pdfDoc) renderPage(currentPage);
+                });
+                zoomOutBtn.addEventListener('click', () => {
+                    scale = Math.max(scale - 0.25, 0.5);
+                    if (pdfDoc) renderPage(currentPage);
+                });
+            } else {
+                loadingMsg.innerHTML = `<p style="color:#f87171;">PDF.js not loaded. Please refresh the page.</p>`;
+            }
+        }, 100);
+
+    } else if (isWord || isPPT || isExcel) {
+        // ── Word / Excel: fetch with auth token, render in browser ──────────
+        const fileLabel = isPPT ? 'PowerPoint' : isExcel ? 'Excel Spreadsheet' : 'Word Document';
+        const iconClass = isPPT ? 'fa-file-powerpoint' : isExcel ? 'fa-file-excel' : 'fa-file-word';
+        const iconColor = isPPT ? '#d04423' : isExcel ? '#217346' : '#2b579a';
+
+        modalBody.innerHTML = `
+            <div style="display:flex; flex-direction:column; height:680px;">
+                <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; background:#f8f9fc; border-bottom:1px solid #e2e8f0; flex-shrink:0;">
+                    <i class="fas ${iconClass}" style="color:${iconColor}; font-size:1.2rem;"></i>
+                    <span style="font-size:13px; color:#374151; font-weight:600;">${fileLabel}</span>
+                    <div style="flex:1;"></div>
+                    <button id="downloadOffice" style="padding:6px 16px; border:none; border-radius:6px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; cursor:pointer; font-weight:600;">
+                        &#8595; Download
+                    </button>
+                </div>
+                <div id="docRenderArea" style="flex:1; overflow:auto; background:#f0f2f5; padding:20px; display:flex; align-items:flex-start; justify-content:center;">
+                    <div style="color:#667eea; text-align:center; margin-top:60px;">
+                        <i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i>
+                        <p style="margin-top:10px; color:#374151;">Loading document...</p>
                     </div>
                 </div>
             </div>
         `;
-        
-        // Add PDF viewer controls
-        let currentPage = 1;
-        const totalPages = 10;
-        
-        const prevPage = modalBody.querySelector('#prevPage');
-        if (prevPage) {
-            const handler = function() {
-                if (currentPage > 1) {
-                    currentPage--;
-                    const pageInfo = modalBody.querySelector('#pageInfo');
-                    if (pageInfo) {
-                        pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
-                    }
-                }
-            };
-            prevPage.addEventListener('click', handler);
-            eventListeners.push({element: prevPage, event: 'click', handler: handler});
-        }
-        
-        const nextPage = modalBody.querySelector('#nextPage');
-        if (nextPage) {
-            const handler = function() {
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    const pageInfo = modalBody.querySelector('#pageInfo');
-                    if (pageInfo) {
-                        pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
-                    }
-                }
-            };
-            nextPage.addEventListener('click', handler);
-            eventListeners.push({element: nextPage, event: 'click', handler: handler});
-        }
-        
-        const downloadPdf = modalBody.querySelector('#downloadPdf');
-        if (downloadPdf) {
-            const handler = function() {
-                resource.downloaded = true;
-                saveStudentDataToStorage();
-                updateResources();
-                simulateDownload(resource);
-            };
-            downloadPdf.addEventListener('click', handler);
-            eventListeners.push({element: downloadPdf, event: 'click', handler: handler});
-        }
-    } else if (resource.type === 'PPTX') {
-        modalBody.innerHTML = `
-            <div class="ppt-viewer">
-                <div class="ppt-header">
-                    <div class="ppt-info">
-                        <p><strong>Title:</strong> ${resource.title}</p>
-                        <p><strong>Instructor:</strong> ${resource.instructor}</p>
-                        <p><strong>Size:</strong> ${resource.size}</p>
-                    </div>
-                    <div class="ppt-controls">
-                        <button class="btn btn-outline btn-sm" id="prevSlide">Previous</button>
-                        <span id="slideInfo">Slide 1 of 15</span>
-                        <button class="btn btn-outline btn-sm" id="nextSlide">Next</button>
-                        <button class="btn btn-primary btn-sm" id="downloadPpt">Download</button>
-                    </div>
-                </div>
-                <div class="ppt-content">
-                    <div class="ppt-slide">
-                        <h3>${resource.title}</h3>
-                        <p>This is a simulated PowerPoint viewer for ${resource.title}.</p>
-                        <p>In a real implementation, this would display the actual PowerPoint slides.</p>
-                        <div style="height: 500px; background-color: #f5f5f5; display: flex; align-items: center; justify-content: center;">
-                            <p>PowerPoint Slide Would Be Displayed Here</p>
+
+        modalBody.querySelector('#downloadOffice').addEventListener('click', () => {
+            resource.downloaded = true;
+            saveStudentDataToStorage();
+            updateResources();
+            simulateDownload(resource);
+        });
+
+        // Fetch file with auth token and render
+        fetch(fileUrl, { headers: { 'Authorization': `Bearer ${authToken}` } })
+            .then(r => {
+                if (r.status === 404) throw new Error('FILE_MISSING');
+                if (!r.ok) throw new Error('Failed to fetch file (status ' + r.status + ')');
+                return r.arrayBuffer();
+            })
+            .then(buffer => {
+                const renderArea = modalBody.querySelector('#docRenderArea');
+
+                if (isWord && window.mammoth) {
+                    // Use mammoth.js to convert Word → HTML
+                    mammoth.convertToHtml({ arrayBuffer: buffer })
+                        .then(result => {
+                            renderArea.innerHTML = `
+                                <div style="background:#fff; max-width:800px; width:100%; padding:40px 48px; box-shadow:0 2px 16px rgba(0,0,0,0.12); border-radius:4px; min-height:500px; font-family:'Calibri',sans-serif; font-size:11pt; line-height:1.6; color:#1e293b;">
+                                    ${result.value || '<p style="color:#94a3b8; text-align:center;">Empty document</p>'}
+                                </div>
+                            `;
+                        })
+                        .catch(() => {
+                            renderArea.innerHTML = `<div style="text-align:center; padding:40px;">
+                                <i class="fas fa-exclamation-circle" style="font-size:3rem; color:#f59e0b;"></i>
+                                <p style="color:#374151; margin-top:12px;">Could not render this document in the browser.</p>
+                                <p style="color:#94a3b8; font-size:0.85rem;">Please download it to view locally.</p>
+                            </div>`;
+                        });
+
+                } else if (isExcel && window.XLSX) {
+                    // Use SheetJS to convert Excel → HTML table
+                    const wb = XLSX.read(buffer, { type: 'array' });
+                    const sheetName = wb.SheetNames[0];
+                    const html = XLSX.utils.sheet_to_html(wb.Sheets[sheetName], { editable: false });
+                    renderArea.innerHTML = `
+                        <div style="background:#fff; width:100%; padding:16px; box-shadow:0 2px 16px rgba(0,0,0,0.12); border-radius:4px; overflow-x:auto;">
+                            <style>
+                                #excelTable table { border-collapse:collapse; font-size:12px; font-family:Calibri,sans-serif; }
+                                #excelTable td, #excelTable th { border:1px solid #d1d5db; padding:4px 8px; white-space:nowrap; }
+                                #excelTable tr:first-child td { background:#f0f4ff; font-weight:700; }
+                                #excelTable tr:nth-child(even) td { background:#f8fafc; }
+                            </style>
+                            <div id="excelTable">${html}</div>
                         </div>
-                    </div>
+                    `;
+
+                } else if (isPPT) {
+                    // PPT: render using PPTXjs from a blob URL (no auth needed for blob)
+                    if (window.jQuery && typeof window.jQuery.fn.pptxToHtml === 'function') {
+                        // Create a blob URL from the fetched buffer
+                        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+                        const blobUrl = URL.createObjectURL(blob);
+
+                        renderArea.innerHTML = `<div id="pptxRenderTarget" style="width:100%;"></div>`;
+                        try {
+                            window.jQuery('#pptxRenderTarget').pptxToHtml({
+                                pptxFileUrl: blobUrl,
+                                slidesScale: '',
+                                slideMode: false,
+                                keyBoardShortCut: false,
+                                mediaProcess: true
+                            });
+                            // Cleanup blob URL after render
+                            setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+                        } catch (pptErr) {
+                            renderArea.innerHTML = `<div style="text-align:center; padding:60px 20px;">
+                                <i class="fas fa-file-powerpoint" style="font-size:4rem; color:#d04423; margin-bottom:16px;"></i>
+                                <p style="color:#374151; font-weight:600;">Could not render this presentation.</p>
+                                <p style="color:#94a3b8; font-size:0.85rem;">Please download to view.</p>
+                            </div>`;
+                        }
+                    } else {
+                        renderArea.innerHTML = `<div style="text-align:center; padding:60px 20px;">
+                            <i class="fas fa-file-powerpoint" style="font-size:4rem; color:#d04423; margin-bottom:16px;"></i>
+                            <p style="color:#374151; font-size:1rem; font-weight:600; margin-bottom:8px;">PowerPoint Presentation</p>
+                            <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:24px;">Presentation viewer is loading. If it doesn't appear, please refresh the page.</p>
+                            <button onclick="simulateDownload(${JSON.stringify(resource).replace(/"/g,'&quot;')})" style="padding:10px 24px; border:none; border-radius:8px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; cursor:pointer; font-weight:600;">
+                                &#8595; Download Presentation
+                            </button>
+                        </div>`;
+                    }
+                } else {
+                    renderArea.innerHTML = `<div style="text-align:center; padding:40px;">
+                        <p style="color:#94a3b8;">Preview not available. Please download the file.</p>
+                    </div>`;
+                }
+            })
+            .catch(err => {
+                const renderArea = modalBody.querySelector('#docRenderArea');
+                if (err.message === 'FILE_MISSING') {
+                    renderArea.innerHTML = `<div style="text-align:center; padding:40px;">
+                        <i class="fas fa-file-circle-exclamation" style="font-size:3rem; color:#f59e0b; margin-bottom:12px;"></i>
+                        <p style="color:#374151; font-weight:600;">This file is no longer available on the server.</p>
+                        <p style="color:#94a3b8; font-size:0.85rem;">Please ask your teacher to re-upload this resource.</p>
+                    </div>`;
+                } else {
+                    renderArea.innerHTML = `<div style="text-align:center; padding:40px;">
+                        <i class="fas fa-exclamation-circle" style="font-size:3rem; color:#ef4444; margin-bottom:12px;"></i>
+                        <p style="color:#374151;">Could not load file: ${err.message}</p>
+                        <p style="color:#94a3b8; font-size:0.85rem;">Please try downloading it instead.</p>
+                    </div>`;
+                }
+            });
+
+    } else if (isImage) {
+        // ── Image Viewer ─────────────────────────────────────────────────────
+        modalBody.innerHTML = `
+            <div style="display:flex; flex-direction:column;">
+                <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; background:#f8f9fc; border-bottom:1px solid #e2e8f0;">
+                    <i class="fas fa-image" style="color:#667eea;"></i>
+                    <span style="font-size:13px; color:#374151; font-weight:600;">Image</span>
+                    <div style="flex:1;"></div>
+                    <button id="downloadImg" style="padding:6px 16px; border:none; border-radius:6px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; cursor:pointer; font-weight:600;">
+                        &#8595; Download
+                    </button>
+                </div>
+                <div style="background:#333; text-align:center; padding:20px; max-height:620px; overflow:auto;">
+                    <img id="imgDisplay" style="max-width:100%; height:auto; box-shadow:0 4px 20px rgba(0,0,0,0.5); border-radius:4px;" alt="${resource.title}">
                 </div>
             </div>
         `;
-        
-        // Add PowerPoint viewer controls
-        let currentSlide = 1;
-        const totalSlides = 15;
-        
-        const prevSlide = modalBody.querySelector('#prevSlide');
-        if (prevSlide) {
-            const handler = function() {
-                if (currentSlide > 1) {
-                    currentSlide--;
-                    const slideInfo = modalBody.querySelector('#slideInfo');
-                    if (slideInfo) {
-                        slideInfo.textContent = `Slide ${currentSlide} of ${totalSlides}`;
-                    }
-                }
-            };
-            prevSlide.addEventListener('click', handler);
-            eventListeners.push({element: prevSlide, event: 'click', handler: handler});
-        }
-        
-        const nextSlide = modalBody.querySelector('#nextSlide');
-        if (nextSlide) {
-            const handler = function() {
-                if (currentSlide < totalSlides) {
-                    currentSlide++;
-                    const slideInfo = modalBody.querySelector('#slideInfo');
-                    if (slideInfo) {
-                        slideInfo.textContent = `Slide ${currentSlide} of ${totalSlides}`;
-                    }
-                }
-            };
-            nextSlide.addEventListener('click', handler);
-            eventListeners.push({element: nextSlide, event: 'click', handler: handler});
-        }
-        
-        const downloadPpt = modalBody.querySelector('#downloadPpt');
-        if (downloadPpt) {
-            const handler = function() {
-                resource.downloaded = true;
-                saveStudentDataToStorage();
-                updateResources();
-                simulateDownload(resource);
-            };
-            downloadPpt.addEventListener('click', handler);
-            eventListeners.push({element: downloadPpt, event: 'click', handler: handler});
-        }
-    } else if (resource.type === 'MP4') {
+        // Load image with auth token
+        fetch(fileUrl, { headers: { 'Authorization': `Bearer ${authToken}` } })
+            .then(r => r.blob())
+            .then(blob => {
+                modalBody.querySelector('#imgDisplay').src = URL.createObjectURL(blob);
+            });
+        modalBody.querySelector('#downloadImg').addEventListener('click', () => {
+            resource.downloaded = true;
+            saveStudentDataToStorage();
+            updateResources();
+            simulateDownload(resource);
+        });
+
+    } else if (isVideo) {
+        // ── Video Viewer ─────────────────────────────────────────────────────
         modalBody.innerHTML = `
-            <div class="video-viewer">
-                <div class="video-header">
-                    <div class="video-info">
-                        <p><strong>Title:</strong> ${resource.title}</p>
-                        <p><strong>Instructor:</strong> ${resource.instructor}</p>
-                        <p><strong>Size:</strong> ${resource.size}</p>
-                    </div>
-                    <div class="video-controls">
-                        <button class="btn btn-primary btn-sm" id="playVideo">Play</button>
-                        <button class="btn btn-outline btn-sm" id="pauseVideo">Pause</button>
-                        <button class="btn btn-primary btn-sm" id="downloadVideo">Download</button>
-                    </div>
+            <div style="display:flex; flex-direction:column;">
+                <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; background:#f8f9fc; border-bottom:1px solid #e2e8f0;">
+                    <i class="fas fa-film" style="color:#667eea;"></i>
+                    <span style="font-size:13px; color:#374151; font-weight:600;">Video</span>
+                    <div style="flex:1;"></div>
+                    <button id="downloadVid" style="padding:6px 16px; border:none; border-radius:6px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; cursor:pointer; font-weight:600;">
+                        &#8595; Download
+                    </button>
                 </div>
-                <div class="video-content">
-                    <div class="video-player">
-                        <p>This is a simulated video player for ${resource.title}.</p>
-                        <p>In a real implementation, this would display the actual video content.</p>
-                        <div style="height: 500px; background-color: #f5f5f5; display: flex; align-items: center; justify-content: center;">
-                            <p>Video Content Would Be Displayed Here</p>
-                        </div>
-                    </div>
+                <div style="background:#000; text-align:center;">
+                    <video id="vidPlayer" controls style="width:100%; max-height:580px;"></video>
                 </div>
             </div>
         `;
-        
-        // Add video player controls
-        const downloadVideo = modalBody.querySelector('#downloadVideo');
-        if (downloadVideo) {
-            const handler = function() {
-                resource.downloaded = true;
-                saveStudentDataToStorage();
-                updateResources();
-                simulateDownload(resource);
-            };
-            downloadVideo.addEventListener('click', handler);
-            eventListeners.push({element: downloadVideo, event: 'click', handler: handler});
-        }
+        // Load video with auth token
+        fetch(fileUrl, { headers: { 'Authorization': `Bearer ${authToken}` } })
+            .then(r => r.blob())
+            .then(blob => {
+                modalBody.querySelector('#vidPlayer').src = URL.createObjectURL(blob);
+            });
+        modalBody.querySelector('#downloadVid').addEventListener('click', () => {
+            resource.downloaded = true;
+            saveStudentDataToStorage();
+            updateResources();
+            simulateDownload(resource);
+        });
+
     } else {
+        // ── Generic file (can't preview) ─────────────────────────────────────
         modalBody.innerHTML = `
-            <div class="file-viewer">
-                <div class="file-info">
-                    <p><strong>Title:</strong> ${resource.title}</p>
-                    <p><strong>Instructor:</strong> ${resource.instructor}</p>
-                    <p><strong>Type:</strong> ${resource.type}</p>
-                    <p><strong>Size:</strong> ${resource.size}</p>
-                </div>
-                <div class="file-content">
-                    <p>This is a simulated file viewer for ${resource.title}.</p>
-                    <p>In a real implementation, this would display the actual file content or provide appropriate viewer.</p>
-                    <div style="height: 500px; background-color: #f5f5f5; display: flex; align-items: center; justify-content: center;">
-                        <p>File Content Would Be Displayed Here</p>
-                    </div>
-                </div>
-                <div class="file-actions">
-                    <button class="btn btn-primary" id="downloadFile">Download</button>
-                </div>
+            <div style="padding:40px; text-align:center;">
+                <i class="fas fa-file-alt" style="font-size:4rem; color:#94a3b8; margin-bottom:16px;"></i>
+                <p style="color:#374151; font-size:1rem; font-weight:600; margin-bottom:8px;">${resource.title}</p>
+                <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:24px;">
+                    This file type (${resource.type || 'unknown'}) cannot be previewed in the browser.
+                </p>
+                <button id="downloadFile" style="padding:10px 24px; border:none; border-radius:8px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; cursor:pointer; font-weight:600; font-size:1rem;">
+                    &#8595; Download File
+                </button>
             </div>
         `;
-        
-        const downloadFile = modalBody.querySelector('#downloadFile');
-        if (downloadFile) {
-            const handler = function() {
-                resource.downloaded = true;
-                saveStudentDataToStorage();
-                updateResources();
-                simulateDownload(resource);
-            };
-            downloadFile.addEventListener('click', handler);
-            eventListeners.push({element: downloadFile, event: 'click', handler: handler});
-        }
+        modalBody.querySelector('#downloadFile').addEventListener('click', () => {
+            resource.downloaded = true;
+            saveStudentDataToStorage();
+            updateResources();
+            simulateDownload(resource);
+        });
     }
-    
+
     modalContent.appendChild(modalHeader);
     modalContent.appendChild(modalBody);
     modal.appendChild(modalContent);
@@ -2149,7 +2539,7 @@ function submitAssignment(assignmentId, file, notes) {
     showNotification('Submitting assignment...', 'info');
     
     // Send request to submit assignment
-    fetch(`http://localhost:5002/api/assignments/${assignmentId}/submit`, {
+    fetch(`/api/assignments/${assignmentId}/submit`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${authToken}`
@@ -2254,10 +2644,90 @@ function updateAttendanceForClass(className) {
     addNotification(`Attendance marked for ${className}`);
 }
 
-// Open reply modal
-function openReplyModal(messageData) {
-    // In a real implementation, this would open a reply modal
-    showNotification('Reply functionality would open here', 'info');
+// Load reply thread for a message
+async function loadStudentReplyThread(mongoId) {
+    try {
+        const token = localStorage.getItem('authToken');
+        const res = await fetch(`/api/messages/${mongoId}/replies`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success || !data.data || data.data.length === 0) return;
+
+        const threadEl = document.getElementById('studentReplyThread');
+        const listEl = document.getElementById('studentReplyList');
+        if (!threadEl || !listEl) return;
+
+        threadEl.style.display = 'block';
+        listEl.innerHTML = data.data.map(reply => {
+            const senderName = reply.sender ? reply.sender.name : 'Unknown';
+            const time = new Date(reply.createdAt).toLocaleString('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+            return `
+                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem; border-left:4px solid #6c5ce7;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+                        <strong style="color:#6c5ce7; font-size:0.9rem;">${senderName}</strong>
+                        <span style="color:#94a3b8; font-size:0.8rem;">${time}</span>
+                    </div>
+                    <p style="margin:0; white-space:pre-wrap; font-size:0.9rem; color:#374151;">${reply.content}</p>
+                </div>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error('Load student reply thread error:', err);
+    }
+}
+
+// Submit student reply
+async function submitStudentReply() {
+    const content = document.getElementById('studentReplyContent').value.trim();
+    if (!content) {
+        showNotification('Please write a reply first', 'error');
+        return;
+    }
+
+    const modal = document.getElementById('messageModal');
+    const senderId = modal.getAttribute('data-sender-id');
+    const mongoId = modal.getAttribute('data-mongo-id');
+    const subject = document.getElementById('messageSubject').textContent;
+
+    if (!senderId) {
+        showNotification('Cannot determine recipient', 'error');
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('authToken');
+        const res = await fetch('/api/messages', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                recipients: [senderId],
+                subject: `Re: ${subject}`,
+                content,
+                parentId: mongoId
+            })
+        });
+        const data = await res.json();
+
+        if (data.success || res.ok) {
+            showNotification('Reply sent successfully!', 'success');
+            document.getElementById('studentReplyBox').style.display = 'none';
+            document.getElementById('studentReplyContent').value = '';
+            // Reload the thread to show the new reply
+            if (mongoId) await loadStudentReplyThread(mongoId);
+        } else {
+            showNotification(data.message || 'Failed to send reply', 'error');
+        }
+    } catch (err) {
+        console.error('Submit student reply error:', err);
+        showNotification('Failed to send reply', 'error');
+    }
 }
 
 // Open compose message modal
@@ -2275,7 +2745,7 @@ function downloadAssignmentFile(assignmentId, filename) {
     }
     
     // Create download link
-    const downloadUrl = `http://localhost:5002/api/assignments/${assignmentId}/download/${filename}`;
+    const downloadUrl = `/api/assignments/${assignmentId}/download/${filename}`;
     
     // Create temporary link element
     const link = document.createElement('a');
@@ -2298,7 +2768,7 @@ function downloadSubmissionFile(submissionId, filename) {
     }
     
     // Create download link
-    const downloadUrl = `http://localhost:5002/api/assignments/submissions/${submissionId}/download/${filename}`;
+    const downloadUrl = `/api/assignments/submissions/${submissionId}/download/${filename}`;
     
     // Create temporary link element
     const link = document.createElement('a');
@@ -2311,3 +2781,440 @@ function downloadSubmissionFile(submissionId, filename) {
     link.click();
     document.body.removeChild(link);
 }
+
+// ─── Attendance Table Update ──────────────────────────────────────────────────
+function updateAttendanceTable(attendanceData) {
+    const tbody = document.getElementById('attendanceTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (!attendanceData || attendanceData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No attendance records found</td></tr>';
+        return;
+    }
+
+    attendanceData.forEach(record => {
+        const statusClass = record.status === 'Excellent' || record.status === 'Good' ? 'success' :
+                           record.status === 'Satisfactory' ? 'warning' : 'danger';
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${record.course}</td>
+            <td>${record.instructor}</td>
+            <td>${record.held}</td>
+            <td>${record.attended}</td>
+            <td>${record.rate}</td>
+            <td><span class="badge badge-${statusClass}">${record.status}</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// ─── Per-Class Attendance Fetch ───────────────────────────────────────────────
+function fetchPerClassAttendance(authToken) {
+    // Fetch all attendance records for the student
+    fetch('/api/attendance?studentId=me', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success && data.data) {
+            const records = Array.isArray(data.data) ? data.data : (data.data.attendance || []);
+
+            // Group by class
+            const byClass = {};
+            records.forEach(rec => {
+                const className = rec.class ? (rec.class.name || rec.class) : 'Unknown';
+                const instructor = rec.class && rec.class.teacher ? rec.class.teacher.name : 'N/A';
+                if (!byClass[className]) {
+                    byClass[className] = { course: className, instructor, held: 0, attended: 0, late: 0 };
+                }
+                byClass[className].held++;
+                if (rec.status === 'present') byClass[className].attended++;
+                else if (rec.status === 'late') { byClass[className].attended++; byClass[className].late++; }
+            });
+
+            const perClassData = Object.values(byClass).map(c => ({
+                ...c,
+                rate: c.held > 0 ? `${Math.round((c.attended / c.held) * 100)}%` : '0%',
+                status: c.held > 0 && (c.attended / c.held) >= 0.9 ? 'Excellent' :
+                        c.held > 0 && (c.attended / c.held) >= 0.8 ? 'Good' :
+                        c.held > 0 && (c.attended / c.held) >= 0.7 ? 'Satisfactory' : 'Needs Improvement'
+            }));
+
+            if (perClassData.length > 0) {
+                studentData.attendance = perClassData;
+                updateAttendanceTable(perClassData);
+            }
+        }
+    })
+    .catch(err => console.error('Per-class attendance error:', err));
+}
+
+// Resource viewing functions
+function viewResource(resourceId) {
+    const resource = studentData.resources.find(r => r.id === resourceId);
+    if (!resource) {
+        showNotification('Resource not found', 'error');
+        return;
+    }
+    openResourceViewer(resource);
+}
+
+function closeResourceViewer() {
+    const modal = document.getElementById('resourceViewerModal');
+    const frame = document.getElementById('resourceViewerFrame');
+    modal.style.display = 'none';
+    frame.src = '';
+}
+
+// Download resource function  
+function downloadResource(resourceId) {
+    const resource = studentData.resources.find(r => r.id === resourceId);
+    if (!resource) {
+        showNotification('Resource not found', 'error');
+        return;
+    }
+    simulateDownload(resource);
+}
+
+// ─── Student Authentication Check ────────────────────────────────────────────
+function checkStudentAuthentication() {
+    const authToken = localStorage.getItem('authToken');
+    const currentUser = localStorage.getItem('currentUser');
+
+    if (!authToken || !currentUser) {
+        window.location.href = 'login.html';
+        return false;
+    }
+
+    try {
+        const user = JSON.parse(currentUser);
+        if (user.role !== 'student') {
+            const dashboards = {
+                'teacher': 'teacher-dashboard.html',
+                'hod': 'HOD-dashboard.html',
+                'admin': 'admin-dashboard.html',
+                'managing_authority': 'managing-authority.html'
+            };
+            window.location.href = dashboards[user.role] || 'login.html';
+            return false;
+        }
+        return true;
+    } catch (e) {
+        window.location.href = 'login.html';
+        return false;
+    }
+}
+
+
+// ==================== ENROLLMENT / COURSES SECTION ====================
+
+// Load pending enrollment requests — disabled (auto-enrollment means no pending state)
+function loadPendingEnrollments() {
+    // Auto-enrollment: all students are enrolled immediately by the teacher.
+    // Pending section removed from UI. This function is kept as a no-op.
+}
+
+// Load enrolled courses
+// Load enrolled courses — fetches both EnrollmentRequests AND direct Class enrollments (for HOD-taught classes)
+async function loadEnrolledCourses() {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    const tbody = document.getElementById('enrolledCoursesTable');
+    const countBadge = document.getElementById('enrolledCount');
+    if (!tbody) return;
+
+    try {
+        const ts = new Date().getTime();
+        // Fetch both sources in parallel
+        const [enrollRes, classRes] = await Promise.all([
+            fetch(`/api/enrollments/my-requests?_t=${ts}`, {
+                headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache' }
+            }).then(r => r.json()),
+            fetch(`/api/classes?_t=${ts}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(r => r.json())
+        ]);
+
+        // --- Source 1: EnrollmentRequest records (teacher-enrolled courses) ---
+        const enrollRows = (enrollRes.success && enrollRes.data.requests)
+            ? enrollRes.data.requests.filter(r => r.status === 'accepted')
+            : [];
+
+        // Track class IDs already covered by enrollment requests
+        const coveredClassIds = new Set(enrollRows.map(r => r.class?._id?.toString()).filter(Boolean));
+
+        // --- Source 2: Direct class enrollments (HOD-taught or admin-created) ---
+        const directClasses = (classRes.success && classRes.data.classes)
+            ? classRes.data.classes.filter(cls => !coveredClassIds.has(cls._id?.toString()))
+            : [];
+
+        const totalCount = enrollRows.length + directClasses.length;
+
+        if (totalCount === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem; color:#999;">No enrolled courses yet</td></tr>';
+            if (countBadge) countBadge.style.display = 'none';
+            return;
+        }
+
+        tbody.innerHTML = '';
+
+        // Render enrollment-request based rows
+        enrollRows.forEach(req => {
+            const enrolledDate = req.respondedAt
+                ? new Date(req.respondedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                : '-';
+            const credits = req.subject?.credits || req.class?.credits || 10;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${req.class?.name || 'N/A'}</strong></td>
+                <td>${req.class?.code || '-'}</td>
+                <td>${req.teacher?.name || 'N/A'}</td>
+                <td><strong>${credits}</strong></td>
+                <td>${enrolledDate}</td>
+                <td><span class="status-badge success"><i class="fas fa-check-circle"></i> Active</span></td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Render direct class rows (HOD-taught, no EnrollmentRequest)
+        directClasses.forEach(cls => {
+            const teacherName = cls.teacher?.name || 'N/A';
+            const enrolledDate = new Date(cls.createdAt).toLocaleDateString('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric'
+            });
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${cls.name}</strong></td>
+                <td>${cls.code || '-'}</td>
+                <td>${teacherName}</td>
+                <td><strong>${cls.credits || 10}</strong></td>
+                <td>${enrolledDate}</td>
+                <td><span class="status-badge success"><i class="fas fa-check-circle"></i> Active</span></td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        if (countBadge) {
+            countBadge.textContent = `${totalCount} enrolled`;
+            countBadge.style.display = 'inline-block';
+        }
+    } catch (err) {
+        console.error('Error loading enrolled courses:', err);
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem; color:#f44336;">Error loading enrolled courses</td></tr>';
+    }
+}
+
+// Accept enrollment
+function acceptEnrollment(enrollmentId, courseName) {
+    if (!confirm(`Do you want to enroll in "${courseName}"?`)) return;
+    
+    const token = localStorage.getItem('authToken');
+    const btn = event.target.closest('button');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enrolling...';
+    
+    fetch(`/api/enrollments/${enrollmentId}/accept`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`✅ Successfully enrolled in ${courseName}!`, 'success');
+            loadPendingEnrollments();
+            loadEnrolledCourses();
+        } else {
+            showNotification('❌ Failed to enroll: ' + data.message, 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Accept';
+        }
+    })
+    .catch(err => {
+        console.error('Error accepting enrollment:', err);
+        showNotification('❌ Network error. Please try again.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check"></i> Accept';
+    });
+}
+
+// Reject enrollment
+function rejectEnrollment(enrollmentId, courseName) {
+    if (!confirm(`Are you sure you want to reject enrollment in "${courseName}"?`)) return;
+    
+    const token = localStorage.getItem('authToken');
+    const btn = event.target.closest('button');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rejecting...';
+    
+    fetch(`/api/enrollments/${enrollmentId}/reject`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`Enrollment request for ${courseName} rejected`, 'info');
+            loadPendingEnrollments();
+        } else {
+            showNotification('Failed to reject: ' + data.message, 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-times"></i> Reject';
+        }
+    })
+    .catch(err => {
+        console.error('Error rejecting enrollment:', err);
+        showNotification('Network error. Please try again.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-times"></i> Reject';
+    });
+}
+
+// Update notification badge — delegate to unified system (triggers live reload)
+function updateNotificationBadge(count) {
+    if (window.notificationManager) {
+        window.notificationManager.loadNotifications();
+    }
+}
+
+// Initialize courses section
+document.addEventListener('DOMContentLoaded', function() {
+    // Load courses data initially
+    loadPendingEnrollments();
+    loadEnrolledCourses();
+    
+    // Refresh pending enrollments every 30 seconds
+    setInterval(loadPendingEnrollments, 30000);
+    
+    // Also load when navigating to courses section
+    const coursesLink = document.querySelector('[data-section="courses"]');
+    if (coursesLink) {
+        coursesLink.addEventListener('click', function() {
+            loadPendingEnrollments();
+            loadEnrolledCourses();
+        });
+    }
+
+});
+
+
+// ── College Announcements (from Principal) ───────────────────
+async function loadCollegeAnnouncements() {
+    const container = document.getElementById('studentAnnouncementsOverview');
+    if (!container) return;
+
+    try {
+        const token = localStorage.getItem('authToken');
+        const res = await fetch('/api/announcements', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        const announcements = data.success ? (data.data?.announcements || []) : [];
+
+        if (announcements.length === 0) {
+            container.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:1rem;">No announcements at this time.</p>';
+            return;
+        }
+
+        const priorityColors = {
+            high: { bg:'#fef2f2', color:'#dc2626', label:'High' },
+            medium: { bg:'#fffbeb', color:'#d97706', label:'Medium' },
+            low: { bg:'#f0fdf4', color:'#16a34a', label:'Low' },
+        };
+
+        container.innerHTML = announcements.slice(0, 5).map(a => {
+            const p = priorityColors[a.priority] || priorityColors.medium;
+            const date = new Date(a.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+            return `
+                <div style="border:1px solid #e2e8f0; border-left:4px solid ${p.color}; border-radius:8px; padding:0.9rem 1rem; margin-bottom:0.75rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; flex-wrap:wrap; gap:0.4rem;">
+                        <div style="font-weight:600; color:#1e293b; font-size:0.95rem;">${a.title}</div>
+                        <div style="display:flex; gap:0.4rem; align-items:center;">
+                            <span style="background:${p.bg};color:${p.color};padding:0.15rem 0.5rem;border-radius:20px;font-size:0.72rem;font-weight:600;">${p.label}</span>
+                            <span style="color:#94a3b8;font-size:0.78rem;">${date}</span>
+                        </div>
+                    </div>
+                    <p style="margin:0; color:#374151; font-size:0.88rem; line-height:1.5;">${a.content}</p>
+                </div>
+            `;
+        }).join('');
+    } catch (err) {
+        container.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:1rem;">Could not load announcements.</p>';
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ── STUDENT ANNOUNCEMENTS ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function loadStudentAnnouncements() {
+    const container = document.getElementById('studentAnnouncementsList');
+    if (!container) return;
+    
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        container.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:2rem;">Please login to view announcements.</p>';
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/announcements', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        const announcements = data.success ? (data.data?.announcements || []) : [];
+        if (announcements.length === 0) {
+            container.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:2rem;">No announcements at this time.</p>';
+            return;
+        }
+        const colors = { high: '#dc2626', medium: '#d97706', low: '#16a34a' };
+        container.innerHTML = announcements.map(a => {
+            const c = colors[a.priority] || colors.medium;
+            const date = new Date(a.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            const postedBy = a.postedBy ? a.postedBy.name : (a.postedByName || 'Principal');
+            return `<div style="border:1px solid #e2e8f0;border-left:4px solid ${c};border-radius:8px;padding:1rem;margin-bottom:0.75rem;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:0.4rem;flex-wrap:wrap;gap:0.4rem;">
+                    <strong style="color:#1e293b;">${a.title}</strong>
+                    <span style="color:#94a3b8;font-size:0.78rem;">${date}</span>
+                </div>
+                <p style="margin:0 0 0.5rem;color:#374151;font-size:0.9rem;line-height:1.5;">${a.content}</p>
+                <div style="display:flex;gap:0.75rem;font-size:0.78rem;color:#64748b;">
+                    <span><i class="fas fa-user"></i> ${postedBy}</span>
+                    <span style="background:${c}15;color:${c};padding:0.1rem 0.5rem;border-radius:4px;font-weight:600;">${a.priority}</span>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        console.error('loadStudentAnnouncements error:', err);
+        if (container) container.innerHTML = '<p style="color:#f44336;text-align:center;padding:1rem;">Failed to load announcements.</p>';
+    }
+}
+
+// Use MutationObserver to detect when announcements section becomes visible
+(function() {
+    let announcementsLoaded = false;
+    
+    // Try loading after a delay (page load)
+    setTimeout(function() {
+        if (!announcementsLoaded && localStorage.getItem('authToken')) {
+            announcementsLoaded = true;
+            loadStudentAnnouncements();
+        }
+    }, 2000);
+    
+    // Also load when clicking the announcements sidebar link
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('a[data-section="announcements"]');
+        if (link) {
+            // Small delay to let the section become visible
+            setTimeout(function() {
+                loadStudentAnnouncements();
+            }, 100);
+        }
+    });
+})();
