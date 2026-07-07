@@ -1,0 +1,14 @@
+[build]
+  base = "frontend"
+  publish = "frontend"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://educonnect-backend-rxq6.onrender.com/api/:splat"
+  status = 200
+  force = true
