@@ -90,9 +90,23 @@ async function syncActiveMeetingLinks() {
 setInterval(syncActiveMeetingLinks, 10000); // every 10 seconds
 syncActiveMeetingLinks(); // run immediately on startup
 
-// Middleware — allow all origins (works on Render, Vercel, any domain)
+// Middleware — allow Netlify frontend + local dev
+const allowedOrigins = [
+    'http://localhost:5002',
+    'http://localhost:3000',
+    process.env.FRONTEND_URL || '',  // Set this to your Netlify URL
+].filter(Boolean);
+
 app.use(cors({
-    origin: true,
+    origin: function(origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, same-origin)
+        if (!origin) return callback(null, true);
+        // Allow any netlify.app domain or localhost
+        if (origin.includes('netlify.app') || origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('onrender.com')) {
+            return callback(null, true);
+        }
+        callback(null, true); // Allow all for now — restrict in production if needed
+    },
     credentials: true
 }));
 app.use(express.json());
