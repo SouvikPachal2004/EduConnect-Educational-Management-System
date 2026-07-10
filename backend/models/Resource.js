@@ -31,6 +31,13 @@ const resourceSchema = new mongoose.Schema({
   filePath: {
     type: String,
   },
+  // Binary file contents stored in MongoDB so files persist across server
+  // restarts/redeploys (Render's disk is ephemeral). Excluded from queries by
+  // default (select:false) so listing resources stays lightweight.
+  fileData: {
+    type: Buffer,
+    select: false,
+  },
   fileSize: {
     type: Number,
   },

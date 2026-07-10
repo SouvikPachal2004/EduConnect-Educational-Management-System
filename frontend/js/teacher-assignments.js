@@ -5,19 +5,19 @@
 
 'use strict';
 
-// ─── State ───────────────────────────────────────────────────────────────────
+//  State 
 let _teacherClasses   = [];     // teacher's classes
 let _allAsgFilter     = 'all';  // current filter: all / published / pending_grade / draft
 let _allAsgData       = [];     // cached assignments
 let _allResources     = [];     // cached resources
 let _currentResFilter = 'all';  // resource tab filter
 
-// ─── HOD state ───────────────────────────────────────────────────────────────
+//  HOD state 
 let _hodClasses  = [];
 let _hodAsgFilter = 'all';
 let _hodAsgData   = [];
 
-// ─── Init ─────────────────────────────────────────────────────────────────────
+//  Init 
 document.addEventListener('DOMContentLoaded', function () {
     const isTeacher = !!document.getElementById('assignmentListContainer');
     const isHod     = !!document.getElementById('hodAssignmentListContainer');
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// ─── Utility ─────────────────────────────────────────────────────────────────
+//  Utility 
 function getToken() { return localStorage.getItem('authToken') || ''; }
 
 function tNotify(msg, type = 'info') {
@@ -84,17 +84,17 @@ function escH(s) {
 }
 
 function fmtDate(d) {
-    if (!d) return '—';
+    if (!d) return '';
     return new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
 }
 
 function fmtDateTime(d) {
-    if (!d) return '—';
+    if (!d) return '';
     return new Date(d).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
 function fmtSize(bytes) {
-    if (!bytes) return '—';
+    if (!bytes) return '';
     return bytes > 1048576 ? `${(bytes/1048576).toFixed(1)} MB` : `${(bytes/1024).toFixed(0)} KB`;
 }
 
@@ -110,9 +110,9 @@ function getFileIcon(name, type) {
     return 'fa-file';
 }
 
-// ═══════════════════════════════════════════════════════
-// TEACHER — ASSIGNMENTS
-// ═══════════════════════════════════════════════════════
+// 
+// TEACHER  ASSIGNMENTS
+// 
 
 async function initTeacherAssignments() {
     await loadTeacherClasses();
@@ -235,7 +235,7 @@ function buildAssignmentCard(a, role) {
     const diffDay   = Math.ceil((due - now) / 86400000);
     const dueLabel  = isOverdue ? 'Overdue' : diffDay === 0 ? 'Due Today!' : `Due in ${diffDay}d`;
     const dueColor  = isOverdue ? '#ef4444' : diffDay <= 3 ? '#f59e0b' : '#22c55e';
-    const className = a.class?.name || '—';
+    const className = a.class?.name || '';
     const statusColor = a.status === 'published' ? '#22c55e' : a.status === 'draft' ? '#94a3b8' : '#f59e0b';
     const statusLabel = a.status === 'published' ? 'Published' : a.status === 'draft' ? 'Draft' : a.status;
 
@@ -246,7 +246,7 @@ function buildAssignmentCard(a, role) {
         ? `onclick="deleteHodAssignment('${a._id}','${escH(a.title).replace(/'/g,"\\'")}',this)"`
         : `onclick="deleteTeacherAssignment('${a._id}','${escH(a.title).replace(/'/g,"\\'")}',this)"`;
 
-    // Publish button — only shown for drafts
+    // Publish button  only shown for drafts
     const publishBtn = a.status === 'draft' ? (role === 'hod'
         ? `<button onclick="publishAssignment('${a._id}', 'hod', this)"
                style="padding:0.4rem 0.9rem;background:#22c55e;color:#fff;border:none;border-radius:8px;
@@ -264,7 +264,7 @@ function buildAssignmentCard(a, role) {
                 <a href="/api/assignments/${a._id}/download/${encodeURIComponent(att.fileName)}"
                    target="_blank"
                    style="font-size:0.75rem;color:#667eea;background:#ede9fe;padding:0.15rem 0.5rem;border-radius:4px;text-decoration:none;">
-                    📎 ${escH(att.fileName)}
+                     ${escH(att.fileName)}
                 </a>
             `).join('')}
            </div>` : '';
@@ -273,7 +273,7 @@ function buildAssignmentCard(a, role) {
     <div style="border:1px solid #e2e8f0;border-radius:12px;padding:1rem;margin-bottom:0.75rem;background:#fff;
                 border-left:4px solid ${statusColor};display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
         <div style="flex-shrink:0;width:42px;height:42px;border-radius:10px;background:#ede9fe;
-                    display:flex;align-items:center;justify-content:center;font-size:1.1rem;">📋</div>
+                    display:flex;align-items:center;justify-content:center;font-size:1.1rem;"></div>
         <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
                 <div>
@@ -285,12 +285,12 @@ function buildAssignmentCard(a, role) {
             </div>
             <div style="font-size:0.83rem;color:#64748b;margin-top:0.3rem;">
                 <i class="fas fa-book" style="color:#667eea;"></i> ${escH(className)}
-                &nbsp;•&nbsp;
+                &nbsp;&nbsp;
                 <i class="fas fa-calendar"></i> ${fmtDateTime(a.dueDate)}
-                &nbsp;•&nbsp;
+                &nbsp;&nbsp;
                 <i class="fas fa-star"></i> ${a.maxPoints} marks
             </div>
-            <div style="font-size:0.82rem;color:#94a3b8;margin-top:0.25rem;">${escH((a.description||'').substring(0,120))}${(a.description||'').length>120?'…':''}</div>
+            <div style="font-size:0.82rem;color:#94a3b8;margin-top:0.25rem;">${escH((a.description||'').substring(0,120))}${(a.description||'').length>120?'':''}</div>
             ${attachHtml}
         </div>
         <div style="flex-shrink:0;display:flex;flex-direction:column;gap:0.4rem;align-items:flex-end;">
@@ -309,7 +309,7 @@ function buildAssignmentCard(a, role) {
     </div>`;
 }
 
-// Open create assignment modal — load classes first
+// Open create assignment modal  load classes first
 function openCreateAssignmentModal() {
     if (_teacherClasses.length === 0) loadTeacherClasses();
     document.getElementById('createAssignmentForm')?.reset();
@@ -407,8 +407,8 @@ function renderSubmissionsTable(subs, maxPoints, container, asgId, role) {
         </thead>
         <tbody>
         ${subs.map((sub, idx) => {
-            const name   = sub.student?.name || '—';
-            const sid    = sub.student?.studentId || '—';
+            const name   = sub.student?.name || '';
+            const sid    = sub.student?.studentId || '';
             const date   = fmtDate(sub.submittedAt);
             const att    = sub.attachments?.[0];
 
@@ -418,7 +418,7 @@ function renderSubmissionsTable(subs, maxPoints, container, asgId, role) {
                       target="_blank"
                       style="display:inline-flex;align-items:center;gap:0.35rem;color:#667eea;font-size:0.82rem;
                              background:#ede9fe;padding:0.3rem 0.65rem;border-radius:6px;text-decoration:none;white-space:nowrap;">
-                       📎 ${escH(att.fileName)}
+                        ${escH(att.fileName)}
                    </a>`
                 : `<span style="color:#94a3b8;font-size:0.8rem;font-style:italic;">${escH(sub.content?.substring(0,50) || 'No file')}</span>`;
 
@@ -428,7 +428,7 @@ function renderSubmissionsTable(subs, maxPoints, container, asgId, role) {
                 id="marks_${idx}"
                 type="number" min="0" max="${maxPoints}" step="1"
                 value="${existPts}"
-                placeholder="0–${maxPoints}"
+                placeholder="0${maxPoints}"
                 style="width:80px;padding:0.4rem 0.5rem;border:1.5px solid ${sub.graded ? '#22c55e' : '#d1d5db'};
                        border-radius:7px;font-size:0.9rem;text-align:center;font-family:inherit;outline:none;"
                 onfocus="this.style.borderColor='#667eea'"
@@ -437,7 +437,7 @@ function renderSubmissionsTable(subs, maxPoints, container, asgId, role) {
 
             // Status badge
             const statusBadge = sub.graded
-                ? `<span style="font-size:0.74rem;color:#15803d;background:#dcfce7;padding:0.15rem 0.5rem;border-radius:4px;display:block;text-align:center;margin-bottom:4px;">✓ Graded: ${sub.points}/${maxPoints}</span>`
+                ? `<span style="font-size:0.74rem;color:#15803d;background:#dcfce7;padding:0.15rem 0.5rem;border-radius:4px;display:block;text-align:center;margin-bottom:4px;"> Graded: ${sub.points}/${maxPoints}</span>`
                 : '';
 
             // Submit/Save button
@@ -466,7 +466,7 @@ function renderSubmissionsTable(subs, maxPoints, container, asgId, role) {
                                color:#fff;border:none;border-radius:8px;cursor:pointer;
                                font-size:0.82rem;font-weight:600;font-family:inherit;white-space:nowrap;"
                         id="gradeBtn_${sub._id}">
-                        ${sub.graded ? '✏️ Update' : '⭐ Submit'}
+                        ${sub.graded ? ' Update' : ' Submit'}
                     </button>
                 </td>
             </tr>`;
@@ -498,17 +498,17 @@ async function saveIndividualGrade(subId, maxPoints, marksInputId, feedbackInput
         });
         const data = await res.json();
         if (data.success) {
-            tNotify(`Marks saved: ${points}/${maxPoints} ✅`, 'success');
+            tNotify(`Marks saved: ${points}/${maxPoints} `, 'success');
             // Update input border to green and button text
             if (marksEl) marksEl.style.borderColor = '#22c55e';
-            if (btn) { btn.disabled = false; btn.innerHTML = '✏️ Update'; }
+            if (btn) { btn.disabled = false; btn.innerHTML = ' Update'; }
         } else {
             tNotify(data.message || 'Failed to save marks', 'error');
-            if (btn) { btn.disabled = false; btn.innerHTML = '⭐ Submit'; }
+            if (btn) { btn.disabled = false; btn.innerHTML = ' Submit'; }
         }
     } catch (err) {
         tNotify('Network error', 'error');
-        if (btn) { btn.disabled = false; btn.innerHTML = '⭐ Submit'; }
+        if (btn) { btn.disabled = false; btn.innerHTML = ' Submit'; }
     }
 }
 
@@ -573,9 +573,9 @@ async function deleteTeacherAssignment(id, title, btn) {
     finally { btn.disabled = false; }
 }
 
-// ═══════════════════════════════════════════════════════
-// TEACHER — RESOURCES (dynamic, like HOD)
-// ═══════════════════════════════════════════════════════
+// 
+// TEACHER  RESOURCES (dynamic, like HOD)
+// 
 
 async function initTeacherResources() {
     if (_teacherClasses.length === 0) await loadTeacherClasses();
@@ -658,7 +658,7 @@ function renderTeacherResources() {
         const ext      = (r.fileName || '').split('.').pop().toUpperCase() || 'FILE';
         const size     = fmtSize(r.fileSize);
         const date     = fmtDate(r.createdAt);
-        const cls      = r.class?.name || '—';
+        const cls      = r.class?.name || '';
         const icon     = getFileIcon(r.fileName, r.resourceType);
         const dlUrl    = r.filePath ? `/api/resources/${r._id}/download` : (r.url || '#');
         const iconColor = ext === 'PDF' ? '#ef4444' : ext.includes('PP') ? '#f97316' : ext.includes('DOC') ? '#2563eb' : ext.includes('XLS') ? '#22c55e' : '#667eea';
@@ -670,7 +670,7 @@ function renderTeacherResources() {
             </div>
             <div class="resource-body">
                 <h3 class="resource-title" title="${escH(name)}">${escH(name)}</h3>
-                <p class="resource-meta">${ext} • ${size} • ${escH(cls)}</p>
+                <p class="resource-meta">${ext}  ${size}  ${escH(cls)}</p>
                 <p style="font-size:0.74rem;color:#94a3b8;margin:0 0 0.5rem;">${date}</p>
                 <div class="resource-actions">
                     <a href="${dlUrl}" target="_blank" class="btn btn-primary btn-sm">
@@ -724,7 +724,7 @@ async function doTeacherUploadResource() {
         });
         const data = await res.json();
         if (data.success) {
-            tNotify(`✅ "${title}" uploaded successfully!`, 'success');
+            tNotify(` "${title}" uploaded successfully!`, 'success');
             closeTeacherResourceModal();
             loadTeacherResources();
         } else {
@@ -748,14 +748,14 @@ async function deleteTeacherResource(id, name, btn) {
     finally { btn.disabled = false; }
 }
 
-// ═══════════════════════════════════════════════════════
-// HOD — ASSIGNMENTS
-// ═══════════════════════════════════════════════════════
+// 
+// HOD  ASSIGNMENTS
+// 
 
 async function loadHodClassesForModal() {
     const token = getToken();
     try {
-        // myOwn=true → only classes the HOD personally teaches (their own subjects)
+        // myOwn=true  only classes the HOD personally teaches (their own subjects)
         const res  = await fetch('/api/classes?myOwn=true', { headers: { 'Authorization': `Bearer ${token}` } });
         const data = await res.json();
         _hodClasses = data.success ? (data.data.classes || []) : [];
@@ -965,7 +965,7 @@ document.addEventListener('click', function (e) {
     });
 });
 
-// ── Publish a draft assignment ────────────────────────────────────────────────
+//  Publish a draft assignment 
 async function publishAssignment(asgId, role, btn) {
     if (!confirm('Publish this assignment? Students will be able to see and submit it.')) return;
     btn.disabled = true;
@@ -979,7 +979,7 @@ async function publishAssignment(asgId, role, btn) {
         });
         const data = await res.json();
         if (data.success) {
-            tNotify('Assignment published! Students can now see it. ✅', 'success');
+            tNotify('Assignment published! Students can now see it. ', 'success');
             if (role === 'hod')     loadHodAssignments();
             else                    loadTeacherAssignments();
         } else {

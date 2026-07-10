@@ -1,4 +1,4 @@
-﻿// Teacher Dashboard JavaScript
+// Teacher Dashboard JavaScript
 
 // Check authentication and role
 function checkTeacherAuthentication() {
@@ -1296,7 +1296,7 @@ function setupStudentDetailsModal() {
 }
 
 // Open student details modal
-// Open student details modal — HOD-style card with real CGPA chart
+// Open student details modal  HOD-style card with real CGPA chart
 let _teacherStudentChartInstance = null;
 
 async function openStudentDetailsModal(studentId) {
@@ -1309,8 +1309,8 @@ async function openStudentDetailsModal(studentId) {
     document.getElementById('studentDetailName').textContent = 'Loading...';
     document.getElementById('studentDetailId').textContent = '';
     document.getElementById('studentDetailEmail').textContent = '';
-    document.getElementById('studentDetailGpa').textContent = '—';
-    document.getElementById('studentDetailStatus').textContent = '—';
+    document.getElementById('studentDetailGpa').textContent = '';
+    document.getElementById('studentDetailStatus').textContent = '';
     document.getElementById('studentDetailCourses').textContent = 'Loading...';
     document.getElementById('teacherStudentChartNote').textContent = '';
     modal.style.display = 'block';
@@ -1349,7 +1349,7 @@ async function openStudentDetailsModal(studentId) {
             } else { coursesEl.textContent = 'No courses enrolled'; }
         } catch (e) { document.getElementById('studentDetailCourses').textContent = 'Could not load courses'; }
 
-        // Real CGPA data — year-wise (avg of 2 sems per year) + linear regression prediction
+        // Real CGPA data  year-wise (avg of 2 sems per year) + linear regression prediction
         let labels = [], values = [], predictedLabel = null, predictedValue = null;
         try {
             const userRes = await fetch('/api/teacher/students', { headers: { 'Authorization': `Bearer ${authToken}` } });
@@ -1420,7 +1420,7 @@ function drawTeacherStudentCgpaChart(labels, values, predictedLabel, predictedVa
     }
     if (typeof Chart === 'undefined') return;
 
-    // Build datasets — actual data + optional prediction point with connecting dashed line
+    // Build datasets  actual data + optional prediction point with connecting dashed line
     const allLabels = [...labels];
     const actualData = [...values];
     // predictData: nulls until second-to-last, then last actual value, then predicted
@@ -2711,7 +2711,7 @@ function updateAssignmentsList(assignments) {
 function updateStudentsList(students) {
     console.log('Updating students list with data:', students);
 
-    // â”€â”€ Stats row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    //  Stats row 
     const total = students ? students.length : 0;
     const withGrade = students ? students.filter(s => s.grade != null && s.grade > 0) : [];
     const totalCgpa = withGrade.reduce((sum, s) => sum + (parseFloat(s.grade) || 0), 0);
@@ -2730,7 +2730,7 @@ function updateStudentsList(students) {
     const studentsStatEl = document.querySelector('.stat-card:nth-child(2) .stat-card-value');
     if (studentsStatEl) studentsStatEl.textContent = total;
 
-    // â”€â”€ Table body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    //  Table body 
     const tbody = document.getElementById('teacherStudentTableBody');
     if (!tbody) return;
 

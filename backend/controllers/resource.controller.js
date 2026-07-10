@@ -29,10 +29,11 @@ const createResource = async (req, res) => {
       isPublic: isPublic || false,
     });
     
-    // Handle file upload
+    // Handle file upload — store bytes in MongoDB (multer memoryStorage gives
+    // us req.file.buffer) so the file persists across server redeploys.
     if (req.file) {
       resource.fileName = req.file.originalname;
-      resource.filePath = req.file.path;
+      resource.fileData = req.file.buffer;
       resource.fileSize = req.file.size;
       resource.mimeType = req.file.mimetype;
       resource.resourceType = 'file';
@@ -330,7 +331,8 @@ const deleteResource = async (req, res) => {
 // Download resource file
 const downloadResource = async (req, res) => {
   try {
-    const resource = await Resource.findById(req.params.id);
+    // fileData is select:false on the schema, so request it explicitly.
+    const resource = await Resource.findById(req.params.id).select('+fileData');
     if (!resource) {
       return errorResponse(res, 'Resource not found', 404);
     }
@@ -340,33 +342,25 @@ const downloadResource = async (req, res) => {
       return res.redirect(resource.url);
     }
 
-    // If it's a file resource, serve the file
+    // Preferred path: file bytes stored in MongoDB (persists across redeploys)
+    if (resource.fileData && resource.fileData.length) {
+      res.setHeader('Content-Disposition', `attachment; filename="${resource.fileName || 'download'}"`);
+      res.setHeader('Content-Type', resource.mimeType || 'application/octet-stream');
+      return res.send(resource.fileData);
+    }
+
+    // Legacy fallback: file stored on disk (older resources)
     if (resource.filePath) {
-      const path = require('path');
-      const fs = require('fs');
-
-      // Try absolute path first, then relative to project root
-      let fullPath = path.isAbsolute(resource.filePath)
-        ? resource.filePath
-        : path.join(__dirname, '../../', resource.filePath);
-
-      // Also try relative to backend folder
-      if (!fs.existsSync(fullPath)) {
-        fullPath = path.join(__dirname, '../', resource.filePath);
-      }
-      // Also try as-is from CWD
-      if (!fs.existsSync(fullPath)) {
-        fullPath = path.resolve(resource.filePath);
-      }
-
-      if (!fs.existsSync(fullPath)) {
-        console.error('File not found at path:', fullPath, '| stored path:', resource.filePath);
+      const fullPath = resolveLegacyFilePath(resource.filePath);
+      if (!fullPath) {
+        console.error('File not found | stored path:', resource.filePath);
         return errorResponse(res, 'File not found on server', 404);
       }
 
       res.setHeader('Content-Disposition', `attachment; filename="${resource.fileName || 'download'}"`);
       res.setHeader('Content-Type', resource.mimeType || 'application/octet-stream');
 
+      const fs = require('fs');
       const fileStream = fs.createReadStream(fullPath);
       fileStream.pipe(res);
       fileStream.on('error', (error) => {
@@ -382,10 +376,24 @@ const downloadResource = async (req, res) => {
   }
 };
 
+// Resolve a legacy on-disk file path by trying several base locations.
+// Returns the first existing absolute path, or null if none exist.
+function resolveLegacyFilePath(filePath) {
+  const path = require('path');
+  const fs = require('fs');
+  const candidates = [
+    path.isAbsolute(filePath) ? filePath : path.join(__dirname, '../../', filePath),
+    path.join(__dirname, '../', filePath),
+    path.resolve(filePath),
+  ];
+  return candidates.find((p) => fs.existsSync(p)) || null;
+}
+
 // View resource file (for preview â€” same as download but inline)
 const viewResource = async (req, res) => {
   try {
-    const resource = await Resource.findById(req.params.id);
+    // fileData is select:false on the schema, so request it explicitly.
+    const resource = await Resource.findById(req.params.id).select('+fileData');
     if (!resource) {
       return errorResponse(res, 'Resource not found', 404);
     }
@@ -395,44 +403,39 @@ const viewResource = async (req, res) => {
       return res.redirect(resource.url);
     }
 
+    const ext = (resource.fileName || '').split('.').pop().toLowerCase();
+    const mimeMap = {
+      pdf: 'application/pdf',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ppt: 'application/vnd.ms-powerpoint',
+      pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      xls: 'application/vnd.ms-excel',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
+      mp4: 'video/mp4', webm: 'video/webm',
+    };
+    const mime = resource.mimeType || mimeMap[ext] || 'application/octet-stream';
+
+    // Preferred path: file bytes stored in MongoDB (persists across redeploys)
+    if (resource.fileData && resource.fileData.length) {
+      res.setHeader('Content-Type', mime);
+      res.setHeader('Content-Disposition', `inline; filename="${resource.fileName || 'file'}"`);
+      return res.send(resource.fileData);
+    }
+
+    // Legacy fallback: file stored on disk (older resources)
     if (resource.filePath) {
-      const path = require('path');
-      const fs = require('fs');
-
-      // Try multiple path resolutions
-      let fullPath = path.isAbsolute(resource.filePath)
-        ? resource.filePath
-        : path.join(__dirname, '../../', resource.filePath);
-
-      if (!fs.existsSync(fullPath)) {
-        fullPath = path.join(__dirname, '../', resource.filePath);
-      }
-      if (!fs.existsSync(fullPath)) {
-        fullPath = path.resolve(resource.filePath);
-      }
-
-      if (!fs.existsSync(fullPath)) {
-        console.error('File not found at path:', fullPath, '| stored path:', resource.filePath);
+      const fullPath = resolveLegacyFilePath(resource.filePath);
+      if (!fullPath) {
+        console.error('File not found | stored path:', resource.filePath);
         return errorResponse(res, 'File not found on server', 404);
       }
 
-      const ext = (resource.fileName || '').split('.').pop().toLowerCase();
-      const mimeMap = {
-        pdf: 'application/pdf',
-        doc: 'application/msword',
-        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        ppt: 'application/vnd.ms-powerpoint',
-        pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        xls: 'application/vnd.ms-excel',
-        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
-        mp4: 'video/mp4', webm: 'video/webm',
-      };
-
-      const mime = resource.mimeType || mimeMap[ext] || 'application/octet-stream';
       res.setHeader('Content-Type', mime);
       res.setHeader('Content-Disposition', `inline; filename="${resource.fileName || 'file'}"`);
 
+      const fs = require('fs');
       const fileStream = fs.createReadStream(fullPath);
       fileStream.pipe(res);
       fileStream.on('error', (error) => {

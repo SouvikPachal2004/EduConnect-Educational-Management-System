@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -159,7 +159,7 @@
 
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="card-title">ðŸ“¢ College Announcements</h2>
+                        <h2 class="card-title"><i class="fas fa-bullhorn" style="color:#667eea;margin-right:8px;"></i>College Announcements</h2>
                     </div>
                     <div class="card-body">
                         <div id="studentAnnouncementsOverview">
@@ -173,7 +173,7 @@
             <section class="content-section" id="courses">
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="card-title">ðŸ“š My Courses</h2>
+                        <h2 class="card-title"><i class="fas fa-book-open" style="color:#667eea;margin-right:8px;"></i>My Courses</h2>
                     </div>
 
                     <!-- Enrolled Courses -->
@@ -317,13 +317,13 @@
                             </div>
                             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:1.2rem; text-align:center;">
                                 <div style="font-size:0.78rem; color:#94a3b8; margin-bottom:0.4rem; text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Current Sem</div>
-                                <div id="gradeCurrentSem" style="font-size:2rem; font-weight:800; color:#1e293b; line-height:1;">â€”</div>
+                                <div id="gradeCurrentSem" style="font-size:2rem; font-weight:800; color:#1e293b; line-height:1;">&mdash;</div>
                                 <div style="font-size:0.72rem; color:#94a3b8; margin-top:0.3rem;">semester</div>
                             </div>
                             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:1.2rem; text-align:center;">
                                 <div style="font-size:0.78rem; color:#94a3b8; margin-bottom:0.4rem; text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Avg %</div>
-                                <div id="gradeAvgPct" style="font-size:2rem; font-weight:800; color:#1e293b; line-height:1;">â€”</div>
-                                <div style="font-size:0.72rem; color:#94a3b8; margin-top:0.3rem;">avg CGPA Ã— 10</div>
+                                <div id="gradeAvgPct" style="font-size:2rem; font-weight:800; color:#1e293b; line-height:1;">&mdash;</div>
+                                <div style="font-size:0.72rem; color:#94a3b8; margin-top:0.3rem;">avg CGPA &times; 10</div>
                             </div>
                             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:1.2rem; text-align:center;">
                                 <div style="font-size:0.78rem; color:#94a3b8; margin-bottom:0.4rem; text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Sems Completed</div>
@@ -334,7 +334,7 @@
 
                         <!-- Semester CGPA Grid (editable) -->
                         <h3 style="margin-bottom:0.4rem; color:#1e293b; font-size:1rem; font-weight:600;">Semester CGPA</h3>
-                        <p style="margin:0 0 1rem; color:#94a3b8; font-size:0.82rem;">Enter your CGPA (0â€“10) after completing each semester. The chart and prediction update automatically.</p>
+                        <p style="margin:0 0 1rem; color:#94a3b8; font-size:0.82rem;">Enter your CGPA (0&ndash;10) after completing each semester. The chart and prediction update automatically.</p>
                         <div id="semesterCgpaGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:0.75rem; margin-bottom:0.5rem;">
                             <!-- Populated by JS -->
                         </div>
@@ -351,11 +351,11 @@
                         <div style="display:flex; align-items:center; gap:2rem; flex-wrap:wrap; margin-bottom:1.2rem; padding:1rem 1.2rem; background:linear-gradient(135deg,#f5f3ff,#faf5ff); border:1px solid #e9d5ff; border-radius:14px;">
                             <div>
                                 <div style="color:#7c3aed; font-size:0.78rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.2rem;">Predicted Next Semester CGPA</div>
-                                <div id="predictedCgpa" style="font-size:2.6rem; font-weight:800; color:#667eea; line-height:1;">â€”</div>
+                                <div id="predictedCgpa" style="font-size:2.6rem; font-weight:800; color:#667eea; line-height:1;">&mdash;</div>
                             </div>
                             <div style="width:1px; height:48px; background:#e9d5ff;"></div>
                             <div style="flex:1; min-width:180px;">
-                                <div id="predictionConfidence" style="color:#7c3aed; font-size:0.88rem; font-weight:600; margin-bottom:0.25rem;">â€”</div>
+                                <div id="predictionConfidence" style="color:#7c3aed; font-size:0.88rem; font-weight:600; margin-bottom:0.25rem;">&mdash;</div>
                                 <div id="predictionNote" style="color:#64748b; font-size:0.82rem; line-height:1.4;">Enter your semester CGPAs below to generate a prediction.</div>
                             </div>
                         </div>

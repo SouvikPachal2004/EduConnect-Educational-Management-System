@@ -6,9 +6,9 @@
 
 'use strict';
 
-// ─────────────────────────────────────────────
+// 
 // Helpers
-// ─────────────────────────────────────────────
+// 
 
 function getToken() {
     return localStorage.getItem('authToken') || '';
@@ -43,9 +43,9 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// ─────────────────────────────────────────────
+// 
 // Sidebar Navigation
-// ─────────────────────────────────────────────
+// 
 
 const PAGE_TITLES = {
     overview: 'Admin Dashboard',
@@ -130,9 +130,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ─────────────────────────────────────────────
+// 
 // Auth check
-// ─────────────────────────────────────────────
+// 
 
 function checkAdminAuth() {
     const token = getToken();
@@ -155,9 +155,9 @@ function checkAdminAuth() {
     } catch(e) { window.location.href = 'login.html'; }
 }
 
-// ─────────────────────────────────────────────
+// 
 // Overview
-// ─────────────────────────────────────────────
+// 
 
 async function loadOverview() {
     const token = getToken();
@@ -174,7 +174,7 @@ async function loadOverview() {
     fetch('/api/users?limit=1', { headers: { 'Authorization': `Bearer ${token}` } })
         .then(r => r.json()).then(d => {
             const el = document.getElementById('ovUserCount');
-            if (el && d.success) el.textContent = d.data.pagination?.total || '—';
+            if (el && d.success) el.textContent = d.data.pagination?.total || '';
         }).catch(() => {});
 
     // Program count
@@ -215,7 +215,7 @@ async function loadOverview() {
                     return `<tr>
                         <td><strong>${escH(log.userName || 'System')}</strong></td>
                         <td>${escH(log.actionLabel || log.action || 'Action')}</td>
-                        <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escH(log.description || '—')}</td>
+                        <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escH(log.description || '')}</td>
                         <td>${time}</td>
                         <td><span class="status-badge ${sc}">${sl}</span></td>
                     </tr>`;
@@ -234,9 +234,9 @@ function timeAgo(date) {
     return `${Math.floor(diff/86400)}d ago`;
 }
 
-// ─────────────────────────────────────────────
+// 
 // PROGRAMS
-// ─────────────────────────────────────────────
+// 
 
 let _programs = []; // cache
 
@@ -288,7 +288,7 @@ async function loadPrograms() {
 }
 
 function populateProgramDropdowns(programs) {
-    const opts = '<option value="">— None —</option>' +
+    const opts = '<option value=""> None </option>' +
         programs.map(p => `<option value="${p._id}">${escH(p.name)} (${escH(p.code)})</option>`).join('');
 
     ['addDeptProgram','editDeptProgram','subProgram'].forEach(id => {
@@ -299,7 +299,7 @@ function populateProgramDropdowns(programs) {
     // User program dropdown (for students)
     const userProg = document.getElementById('userProgram');
     if (userProg) {
-        userProg.innerHTML = '<option value="">— Select Program —</option>' +
+        userProg.innerHTML = '<option value=""> Select Program </option>' +
             programs.map(p => `<option value="${p._id}">${escH(p.name)} (${escH(p.code)})</option>`).join('');
     }
 
@@ -415,9 +415,9 @@ async function deleteProgram(id, name) {
     }
 }
 
-// ─────────────────────────────────────────────
+// 
 // DEPARTMENTS
-// ─────────────────────────────────────────────
+// 
 
 let _depts = []; // cache
 
@@ -455,7 +455,7 @@ async function loadDepartments() {
                     <td>${escH(d.hod || 'N/A')}</td>
                     <td>${d.faculty || 0}</td>
                     <td>${d.students || 0}</td>
-                    <td>${d.established || '—'}</td>
+                    <td>${d.established || ''}</td>
                     <td style="white-space:nowrap;">
                         <button class="btn-del-sm" onclick="deleteDept('${d._id}','${escH(d.name)}')">Delete</button>
                         <button class="btn-edit-sm" onclick="openEditDeptModal('${d._id}')">Edit</button>
@@ -591,9 +591,9 @@ async function deleteDept(id, name) {
     }
 }
 
-// ─────────────────────────────────────────────
+// 
 // SUBJECTS
-// ─────────────────────────────────────────────
+// 
 
 async function loadSubjects() {
     const tbody = document.getElementById('subjectsTableBody');
@@ -629,9 +629,9 @@ async function loadSubjects() {
                 <td><strong>${escH(c.code)}</strong></td>
                 <td>${escH(c.name)}</td>
                 <td>${progBadge}</td>
-                <td>${escH(c.department || '—')}</td>
+                <td>${escH(c.department || '')}</td>
                 <td>${c.credits}</td>
-                <td>${c.semester || '—'}</td>
+                <td>${c.semester || ''}</td>
                 <td>${escH(c.type || 'Core')}</td>
                 <td>
                     <button class="btn-del-sm" onclick="deleteSubject('${c._id}','${escH(c.name)}')">Delete</button>
@@ -704,9 +704,9 @@ async function deleteSubject(id, name) {
     }
 }
 
-// ─────────────────────────────────────────────
+// 
 // USERS (delegated to existing admin.js logic)
-// ─────────────────────────────────────────────
+// 
 
 function loadUsers() {
     const usersTable = document.querySelector('#users tbody') || document.getElementById('usersTableBody');
@@ -725,7 +725,7 @@ function loadUsers() {
             }
             users.forEach(u => {
                 const roleLabel = { student:'Student', teacher:'Faculty', hod:'HOD', admin:'Administrator', managing_authority:'Managing Authority' }[u.role] || u.role;
-                const uid = u.role === 'student' ? (u.studentId || '—') : ((u.role === 'teacher' || u.role === 'hod') ? (u.teacherId || '—') : (u._id?.substring(0,8) || '—'));
+                const uid = u.role === 'student' ? (u.studentId || '') : ((u.role === 'teacher' || u.role === 'hod') ? (u.teacherId || '') : (u._id?.substring(0,8) || ''));
                 const statusClass = u.isActive ? 'success' : 'warning';
                 usersTable.insertAdjacentHTML('beforeend', `<tr>
                     <td>${escH(u.name)}</td>
@@ -814,7 +814,7 @@ async function loadDepartmentsForDropdown() {
         sel.innerHTML = '<option value="">Select Department</option>' +
             depts.map(d => `<option value="${escH(d.name)}">${escH(d.name)}</option>`).join('');
     } catch (e) {
-        sel.innerHTML = '<option value="">Failed to load — refresh</option>';
+        sel.innerHTML = '<option value="">Failed to load  refresh</option>';
     }
 }
 
@@ -859,9 +859,9 @@ async function addUser() {
     }
 }
 
-// ─────────────────────────────────────────────
+// 
 // LOGS
-// ─────────────────────────────────────────────
+// 
 
 function loadLogs(startDate = null, endDate = null) {
     const tbody = document.getElementById('logsTableBody');
@@ -882,13 +882,13 @@ function loadLogs(startDate = null, endDate = null) {
             }
             tbody.innerHTML = logs.map(log => {
                 const sc = log.status === 'success' ? 'success' : log.status === 'failed' ? 'danger' : 'warning';
-                const ts = log.timestamp ? new Date(log.timestamp).toLocaleString('en-IN') : '—';
+                const ts = log.timestamp ? new Date(log.timestamp).toLocaleString('en-IN') : '';
                 return `<tr>
                     <td>${ts}</td>
                     <td>${escH(log.userName || 'System')}</td>
-                    <td>${escH(log.actionLabel || log.action || '—')}</td>
-                    <td>${escH(log.ipAddress || '—')}</td>
-                    <td>${escH(log.description || '—')}</td>
+                    <td>${escH(log.actionLabel || log.action || '')}</td>
+                    <td>${escH(log.ipAddress || '')}</td>
+                    <td>${escH(log.description || '')}</td>
                     <td><span class="status-badge ${sc}">${log.status || 'info'}</span></td>
                 </tr>`;
             }).join('');
@@ -902,10 +902,10 @@ function filterLogs() {
     loadLogs(dateVal || null, dateVal || null);
 }
 
-// ─────────────────────────────────────────────
+// 
 // Notification container support
 // (used by older admin.js showNotification calls)
-// ─────────────────────────────────────────────
+// 
 
 function showNotification(msg, type = 'info') {
     toast(msg, type === 'error' ? 'error' : type === 'success' ? 'success' : 'info');

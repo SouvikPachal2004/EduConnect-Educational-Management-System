@@ -10,17 +10,17 @@
 
 'use strict';
 
-// ──────────────────────────────────────────────
+// 
 // State
-// ──────────────────────────────────────────────
+// 
 let _allGrades      = [];   // raw grade records
 let _allAssignments = [];   // raw assignment objects
 let _userProfile    = null; // cached /api/auth/me response
 let _cgpaChart      = null; // Chart.js instance
 
-// ──────────────────────────────────────────────
-// Init — run when DOM ready + sections clicked
-// ──────────────────────────────────────────────
+// 
+// Init  run when DOM ready + sections clicked
+// 
 document.addEventListener('DOMContentLoaded', function () {
     // Load when grades section becomes visible
     document.querySelectorAll('.sidebar-menu a[data-section]').forEach(link => {
@@ -47,9 +47,9 @@ document.addEventListener('DOMContentLoaded', function () {
     setupAssignmentTabs();
 });
 
-// ──────────────────────────────────────────────
-// GRADES SECTION — main entry point
-// ──────────────────────────────────────────────
+// 
+// GRADES SECTION  main entry point
+// 
 async function initGradesSection() {
     const token = localStorage.getItem('authToken');
     if (!token) return;
@@ -96,24 +96,24 @@ async function initGradesSection() {
     }
 }
 
-// ──────────────────────────────────────────────
+// 
 // Overall GPA Card
-// ──────────────────────────────────────────────
+// 
 function renderOverallGPA(user) {
     const gpa = parseFloat(user.grade || 0).toFixed(2);
 
-    // ── Grades section cards ──
+    //  Grades section cards 
     const overallEl = document.getElementById('overallGPA');
     if (overallEl) overallEl.textContent = gpa;
 
     const semEl = document.getElementById('gradeCurrentSem');
     if (semEl) semEl.textContent = user.currentSemester || 1;
 
-    // AVG % = avg CGPA × 10
+    // AVG % = avg CGPA  10
     const avgCgpa = parseFloat(user.grade || 0);
     const pctEl   = document.getElementById('gradeAvgPct');
     if (pctEl) {
-        pctEl.textContent = avgCgpa > 0 ? (avgCgpa * 10).toFixed(1) + '%' : '—';
+        pctEl.textContent = avgCgpa > 0 ? (avgCgpa * 10).toFixed(1) + '%' : '';
     }
 
     // Sems completed
@@ -123,7 +123,7 @@ function renderOverallGPA(user) {
         countEl.textContent = filledSems;
     }
 
-    // ── Dashboard overview "Average Grade" card — keep in sync ──
+    //  Dashboard overview "Average Grade" card  keep in sync 
     const dashGradeEl = document.getElementById('averageGrade');
     if (dashGradeEl) dashGradeEl.textContent = gpa;
 
@@ -137,10 +137,10 @@ function renderOverallGPA(user) {
     } catch(e) {}
 }
 
-// ──────────────────────────────────────────────
-// Grade Summary Cards — not used separately now
+// 
+// Grade Summary Cards  not used separately now
 // (avg% and count come from renderOverallGPA)
-// ──────────────────────────────────────────────
+// 
 function renderGradeSummaryCards(summary) {
     // avg% and count are now derived from semesterCgpas in renderOverallGPA
     // Only update if there are actual grade records from teacher
@@ -150,9 +150,9 @@ function renderGradeSummaryCards(summary) {
     }
 }
 
-// ──────────────────────────────────────────────
+// 
 // Semester CGPA Grid (EDITABLE inline)
-// ──────────────────────────────────────────────
+// 
 function renderSemesterCgpaGrid(user) {
     const grid = document.getElementById('semesterCgpaGrid');
     if (!grid) return;
@@ -182,7 +182,7 @@ function renderSemesterCgpaGrid(user) {
             </div>
             <input id="semInput_${i}" type="number" min="0" max="10" step="0.01"
                 value="${hasValue ? parseFloat(val).toFixed(2) : ''}"
-                placeholder="—"
+                placeholder=""
                 onchange="onSemCgpaChange(${i}, this)"
                 onfocus="this.select()"
                 title="Enter CGPA (0-10) for Semester ${i}"
@@ -267,9 +267,9 @@ function getTotalSemesters(user) {
     return 8; // B.Tech default
 }
 
-// ──────────────────────────────────────────────
+// 
 // Performance Prediction (Linear Regression)
-// ──────────────────────────────────────────────
+// 
 function renderPrediction(user) {
     const cgpas      = (user.semesterCgpas || []).filter(v => v > 0);
     const attendance = parseFloat(user.attendanceRate || 85);
@@ -281,7 +281,7 @@ function renderPrediction(user) {
     const noteEl = document.getElementById('predictionNote');
 
     if (filledCount < 1) {
-        if (predEl) { predEl.textContent = '—'; predEl.style.color = '#cbd5e1'; }
+        if (predEl) { predEl.textContent = ''; predEl.style.color = '#cbd5e1'; }
         if (confEl) confEl.textContent = 'Awaiting data';
         if (noteEl) noteEl.textContent = 'Enter your CGPA in at least one semester box above to generate a prediction.';
         drawChart(cgpas, null);
@@ -322,7 +322,7 @@ function renderPrediction(user) {
     if (confEl) confEl.textContent = `Confidence Level: ${confidence}%`;
     if (noteEl) {
         const trend = filledCount >= 2
-            ? (cgpas[filledCount - 1] >= cgpas[0] ? 'an upward trend 📈' : 'a downward trend 📉')
+            ? (cgpas[filledCount - 1] >= cgpas[0] ? 'an upward trend ' : 'a downward trend ')
             : 'your Semester 1 baseline';
         noteEl.innerHTML = `Predicted for <strong>Semester ${nextSem}</strong> based on ${trend} across ${filledCount} semester${filledCount > 1 ? 's' : ''} and ${attendance}% attendance.`;
     }
@@ -336,9 +336,9 @@ function renderPrediction(user) {
     drawChart(cgpas, predicted);
 }
 
-// ──────────────────────────────────────────────
+// 
 // CGPA Trend Chart
-// ──────────────────────────────────────────────
+// 
 function drawChart(cgpas, predicted) {
     const canvas = document.getElementById('cgpaTrendChart');
     if (!canvas || !window.Chart) return;
@@ -387,7 +387,7 @@ function drawChart(cgpas, predicted) {
             const pt = meta.data[lastIdx];
             if (!pt) return;
 
-            const t = (Date.now() % 1600) / 1600;          // 0 → 1 loop
+            const t = (Date.now() % 1600) / 1600;          // 0  1 loop
             const radius = 6 + t * 16;                       // expanding ring
             const alpha  = 0.45 * (1 - t);                   // fading out
             const color  = hasPrediction ? '168,85,247' : '99,102,241';
@@ -419,7 +419,7 @@ function drawChart(cgpas, predicted) {
             datasets: [{
                 label: 'CGPA',
                 data,
-                // Gradient line stroke: blue → violet
+                // Gradient line stroke: blue  violet
                 borderColor: function (context) {
                     const { ctx, chartArea } = context.chart;
                     if (!chartArea) return '#667eea';
@@ -462,7 +462,7 @@ function drawChart(cgpas, predicted) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            // Modern progressive "draw-in" animation — line grows + points pop sequentially
+            // Modern progressive "draw-in" animation  line grows + points pop sequentially
             animation: {
                 duration: 1100,
                 easing: 'easeOutQuart',
@@ -488,7 +488,7 @@ function drawChart(cgpas, predicted) {
                     bodyFont: { size: 13, weight: '600' },
                     caretSize: 7,
                     callbacks: {
-                        title: ctx => ctx[0].label + (hasPrediction && ctx[0].dataIndex === lastIdx ? '  •  Predicted' : ''),
+                        title: ctx => ctx[0].label + (hasPrediction && ctx[0].dataIndex === lastIdx ? '    Predicted' : ''),
                         label: ctx => `  CGPA  ${parseFloat(ctx.raw).toFixed(2)}`,
                         afterLabel: ctx => `  ${gradeLabel(parseFloat(ctx.raw))}`
                     }
@@ -528,9 +528,9 @@ function drawChart(cgpas, predicted) {
     });
 }
 
-// ──────────────────────────────────────────────
+// 
 // Grade Records Table
-// ──────────────────────────────────────────────
+// 
 function renderGradeTable(grades, filterClassId = '') {
     const tbody = document.getElementById('gradesTableBody');
     if (!tbody) return;
@@ -556,10 +556,10 @@ function renderGradeTable(grades, filterClassId = '') {
 
     tbody.innerHTML = filtered.map(g => {
         const className   = g.class?.name || 'Unknown Subject';
-        const graderName  = g.gradedBy?.name || '—';
+        const graderName  = g.gradedBy?.name || '';
         const letterColor = letterColors[g.letterGrade] || '#64748b';
-        const date        = g.createdAt ? new Date(g.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
-        const typeIcon    = { exam:'📝', assignment:'📋', participation:'🙋', project:'🏗️', other:'📌' }[g.type] || '📌';
+        const date        = g.createdAt ? new Date(g.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '';
+        const typeIcon    = { exam:'', assignment:'', participation:'', project:'', other:'' }[g.type] || '';
 
         return `<tr>
             <td><strong>${escH(className)}</strong></td>
@@ -577,7 +577,7 @@ function renderGradeTable(grades, filterClassId = '') {
             <td>
                 <span style="background:${letterColor}18;color:${letterColor};font-weight:800;
                              padding:0.2rem 0.6rem;border-radius:6px;font-size:0.9rem;">
-                    ${g.letterGrade || '—'}
+                    ${g.letterGrade || ''}
                 </span>
             </td>
             <td style="font-size:0.85rem;">${escH(graderName)}</td>
@@ -604,9 +604,9 @@ function filterGradesByClass(classId) {
     renderGradeTable(_allGrades, classId);
 }
 
-// ──────────────────────────────────────────────
+// 
 // Assignment Grades (from graded submissions)
-// ──────────────────────────────────────────────
+// 
 function renderAssignmentGrades(assignments) {
     const tbody = document.getElementById('assignmentGradesBody');
     if (!tbody) return;
@@ -623,22 +623,22 @@ function renderAssignmentGrades(assignments) {
     tbody.innerHTML = graded.map(a => {
         const sub  = a.submission || {};
         const pct  = sub.points && a.maxPoints ? Math.round((sub.points / a.maxPoints) * 100) : 0;
-        const date = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+        const date = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '';
 
         return `<tr>
             <td><strong>${escH(a.title)}</strong></td>
-            <td style="font-size:0.85rem;">${escH(a.class?.name || '—')}</td>
+            <td style="font-size:0.85rem;">${escH(a.class?.name || '')}</td>
             <td><span style="font-weight:700;color:${pct >= 80 ? '#22c55e' : pct >= 60 ? '#f59e0b' : '#ef4444'};">${sub.points || 0}</span></td>
             <td>${a.maxPoints}</td>
-            <td style="font-size:0.83rem;color:#64748b;max-width:200px;">${escH(sub.feedback || '—')}</td>
+            <td style="font-size:0.83rem;color:#64748b;max-width:200px;">${escH(sub.feedback || '')}</td>
             <td style="font-size:0.82rem;color:#64748b;">${date}</td>
         </tr>`;
     }).join('');
 }
 
-// ──────────────────────────────────────────────
+// 
 // CGPA Edit Modal
-// ──────────────────────────────────────────────
+// 
 function openEditCgpaModal() {
     const user   = _userProfile || JSON.parse(localStorage.getItem('currentUser') || '{}');
     const total  = getTotalSemesters(user);
@@ -710,9 +710,9 @@ async function saveCgpaUpdate() {
     }
 }
 
-// ──────────────────────────────────────────────
+// 
 // ASSIGNMENTS SECTION
-// ──────────────────────────────────────────────
+// 
 async function fetchAssignmentsData() {
     const token = localStorage.getItem('authToken');
     if (!token) return;
@@ -788,13 +788,13 @@ function renderPendingList(assignments) {
                 <div style="flex-shrink:0;width:42px;height:42px;border-radius:10px;
                              background:${isOverdue ? '#fef2f2' : '#ede9fe'};
                              display:flex;align-items:center;justify-content:center;font-size:1.1rem;">
-                    ${isOverdue ? '⚠️' : '📋'}
+                    ${isOverdue ? '' : ''}
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div style="font-weight:700;color:#1e293b;margin-bottom:0.2rem;">${escH(a.title)}</div>
                     <div style="font-size:0.83rem;color:#64748b;margin-bottom:0.35rem;">
                         <i class="fas fa-book" style="color:#667eea;"></i> ${escH(className)}
-                        &nbsp;•&nbsp;
+                        &nbsp;&nbsp;
                         <i class="fas fa-user" style="color:#667eea;"></i> ${escH(teacherName)}
                     </div>
                     <div style="font-size:0.8rem;color:#94a3b8;">${escH(a.description?.substring(0, 100) || '')}${a.description?.length > 100 ? '...' : ''}</div>
@@ -803,7 +803,7 @@ function renderPendingList(assignments) {
                         ${a.attachments.map(att => `
                             <a href="#" onclick="downloadAssignmentFile('${a._id}','${escH(att.fileName)}')"
                                style="font-size:0.75rem;color:#667eea;background:#ede9fe;padding:0.15rem 0.5rem;border-radius:4px;">
-                                📎 ${escH(att.fileName)}
+                                 ${escH(att.fileName)}
                             </a>
                         `).join('')}
                     </div>` : ''}
@@ -847,7 +847,7 @@ function renderCompletedList(assignments) {
         const sub         = a.submission || {};
         const className   = a.class?.name || 'Unknown Class';
         const teacherName = a.teacher?.name || 'Unknown';
-        const submitDate  = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+        const submitDate  = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '';
 
         let gradeDisplay = '';
         if (sub.graded) {
@@ -864,23 +864,23 @@ function renderCompletedList(assignments) {
             <div style="display:flex;align-items:flex-start;gap:1rem;padding:1rem;border:1px solid #e2e8f0;
                          border-radius:12px;margin-bottom:0.75rem;background:#fff;border-left:4px solid #22c55e;">
                 <div style="flex-shrink:0;width:42px;height:42px;border-radius:10px;
-                             background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">✅</div>
+                             background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:1.1rem;"></div>
                 <div style="flex:1;min-width:0;">
                     <div style="font-weight:700;color:#1e293b;margin-bottom:0.2rem;">${escH(a.title)}</div>
                     <div style="font-size:0.83rem;color:#64748b;margin-bottom:0.4rem;">
                         <i class="fas fa-book" style="color:#22c55e;"></i> ${escH(className)}
-                        &nbsp;•&nbsp;
+                        &nbsp;&nbsp;
                         <i class="fas fa-user" style="color:#22c55e;"></i> ${escH(teacherName)}
                     </div>
                     ${sub.feedback ? `<div style="font-size:0.82rem;color:#374151;background:#f8fafc;padding:0.4rem 0.7rem;border-radius:6px;margin-top:0.4rem;">
-                        💬 ${escH(sub.feedback)}
+                         ${escH(sub.feedback)}
                     </div>` : ''}
                     ${sub.attachments?.length ? `
                     <div style="margin-top:0.4rem;display:flex;gap:0.4rem;flex-wrap:wrap;">
                         ${sub.attachments.map(att => `
                             <a href="#" onclick="downloadSubmissionFile('${sub._id}','${escH(att.fileName)}')"
                                style="font-size:0.75rem;color:#667eea;background:#ede9fe;padding:0.15rem 0.5rem;border-radius:4px;">
-                                📎 ${escH(att.fileName)}
+                                 ${escH(att.fileName)}
                             </a>
                         `).join('')}
                     </div>` : ''}
@@ -895,9 +895,9 @@ function renderCompletedList(assignments) {
     });
 }
 
-// ──────────────────────────────────────────────
+// 
 // Submit Assignment Modal
-// ──────────────────────────────────────────────
+// 
 let _submitAssignmentId = null;
 
 function openSubmitModal(id, title, maxPoints) {
@@ -972,7 +972,7 @@ async function doSubmitAssignment(assignmentId, file, notes) {
         const data = await res.json();
 
         if (data.success) {
-            showGradeToast('Assignment submitted successfully! ✅', 'success');
+            showGradeToast('Assignment submitted successfully! ', 'success');
             await fetchAssignmentsData();
         } else {
             showGradeToast(data.message || 'Failed to submit assignment', 'error');
@@ -983,9 +983,9 @@ async function doSubmitAssignment(assignmentId, file, notes) {
     }
 }
 
-// ──────────────────────────────────────────────
+// 
 // Assignment Tab Switching
-// ──────────────────────────────────────────────
+// 
 function setupAssignmentTabs() {
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('#assignments .tab-btn');
@@ -1007,9 +1007,9 @@ function setupAssignmentTabs() {
     });
 }
 
-// ──────────────────────────────────────────────
+// 
 // Toast notification
-// ──────────────────────────────────────────────
+// 
 function showGradeToast(msg, type = 'info') {
     // Use existing showNotification if available
     if (typeof showNotification === 'function') {
@@ -1030,9 +1030,9 @@ function showGradeToast(msg, type = 'info') {
     setTimeout(() => el.remove(), 3500);
 }
 
-// ──────────────────────────────────────────────
+// 
 // Utility
-// ──────────────────────────────────────────────
+// 
 function escH(str) {
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }

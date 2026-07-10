@@ -1,7 +1,7 @@
-// ═══════════════════════════════════════════════════
-//  EduConnect — API Configuration
+// 
+//  EduConnect  API Configuration
 //  Auto-detects localhost vs production
-// ═══════════════════════════════════════════════════
+// 
 
 const API_CONFIG = {
     BACKEND_URL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
@@ -11,7 +11,7 @@ const API_CONFIG = {
 
 window.API_BASE = API_CONFIG.BACKEND_URL;
 
-// ── Intercept ALL fetch calls and prepend backend URL for /api/ paths ──
+//  Intercept ALL fetch calls and prepend backend URL for /api/ paths 
 const _originalFetch = window.fetch;
 window.fetch = function(url, options) {
     if (typeof url === 'string' && url.startsWith('/') && window.API_BASE) {

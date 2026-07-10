@@ -1,5 +1,5 @@
 /**
- * Unified Notification System — EduConnect
+ * Unified Notification System  EduConnect
  * Fetches LIVE data from backend for all roles.
  * Polls every 30 seconds to keep badge count fresh.
  */
@@ -12,9 +12,9 @@ class NotificationManager {
         this._pollInterval = null;
     }
 
-    /* ─────────────────────────────────────────────
+    /* 
        INIT
-    ───────────────────────────────────────────── */
+     */
     init() {
         if (this.initialized) return;
         this.createNotificationUI();
@@ -25,9 +25,9 @@ class NotificationManager {
         this.initialized = true;
     }
 
-    /* ─────────────────────────────────────────────
+    /* 
        UI CREATION
-    ───────────────────────────────────────────── */
+     */
     createNotificationUI() {
         if (document.getElementById('notificationSidebar')) return;
 
@@ -64,9 +64,9 @@ class NotificationManager {
         document.body.appendChild(sidebar);
     }
 
-    /* ─────────────────────────────────────────────
+    /* 
        EVENT LISTENERS
-    ───────────────────────────────────────────── */
+     */
     setupEventListeners() {
         const notificationIcon = document.getElementById('notificationIcon');
         if (notificationIcon) {
@@ -100,9 +100,9 @@ class NotificationManager {
         document.getElementById('notificationOverlay')?.classList.remove('active');
     }
 
-    /* ─────────────────────────────────────────────
+    /* 
        LOAD NOTIFICATIONS (live from backend)
-    ───────────────────────────────────────────── */
+     */
     async loadNotifications() {
         const authToken = localStorage.getItem('authToken');
         if (!authToken) { this.renderEmpty(); return; }
@@ -117,16 +117,16 @@ class NotificationManager {
         this.renderNotifications();
     }
 
-    /* ─────────────────────────────────────────────
+    /* 
        ROLE-BASED LIVE NOTIFICATION FETCHING
-    ───────────────────────────────────────────── */
+     */
     async _fetchLiveNotifications(token, role) {
         const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
         const notifs = [];
         const now = Date.now();
 
         try {
-            /* ── MESSAGES (all roles) ── */
+            /*  MESSAGES (all roles)  */
             const msgRes = await fetch('/api/messages?folder=inbox&limit=20', { headers });
             const msgData = await msgRes.json();
             if (msgData.success && msgData.data?.messages) {
@@ -134,8 +134,8 @@ class NotificationManager {
                     notifs.push({
                         id: `msg-${m._id}`,
                         type: 'message',
-                        title: `📩 ${m.subject || 'New Message'}`,
-                        description: `From: ${m.sender?.name || 'Unknown'} — ${(m.content || '').substring(0, 80)}${m.content?.length > 80 ? '...' : ''}`,
+                        title: ` ${m.subject || 'New Message'}`,
+                        description: `From: ${m.sender?.name || 'Unknown'}  ${(m.content || '').substring(0, 80)}${m.content?.length > 80 ? '...' : ''}`,
                         time: this._timeAgo(m.createdAt),
                         read: m.isRead || false,
                         important: !m.isRead,
@@ -145,7 +145,7 @@ class NotificationManager {
             }
         } catch (e) { /* ignore */ }
 
-        /* ── STUDENT: enrollment requests ── */
+        /*  STUDENT: enrollment requests  */
         if (role === 'student') {
             try {
                 const enrRes = await fetch('/api/enrollments/pending', { headers });
@@ -155,7 +155,7 @@ class NotificationManager {
                         notifs.unshift({
                             id: `enr-${r._id}`,
                             type: 'warning',
-                            title: `📚 Enrollment Request: ${r.class?.name || 'Course'}`,
+                            title: ` Enrollment Request: ${r.class?.name || 'Course'}`,
                             description: `${r.teacher?.name || 'Teacher'} invited you to enroll. Go to My Courses to accept.`,
                             time: this._timeAgo(r.createdAt),
                             read: false,
@@ -168,7 +168,7 @@ class NotificationManager {
             } catch (e) { /* ignore */ }
         }
 
-        /* ── HOD: approved/rejected events from Principal ── */
+        /*  HOD: approved/rejected events from Principal  */
         if (role === 'hod') {
             try {
                 // Fetch ALL approval requests (both pending and approved/rejected)
@@ -210,7 +210,7 @@ class NotificationManager {
             } catch (e) { /* ignore */ }
         }
 
-        /* ── TEACHER: enrollment responses (students accepted/rejected) ── */
+        /*  TEACHER: enrollment responses (students accepted/rejected)  */
         if (role === 'teacher') {
             try {
                 // We fetch the teacher's classes first, then check stats
@@ -227,7 +227,7 @@ class NotificationManager {
                                     notifs.unshift({
                                         id: `enr-stats-${cls._id}`,
                                         type: 'success',
-                                        title: `✅ ${accepted} student(s) enrolled in ${cls.name}`,
+                                        title: ` ${accepted} student(s) enrolled in ${cls.name}`,
                                         description: `${pending > 0 ? `${pending} invitation(s) still pending.` : 'All invitations processed.'}`,
                                         time: 'Recent',
                                         read: false,
@@ -242,7 +242,7 @@ class NotificationManager {
             } catch (e) { /* ignore */ }
         }
 
-        /* ── MANAGING AUTHORITY / ADMIN: department approval requests ── */
+        /*  MANAGING AUTHORITY / ADMIN: department approval requests  */
         if (role === 'managing_authority' || role === 'admin') {
             try {
                 const appRes = await fetch('/api/approvals?status=pending&limit=20', { headers });
@@ -250,8 +250,8 @@ class NotificationManager {
                 if (appData.success && appData.data?.requests) {
                     appData.data.requests.forEach(r => {
                         const title = r.requestType === 'department'
-                            ? `🏢 Dept Approval: ${r.departmentData?.name || 'New Department'}`
-                            : `📅 Event Request: ${r.eventData?.title || 'New Event'}`;
+                            ? ` Dept Approval: ${r.departmentData?.name || 'New Department'}`
+                            : ` Event Request: ${r.eventData?.title || 'New Event'}`;
                         const desc = r.requestType === 'department'
                             ? `${r.requestedBy?.name || 'Admin'} requested a new department`
                             : `${r.requestedBy?.name || 'HOD'} requested event on ${r.eventData?.date ? new Date(r.eventData.date).toLocaleDateString('en-IN') : 'TBD'}`;
@@ -280,9 +280,9 @@ class NotificationManager {
         return notifs;
     }
 
-    /* ─────────────────────────────────────────────
+    /* 
        RENDER
-    ───────────────────────────────────────────── */
+     */
     renderNotifications(filter = 'all') {
         const listContainer = document.getElementById('notificationList');
         if (!listContainer) return;
@@ -335,9 +335,9 @@ class NotificationManager {
         `;
     }
 
-    /* ─────────────────────────────────────────────
+    /* 
        HELPERS
-    ───────────────────────────────────────────── */
+     */
     _iconForType(type) {
         return { info: 'fa-info-circle', success: 'fa-check-circle', warning: 'fa-exclamation-triangle', error: 'fa-times-circle', message: 'fa-envelope' }[type] || 'fa-bell';
     }
@@ -410,7 +410,7 @@ class NotificationManager {
         }
     }
 
-    /** Add a transient (not persisted) notification — used by other scripts */
+    /** Add a transient (not persisted) notification  used by other scripts */
     addNotification(notification) {
         this.notifications.unshift({
             id: `local-${Date.now()}`,
@@ -425,7 +425,7 @@ class NotificationManager {
     }
 }
 
-// ── Global singleton ─────────────────────────────
+//  Global singleton 
 window.notificationManager = new NotificationManager();
 
 function initNotificationManager() {

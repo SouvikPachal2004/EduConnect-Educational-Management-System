@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Check if we're on the new dashboard (has admin-programs.js elements)
     if (document.getElementById('programsTableBody')) {
-        console.log('New admin dashboard detected — admin-programs.js handles initialization.');
+        console.log('New admin dashboard detected  admin-programs.js handles initialization.');
         // Only set up notifications and charts from legacy code
         setupNotifications();
         try { setupCharts(); } catch(e) {}
@@ -292,7 +292,7 @@ function loadDashboardStats() {
         if (valEl) valEl.textContent = '0';
     });
 
-    // 5. Recent Activity (real — from activity logs API)
+    // 5. Recent Activity (real  from activity logs API)
     loadRecentActivity(authToken);
 }
 
@@ -343,7 +343,7 @@ function loadRecentActivity(authToken) {
             // userName stored directly on log
             const user    = log.userName || log.user?.name || 'System';
             const action  = log.actionLabel || log.action || 'Action';
-            const details = log.description || '—';
+            const details = log.description || '';
 
             return `<tr>
                 <td><strong>${escHtml(user)}</strong></td>
@@ -2149,7 +2149,7 @@ function viewDepartmentDetails(departmentName) {
     showNotification(`Viewing details for ${departmentName}`, 'info');
 }
 
-// Edit department — opens modal prefilled with current values
+// Edit department  opens modal prefilled with current values
 function editDepartment(id, name, hod, faculty, students) {
     const modal = document.getElementById('editDepartmentModal');
     if (!modal) return;
@@ -3197,9 +3197,9 @@ function setupStorageChart() {
 }
 
 
-// ═══════════════════════════════════════════════════════════════
-// ── PROGRAMS MODULE ─────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════
+// 
+//  PROGRAMS MODULE 
+// 
 
 let programsList = []; // cached programs for dropdowns
 
@@ -3444,7 +3444,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Edit Department — wire in program field
+    // Edit Department  wire in program field
     const editDeptForm = document.getElementById('editDepartmentForm');
     if (editDeptForm) {
         editDeptForm.addEventListener('submit', async function (e) {
@@ -3640,9 +3640,9 @@ function loadDepartments() {
         });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ── ADMIN COURSES MODULE (using /api/courses) ────────────────────
-// ═══════════════════════════════════════════════════════════════
+// 
+//  ADMIN COURSES MODULE (using /api/courses) 
+// 
 
 async function loadAdminCourses() {
     const tbody = document.getElementById('coursesTableBody');
@@ -3670,9 +3670,9 @@ async function loadAdminCourses() {
                     <td><strong>${escHtml(course.code)}</strong></td>
                     <td>${escHtml(course.name)}</td>
                     <td>${course.program ? `<span style="background:#ede9fe;color:#7c3aed;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.78rem;font-weight:600;">${escHtml(course.program.code)}</span>` : '<span style="color:#94a3b8;font-size:0.82rem;">N/A</span>'}</td>
-                    <td>${escHtml(course.department || '—')}</td>
+                    <td>${escHtml(course.department || '')}</td>
                     <td>${course.credits}</td>
-                    <td>${course.semester || '—'}</td>
+                    <td>${course.semester || ''}</td>
                     <td><span style="background:#dbeafe;color:#1d4ed8;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.78rem;font-weight:600;">${escHtml(course.type || 'Core')}</span></td>
                     <td>
                         <button class="btn btn-sm btn-outline btn-danger" onclick="deleteAdminCourse('${course._id}', '${escHtml(course.name)}')"><i class="fas fa-trash"></i></button>

@@ -1,4 +1,4 @@
-// ─── API Helper ───────────────────────────────────────────────────────────────
+//  API Helper 
 const MA_API_BASE = '/api';
 
 function maApiGet(endpoint) {
@@ -109,7 +109,7 @@ function updatePerformanceOverviewTable(departments) {
             const cgpaCell = !hasGrades
                 ? `<span style="color:#94a3b8;">N/A</span>`
                 : Number(avgCgpa) < 7.0
-                    ? `<span style="color:#ef4444; font-weight:600;">${cgpaDisplay} ⚠</span>`
+                    ? `<span style="color:#ef4444; font-weight:600;">${cgpaDisplay} </span>`
                     : `<span style="color:#22c55e; font-weight:600;">${cgpaDisplay}</span>`;
 
             const row = document.createElement('tr');
@@ -126,7 +126,7 @@ function updatePerformanceOverviewTable(departments) {
         // Update the Avg. CGPA stat box
         const avgCgpaEl = document.getElementById('maAvgCgpa');
         if (avgCgpaEl) {
-            avgCgpaEl.textContent = cgpaCount > 0 ? (totalCgpa / cgpaCount).toFixed(2) : '—';
+            avgCgpaEl.textContent = cgpaCount > 0 ? (totalCgpa / cgpaCount).toFixed(2) : '';
         }
     }).catch(() => {
         // Fallback: show departments without CGPA
@@ -302,7 +302,7 @@ function processApproval(approvalId, action) {
     });
 }
 
-// ─── Load Dynamic Data ────────────────────────────────────────────────────────
+//  Load Dynamic Data 
 function loadManagingAuthorityData() {
     // Load dashboard stats
     maApiGet('/managing-authority/dashboard').then(data => {
@@ -378,7 +378,7 @@ function loadManagingAuthorityData() {
     loadUpcomingEvents();
 }
 
-// ─── Upcoming Events (approved HOD event requests) ───────────────────────────
+//  Upcoming Events (approved HOD event requests) 
 function loadUpcomingEvents() {
     const tbody = document.querySelector('#upcomingEventsTable tbody');
     if (!tbody) return;
@@ -436,7 +436,7 @@ function loadUpcomingEvents() {
     });
 }
 
-// ─── Academics Table ─────────────────────────────────────────────────────────
+//  Academics Table 
 function loadAcademicsTable() {
     const tbody = document.querySelector('#academicsTable tbody');
     if (!tbody) return;
@@ -460,7 +460,7 @@ function loadAcademicsTable() {
             return;
         }
 
-        // ── Update the 4 stat boxes with real data ──
+        //  Update the 4 stat boxes with real data 
         const setEl = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
         setEl('acadTotalDepts', departments.length);
 
@@ -498,7 +498,7 @@ function loadAcademicsTable() {
             const cgpaCell = !hasGrades
                 ? `<span style="color:#888;">N/A</span>`
                 : isLow
-                    ? `<span style="color:#F44336; font-weight:600;">${cgpaDisplay} ⚠</span>`
+                    ? `<span style="color:#F44336; font-weight:600;">${cgpaDisplay} </span>`
                     : `<span style="color:#4CAF50; font-weight:600;">${cgpaDisplay}</span>`;
 
             const row = document.createElement('tr');
@@ -508,7 +508,7 @@ function loadAcademicsTable() {
                 <td>${cgpaCell}</td>
                 <td><span class="status-badge success">Active</span></td>
                 <td>
-                    ${isLow ? `<button class="btn btn-sm btn-danger alert-hod-btn" data-dept="${dept.name}">Alert HOD</button>` : '<span style="color:#888;font-size:0.8rem;">—</span>'}
+                    ${isLow ? `<button class="btn btn-sm btn-danger alert-hod-btn" data-dept="${dept.name}">Alert HOD</button>` : '<span style="color:#888;font-size:0.8rem;"></span>'}
                 </td>
             `;
             tbody.appendChild(row);
@@ -540,7 +540,7 @@ function sendLowCgpaAlert(department, btn) {
                 `Alert sent to ${d.hodName}. ${d.studentsAlerted} student(s) notified.`,
                 'success'
             );
-            btn.textContent = '✓ Sent';
+            btn.textContent = ' Sent';
             btn.style.backgroundColor = '#9E9E9E';
         } else {
             showMaNotification(data.message || 'Failed to send alert', 'error');
@@ -555,11 +555,11 @@ function sendLowCgpaAlert(department, btn) {
     });
 }
 
-// ── Department data store (keyed by dept name for quick lookup) ──
+//  Department data store (keyed by dept name for quick lookup) 
 const _deptDataMap = new Map();
 window._deptDataMap = _deptDataMap; // expose globally for faculty view student count
 
-// ── Modal helpers (module scope so usable anywhere) ──
+//  Modal helpers (module scope so usable anywhere) 
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) { modal.classList.add('active'); document.body.style.overflow = 'hidden'; }
@@ -599,7 +599,7 @@ function updateDepartmentsTable(departments, pendingRequests) {
         });
     }
 
-    // Render active departments — store real data in map
+    // Render active departments  store real data in map
     if (departments && departments.length > 0) {
         departments.forEach((dept) => {
             // Store real data keyed by dept name (used by View/Edit handlers)
@@ -625,7 +625,7 @@ function updateDepartmentsTable(departments, pendingRequests) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center">No departments found</td></tr>';
     }
 
-    // ── Event delegation for approve/decline ──
+    //  Event delegation for approve/decline 
     tbody.querySelectorAll('.dept-approve-btn').forEach(btn => {
         btn.addEventListener('click', function () {
             const id = this.dataset.id;
@@ -690,7 +690,7 @@ function updateFacultyTable(faculty) {
     if (document.getElementById('maFacultyActive')) document.getElementById('maFacultyActive').textContent = teachers;
     if (document.getElementById('maFacultyDepts'))  document.getElementById('maFacultyDepts').textContent  = depts;
 
-    // Overview section stat boxes (Task 1 — dynamic)
+    // Overview section stat boxes (Task 1  dynamic)
     if (document.getElementById('maOverviewTeachers')) {
         document.getElementById('maOverviewTeachers').textContent = teachers;
     }
@@ -737,7 +737,7 @@ function updateFacultyTable(faculty) {
             document.getElementById('viewFacultyDepartment').textContent = f.department || 'N/A';
             document.getElementById('viewFacultyEmail').textContent      = f.email;
             document.getElementById('viewFacultyStatus').innerHTML       = (f.isActive !== false) ? '<span class="status-badge success">Active</span>' : '<span class="status-badge danger">Inactive</span>';
-            // Count students in their dept — use dept data map for accurate count
+            // Count students in their dept  use dept data map for accurate count
             let studentCount = 0;
             const deptName = (f.department || '').trim().toLowerCase();
             // Try from cached dept data first (most accurate)
@@ -807,12 +807,12 @@ function updateStudentsTable(students) {
     // Cache for cross-reference
     window._maStudentsData = students;
 
-    // ── Stat boxes ────────────────────────────────────────────────────────
+    //  Stat boxes 
     const total   = students.length;
     const withGpa = students.filter(s => s.grade && parseFloat(s.grade) > 0);
     const avgCgpa = withGpa.length > 0
         ? (withGpa.reduce((a, s) => a + parseFloat(s.grade), 0) / withGpa.length).toFixed(2)
-        : '—';
+        : '';
     const atRisk  = students.filter(s => s.grade && parseFloat(s.grade) < 6.0).length;
     const depts   = new Set(students.map(s => s.department).filter(Boolean)).size;
 
@@ -823,7 +823,7 @@ function updateStudentsTable(students) {
     if (document.getElementById('maStudentsDepts'))    document.getElementById('maStudentsDepts').textContent    = depts;
     if (document.getElementById('maOverviewStudents')) document.getElementById('maOverviewStudents').textContent = total;
 
-    // ── Dept filter dropdown ──────────────────────────────────────────────
+    //  Dept filter dropdown 
     const deptFilter = document.getElementById('studentDepartmentFilter');
     if (deptFilter) {
         const existing = Array.from(deptFilter.options).map(o => o.value);
@@ -837,7 +837,7 @@ function updateStudentsTable(students) {
         });
     }
 
-    // ── Table ─────────────────────────────────────────────────────────────
+    //  Table 
     window._maAllStudentsRows = students; // store for filter
     renderStudentRows(students);
 }
@@ -897,7 +897,7 @@ function renderStudentRows(students) {
         const color = deptColors[colorIdx++ % deptColors.length];
         const avgCgpa = (() => {
             const w = students.filter(s => parseFloat(s.grade) > 0);
-            return w.length ? (w.reduce((a,s)=>a+parseFloat(s.grade),0)/w.length).toFixed(2) : '—';
+            return w.length ? (w.reduce((a,s)=>a+parseFloat(s.grade),0)/w.length).toFixed(2) : '';
         })();
 
         // Department header row
@@ -922,19 +922,19 @@ function renderStudentRows(students) {
             const rowBg = i % 2 === 0 ? '#fff' : '#f9fafb';
 
             const yearCells = [1,2,3,4].map(y => {
-                if (y > totalYears) return `<td style="text-align:center;color:#e2e8f0;">—</td>`;
+                if (y > totalYears) return `<td style="text-align:center;color:#e2e8f0;"></td>`;
                 const cgpa = getYearCgpa(semCgpas, y);
                 const clr = cgpa ? (cgpa>=7?'#16a34a':cgpa>=6?'#d97706':'#ef4444') : '#94a3b8';
-                return `<td style="text-align:center;font-weight:${cgpa?'600':'400'};color:${clr};">${cgpa!==null?cgpa:'—'}</td>`;
+                return `<td style="text-align:center;font-weight:${cgpa?'600':'400'};color:${clr};">${cgpa!==null?cgpa:''}</td>`;
             }).join('');
 
             const avgG = parseFloat(s.grade||0);
             html += `<tr class="dept-student-row dept-group-${dept.replace(/[^a-zA-Z0-9]/g,'_')}" style="background:${rowBg};">
-                <td style="padding-left:2rem;">${s.studentId||'—'}</td>
+                <td style="padding-left:2rem;">${s.studentId||''}</td>
                 <td><strong>${s.name}</strong></td>
                 <td><span style="background:${color}15;color:${color};padding:0.15rem 0.5rem;border-radius:6px;font-size:0.78rem;">${dept}</span></td>
                 ${yearCells}
-                <td style="text-align:center;"><strong style="color:#667eea;">${avgG>0?avgG.toFixed(2):'—'}</strong></td>
+                <td style="text-align:center;"><strong style="color:#667eea;">${avgG>0?avgG.toFixed(2):''}</strong></td>
                 <td><span class="status-badge ${s.isActive!==false?'success':'danger'}">${s.isActive!==false?'Active':'Inactive'}</span></td>
             </tr>`;
         });
@@ -968,11 +968,11 @@ function exportStudentCSV() {
             s.studentId || '',
             s.name,
             s.department || '',
-            getYearCgpa(sc, 1) ?? '—',
-            getYearCgpa(sc, 2) ?? '—',
-            getYearCgpa(sc, 3) ?? '—',
-            getYearCgpa(sc, 4) ?? '—',
-            parseFloat(s.grade || 0) > 0 ? parseFloat(s.grade).toFixed(2) : '—'
+            getYearCgpa(sc, 1) ?? '',
+            getYearCgpa(sc, 2) ?? '',
+            getYearCgpa(sc, 3) ?? '',
+            getYearCgpa(sc, 4) ?? '',
+            parseFloat(s.grade || 0) > 0 ? parseFloat(s.grade).toFixed(2) : ''
         ]);
     });
     const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
@@ -1130,7 +1130,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await res.json();
             const programs = (data.success ? data.data?.programs || [] : []).filter(p => p.isActive !== false);
             if (programs.length === 0) {
-                sel.innerHTML = '<option value="">No courses found — ask Admin to add</option>';
+                sel.innerHTML = '<option value="">No courses found  ask Admin to add</option>';
             } else {
                 sel.innerHTML = '<option value="">Select Course</option>' +
                     programs.map(p => `<option value="${p._id}">${p.name}${p.code ? ' (' + p.code + ')' : ''}</option>`).join('');
@@ -1140,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Add Department button — load programs before opening modal
+    // Add Department button  load programs before opening modal
     if (addDepartmentBtn) {
         addDepartmentBtn.addEventListener('click', async function() {
             addDepartmentForm && addDepartmentForm.reset();
@@ -1149,7 +1149,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add Department form — creates HOD user + department in one step
+    // Add Department form  creates HOD user + department in one step
     if (addDepartmentForm) {
         addDepartmentForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1222,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // ── View Department (event delegation on document — works for dynamically rendered rows) ──
+    //  View Department (event delegation on document  works for dynamically rendered rows) 
     document.addEventListener('click', function (e) {
         const viewBtn = e.target.closest('.view-department');
         const editBtn = e.target.closest('.edit-department');
@@ -1262,7 +1262,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ── Edit form submit — save changes via API ──
+    //  Edit form submit  save changes via API 
     if (editDepartmentForm) {
         editDepartmentForm.onsubmit = async function (e) {
             e.preventDefault();
@@ -1308,7 +1308,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add Faculty — real API call
+    // Add Faculty  real API call
     if (addFacultyForm) {
         addFacultyForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1395,7 +1395,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Old static view/evaluate handlers removed — now handled dynamically in updateFacultyTable()
+    // Old static view/evaluate handlers removed  now handled dynamically in updateFacultyTable()
 
     // Student Management
     const viewStudentDeptButtons = document.querySelectorAll('.view-student-dept');
@@ -1769,7 +1769,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 hod: 'Dr. Priya Singh',
                 facultyCount: 24,
                 studentCount: 342,
-                budget: '₹85 Lakhs',
+                budget: '85 Lakhs',
                 established: 2010,
                 performance: 'Excellent',
                 performanceClass: 'success'
@@ -1779,7 +1779,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 hod: 'Dr. Anil Verma',
                 facultyCount: 18,
                 studentCount: 285,
-                budget: '₹75 Lakhs',
+                budget: '75 Lakhs',
                 established: 2005,
                 performance: 'Good',
                 performanceClass: 'success'
@@ -1789,7 +1789,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 hod: 'Dr. Suresh Iyer',
                 facultyCount: 20,
                 studentCount: 310,
-                budget: '₹80 Lakhs',
+                budget: '80 Lakhs',
                 established: 2008,
                 performance: 'Good',
                 performanceClass: 'success'
@@ -1799,7 +1799,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 hod: 'Dr. Meena Reddy',
                 facultyCount: 16,
                 studentCount: 275,
-                budget: '₹70 Lakhs',
+                budget: '70 Lakhs',
                 established: 2012,
                 performance: 'Average',
                 performanceClass: 'warning'
@@ -1809,7 +1809,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 hod: 'Dr. Rajesh Gupta',
                 facultyCount: 14,
                 studentCount: 195,
-                budget: '₹65 Lakhs',
+                budget: '65 Lakhs',
                 established: 2015,
                 performance: 'Needs Improvement',
                 performanceClass: 'warning'
@@ -2030,7 +2030,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 priorityClass: 'high',
                 status: 'Approved',
                 statusClass: 'success',
-                description: 'Request for a research grant of ₹25 Lakhs for a project on Smart Grid Technology. The project aims to develop innovative solutions for efficient power distribution and management.',
+                description: 'Request for a research grant of 25 Lakhs for a project on Smart Grid Technology. The project aims to develop innovative solutions for efficient power distribution and management.',
                 justification: 'Smart Grid Technology is a critical area of research with significant potential for industry collaboration and commercial applications. The project aligns with the national priorities for sustainable energy.'
             },
             4: {
@@ -2183,15 +2183,15 @@ function redirectToDashboard(role) {
 }
 
 
-// ═══════════════════════════════════════════════════════════════
+// 
 //  PRINCIPAL MESSAGES SYSTEM
-// ═══════════════════════════════════════════════════════════════
+// 
 
 let _principalHods = [];          // { id, name } list of all HODs
 let _principalCurrentMsgId = null;
 let _principalCurrentSenderId = null;
 
-// ── Load HOD list for recipient dropdown ─────────────────────
+//  Load HOD list for recipient dropdown 
 async function loadPrincipalHods() {
     try {
         const token = localStorage.getItem('authToken');
@@ -2210,7 +2210,7 @@ async function loadPrincipalHods() {
         if (_principalHods.length > 0) {
             const sep = document.createElement('option');
             sep.disabled = true;
-            sep.textContent = '── Individual HOD ──';
+            sep.textContent = ' Individual HOD ';
             sel.appendChild(sep);
             _principalHods.forEach(h => {
                 const opt = document.createElement('option');
@@ -2224,7 +2224,7 @@ async function loadPrincipalHods() {
     }
 }
 
-// ── Tab switch ───────────────────────────────────────────────
+//  Tab switch 
 function switchPrincipalTab(tabId) {
     document.querySelectorAll('.ma-tab-btn').forEach(b => {
         b.style.color = '#64748b';
@@ -2246,7 +2246,7 @@ function switchPrincipalTab(tabId) {
     if (tabId === 'ma-sent') loadPrincipalSent();
 }
 
-// ── Render a message row ─────────────────────────────────────
+//  Render a message row 
 function _renderMsgRow(msg, isSent) {
     const token = localStorage.getItem('authToken');
     const label = isSent
@@ -2275,7 +2275,7 @@ function _renderMsgRow(msg, isSent) {
     `;
 }
 
-// ── Load Inbox ───────────────────────────────────────────────
+//  Load Inbox 
 async function loadPrincipalInbox() {
     const el = document.getElementById('principalInboxList');
     if (!el) return;
@@ -2295,7 +2295,7 @@ async function loadPrincipalInbox() {
     }
 }
 
-// ── Load Sent ────────────────────────────────────────────────
+//  Load Sent 
 async function loadPrincipalSent() {
     const el = document.getElementById('principalSentList');
     if (!el) return;
@@ -2315,7 +2315,7 @@ async function loadPrincipalSent() {
     }
 }
 
-// ── View a message ───────────────────────────────────────────
+//  View a message 
 async function viewPrincipalMessage(msgId, isSent) {
     _principalCurrentMsgId = msgId;
     _principalCurrentSenderId = null;
@@ -2338,7 +2338,7 @@ async function viewPrincipalMessage(msgId, isSent) {
     // Hide delete for sent, show for inbox
     const deleteBtn = document.getElementById('principalDeleteBtn');
     if (deleteBtn) deleteBtn.style.display = isSent ? 'none' : '';
-    // Hide reply for sent (or show — your preference)
+    // Hide reply for sent (or show  your preference)
     const replyBtn = document.getElementById('principalReplyBtn');
     if (replyBtn) replyBtn.style.display = isSent ? 'none' : '';
 
@@ -2470,7 +2470,7 @@ async function deletePrincipalMessage() {
     }
 }
 
-// ── Compose / Send ───────────────────────────────────────────
+//  Compose / Send 
 function openPrincipalMessageModal() {
     loadPrincipalHods();  // refresh recipient list
     document.getElementById('principalMsgTo').value = '';
@@ -2531,7 +2531,7 @@ async function sendPrincipalMessage() {
     }
 }
 
-// ── Wire Messages section when sidebar nav is clicked ────────
+//  Wire Messages section when sidebar nav is clicked 
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.sidebar-menu a[data-section="messages"]').forEach(link => {
         link.addEventListener('click', function () {
@@ -2542,9 +2542,9 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-// ═══════════════════════════════════════════════════════════════
+// 
 //  PRINCIPAL MEETING ROOM
-// ═══════════════════════════════════════════════════════════════
+// 
 let _principalRecentMeetings = [];
 
 async function principalHostMeeting() {
@@ -2598,7 +2598,7 @@ function renderPrincipalMeetings() {
             <div style="display:flex; justify-content:space-between; align-items:center; padding:1rem; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:0.75rem;">
                 <div>
                     <div style="font-weight:600; color:#1e293b;">${m.title}</div>
-                    <div style="color:#94a3b8; font-size:0.82rem;"><i class="fas fa-hashtag"></i> ${m.roomCode} · ${time}</div>
+                    <div style="color:#94a3b8; font-size:0.82rem;"><i class="fas fa-hashtag"></i> ${m.roomCode}  ${time}</div>
                 </div>
                 <button onclick="window.open('/meeting-room.html?room=${m.roomCode}&title=${encodeURIComponent(m.title)}','_blank')" style="padding:0.5rem 1rem; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.85rem;">
                     <i class="fas fa-arrow-right-to-bracket"></i> Rejoin
@@ -2609,9 +2609,9 @@ function renderPrincipalMeetings() {
 }
 
 
-// ═══════════════════════════════════════════════════════════════
-//  PRINCIPAL ANNOUNCEMENTS — Dynamic (backend-backed)
-// ═══════════════════════════════════════════════════════════════
+// 
+//  PRINCIPAL ANNOUNCEMENTS  Dynamic (backend-backed)
+// 
 
 // Load and render announcements from API
 async function loadAnnouncements() {

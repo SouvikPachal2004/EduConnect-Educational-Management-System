@@ -1,6 +1,6 @@
-// ═══════════════════════════════════════════════════════════════
-//  EduConnect Meet — Meeting Room Logic
-// ═══════════════════════════════════════════════════════════════
+// 
+//  EduConnect Meet  Meeting Room Logic
+// 
 
 const MR = {
     localStream: null,
@@ -25,7 +25,7 @@ const MR = {
     joined: false,
 };
 
-// ── Helpers ──────────────────────────────────────────────────
+//  Helpers 
 function qs(id) { return document.getElementById(id); }
 
 function getParam(name) {
@@ -67,7 +67,7 @@ function toast(msg) {
     t._timer = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
-// ── Init ─────────────────────────────────────────────────────
+//  Init 
 document.addEventListener('DOMContentLoaded', async () => {
     // Get server-authoritative user info (not stale localStorage)
     MR.user = await fetchCurrentUser();
@@ -90,7 +90,7 @@ function generateRoomCode() {
     return `${seg(3)}-${seg(4)}-${seg(3)}`;
 }
 
-// ── Lobby preview ────────────────────────────────────────────
+//  Lobby preview 
 async function startLobbyPreview() {
     try {
         MR.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -102,7 +102,7 @@ async function startLobbyPreview() {
         MR.micOn = false;
         qs('lobbyCamOff').style.display = 'flex';
         updateLobbyButtons();
-        toast('Camera/mic not available — you can still join');
+        toast('Camera/mic not available  you can still join');
     }
 }
 
@@ -131,7 +131,7 @@ function updateLobbyButtons() {
     camBtn.innerHTML = `<i class="fas fa-video${MR.camOn ? '' : '-slash'}"></i>`;
 }
 
-// ── Join meeting ─────────────────────────────────────────────
+//  Join meeting 
 async function joinMeeting() {
     const name = qs('lobbyNameInput').value.trim() || MR.user.name || 'Guest';
     MR.user.name = name;
@@ -293,7 +293,7 @@ function cancelJoinRequest() {
     goHome();
 }
 
-// ── Local video tile ─────────────────────────────────────────
+//  Local video tile 
 function renderLocalTile() {
     const grid = qs('videoGrid');
     let tile = qs('tile-local');
@@ -340,7 +340,7 @@ function refreshGridLayout() {
     grid.classList.toggle('single', tiles === 1);
 }
 
-// ── Controls ─────────────────────────────────────────────────
+//  Controls 
 function wireMeetingControls() {
     qs('micBtn').addEventListener('click', toggleMic);
     qs('camBtn').addEventListener('click', toggleCam);
@@ -354,7 +354,7 @@ function wireMeetingControls() {
     qs('chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
     qs('copyLinkBtn').addEventListener('click', copyMeetingLink);
 
-    // End Meeting button — show for host (teacher or hod role)
+    // End Meeting button  show for host (teacher or hod role)
     const endBtn = qs('endMeetingBtn');
     if (endBtn) {
         const isHost = (MR.hostId && MR.user.id === MR.hostId)
@@ -442,7 +442,7 @@ function updateControlButtons() {
     hand.className = 'ctrl-btn' + (MR.handRaised ? ' active-toggle' : '');
 }
 
-// ── Clock ────────────────────────────────────────────────────
+//  Clock 
 function startClock() {
     const update = () => {
         const now = new Date();
@@ -452,7 +452,7 @@ function startClock() {
     setInterval(update, 30000);
 }
 
-// ── Side Panel (chat / participants) ─────────────────────────
+//  Side Panel (chat / participants) 
 function togglePanel(which) {
     if (MR.panelOpen && MR.activePanel === which) { closePanel(); return; }
     MR.panelOpen = true;
@@ -475,7 +475,7 @@ function closePanel() {
     refreshGridLayout();
 }
 
-// ── Chat (backend-backed) ────────────────────────────────────
+//  Chat (backend-backed) 
 async function sendChat() {
     const input = qs('chatInput');
     const text = input.value.trim();
@@ -557,7 +557,7 @@ function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// ── Presence / participants (backend-backed) ─────────────────
+//  Presence / participants (backend-backed) 
 async function registerPresence() {
     try {
         const res = await fetch(`/api/meetings/${MR.roomCode}/join`, {
@@ -737,7 +737,7 @@ async function rejectJoinRequest(userId) {
     }
 }
 
-// ── Polling ──────────────────────────────────────────────────
+//  Polling 
 function startPolling() {
     fetchChat();
     fetchParticipants();
@@ -747,7 +747,7 @@ function startPolling() {
     MR.heartbeatTimer = setInterval(updatePresence, 10000);
 }
 
-// Poll meeting status — auto-kick non-host if host ended meeting
+// Poll meeting status  auto-kick non-host if host ended meeting
 async function checkMeetingAndParticipants() {
     try {
         const res = await fetch(`/api/meetings/${MR.roomCode}`, {
@@ -778,7 +778,7 @@ async function checkMeetingAndParticipants() {
             qs('leftScreen').style.display = 'flex';
             return; // skip participants fetch
         }
-    } catch (err) { /* ignore — keep polling */ }
+    } catch (err) { /* ignore  keep polling */ }
     await fetchParticipants();
 }
 
@@ -788,14 +788,14 @@ function stopPolling() {
     clearInterval(MR.heartbeatTimer);
 }
 
-// ── Copy link ────────────────────────────────────────────────
+//  Copy link 
 function copyMeetingLink() {
     const link = `${window.location.origin}/meeting-room.html?room=${MR.roomCode}&title=${encodeURIComponent(MR.meetingTitle)}`;
     navigator.clipboard.writeText(link).then(() => toast('Meeting link copied to clipboard'))
         .catch(() => toast('Could not copy link'));
 }
 
-// ── End Meeting (host only) ──────────────────────────────────
+//  End Meeting (host only) 
 async function endMeetingForAll() {
     if (!confirm('End the meeting for everyone? The join link will expire and cannot be reused.')) return;
 
@@ -831,7 +831,7 @@ async function endMeetingForAll() {
     qs('leftScreen').style.display = 'flex';
 }
 
-// ── Leave ────────────────────────────────────────────────────
+//  Leave 
 async function leaveMeeting() {
     stopPolling();
     try {
