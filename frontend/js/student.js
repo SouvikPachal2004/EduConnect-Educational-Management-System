@@ -1312,11 +1312,22 @@ async function updateUpcomingClasses() {
             // --- Virtual class scheduled via Update Mode (today OR future) ---
             if (cls.mode === 'virtual' && scheduledDate && scheduledTime) {
                 if (scheduledDate >= todayStr) {
-                    // meetingEnded: class is today, no current link, but check if a meeting was ended
-                    // We detect this by checking if class previously had a meeting that ended
-                    // The backend clears meetingLink when host ends  so no link after start time = ended
+                    // meetingEnded: class is today, no current link, and meeting was ended by teacher
+                    // Check if lastMeetingEnded exists and is recent (within last 6 hours)
+                    const lastEnded = cls.schedule?.lastMeetingEnded;
                     const classSchTime = new Date(scheduledDate + 'T' + scheduledTime);
-                    const meetingEnded = !cls.meetingLink && scheduledDate === todayStr && now > classSchTime;
+                    
+                    let meetingEnded = false;
+                    if (lastEnded && scheduledDate === todayStr && !cls.meetingLink) {
+                        // If lastMeetingEnded is within 6 hours of scheduled time, consider it ended
+                        const endedTime = new Date(lastEnded);
+                        const timeDiff = Math.abs(endedTime - classSchTime) / 1000 / 60 / 60; // hours
+                        meetingEnded = timeDiff <= 6;
+                    }
+                    // Fallback: if no link and past scheduled time, also consider ended
+                    if (!meetingEnded && !cls.meetingLink && scheduledDate === todayStr && now > classSchTime) {
+                        meetingEnded = true;
+                    }
 
                     upcoming.push({
                         id: cls._id,

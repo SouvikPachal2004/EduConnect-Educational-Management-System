@@ -407,21 +407,40 @@ const endMeeting = async (req, res) => {
     meeting.participants.forEach(p => { p.active = false; });
     await meeting.save();
 
-    // Always clear the meeting link on the associated class (regardless of classId being set)
-    // so the Join button disappears everywhere immediately
+    // CRITICAL: Clear meeting link from ALL classes that have it
+    // This ensures "Class Completed" shows on student dashboard immediately
+    
+    // 1. Clear by classId (if meeting was linked to a specific class)
     if (meeting.classId) {
-      await Class.findByIdAndUpdate(meeting.classId, { meetingLink: '' });
+      await Class.findByIdAndUpdate(meeting.classId, { 
+        meetingLink: '',
+        $set: { 'schedule.lastMeetingEnded': new Date() } // Track when last meeting ended
+      });
     }
 
-    // Also clear by searching for classes that have this meetingLink stored
-    // (handles edge case where classId wasn't saved on the meeting but link was set)
+    // 2. Clear by matching meetingLink (handles edge cases)
     await Class.updateMany(
       { meetingLink: meeting.meetingLink },
-      { meetingLink: '' }
+      { 
+        meetingLink: '',
+        $set: { 'schedule.lastMeetingEnded': new Date() }
+      }
     );
 
-    successResponse(res, null, 'Meeting ended. The join link has been expired.');
+    // 3. Also clear any partial or variant links (safety net)
+    if (meeting.roomCode) {
+      await Class.updateMany(
+        { meetingLink: { $regex: meeting.roomCode, $options: 'i' } },
+        { 
+          meetingLink: '',
+          $set: { 'schedule.lastMeetingEnded': new Date() }
+        }
+      );
+    }
+
+    successResponse(res, null, 'Meeting ended. The join link has been expired and cleared from all classes.');
   } catch (error) {
+    console.error('[endMeeting] Error:', error);
     errorResponse(res, 'Failed to end meeting', 500, error.message);
   }
 };
