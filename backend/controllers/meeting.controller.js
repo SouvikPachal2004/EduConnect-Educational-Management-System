@@ -31,7 +31,10 @@ function buildMeetingLink(req, roomCode, title) {
     base = 'https://educonnect-2026.netlify.app';
   }
   base = base.replace(/\/+$/, '');
-  return `${base}/meeting-room.html?room=${roomCode}&title=${encodeURIComponent(title || 'Class Meeting')}`;
+  
+  // Include the user's name in the URL so it pre-fills even if localStorage is empty
+  const userName = req.user?.name || 'Guest';
+  return `${base}/meeting-room.html?room=${roomCode}&title=${encodeURIComponent(title || 'Class Meeting')}&name=${encodeURIComponent(userName)}`;
 }
 
 /**

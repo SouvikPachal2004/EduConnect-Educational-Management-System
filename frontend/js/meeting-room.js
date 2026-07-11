@@ -71,10 +71,20 @@ function toast(msg) {
 document.addEventListener('DOMContentLoaded', async () => {
     // Get server-authoritative user info (not stale localStorage)
     MR.user = await fetchCurrentUser();
+    
+    // If user name is still empty (e.g., opened on wrong domain without localStorage),
+    // try to extract from URL parameter or meeting record as a fallback
+    if (!MR.user.name || !MR.user.name.trim()) {
+        const urlName = getParam('name');
+        if (urlName) {
+            MR.user.name = decodeURIComponent(urlName);
+        }
+    }
+    
     MR.roomCode = getParam('room') || generateRoomCode();
     MR.meetingTitle = decodeURIComponent(getParam('title') || 'Class Meeting');
 
-    // Lobby setup
+    // Lobby setup - always populate with the best available name
     qs('lobbyMeetingTitle').textContent = MR.meetingTitle;
     qs('lobbyMeetingMeta').textContent = `Room code: ${MR.roomCode}`;
     qs('lobbyNameInput').value = MR.user.name || '';
