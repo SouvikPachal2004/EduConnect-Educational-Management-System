@@ -809,6 +809,9 @@ function renderParticipants(list, pending = [], hostId = null) {
         html += '<div style="border-top:1px solid #334155; margin:10px 0; padding-top:10px;"><h4 style="color:#94a3b8; font-size:0.85rem; margin-bottom:10px;">Pending Requests (' + pending.length + ')</h4></div>';
         
         pending.forEach(p => {
+            // Use data- attributes instead of inline onclick to avoid string injection issues
+            const uid = p.userId ? String(p.userId) : '';
+            if (!uid || uid === 'undefined' || uid === 'null') return; // skip invalid
             html += `
                 <div class="participant-item pending-item" style="background:#1e293b;">
                     <div class="participant-avatar">${initials(p.name)}</div>
@@ -817,8 +820,8 @@ function renderParticipants(list, pending = [], hostId = null) {
                         <div class="participant-role">${p.role === 'student' ? 'Student' : p.role}</div>
                     </div>
                     <div class="participant-actions" style="display:flex; gap:5px;">
-                        <button onclick="approveJoinRequest('${p.userId}')" class="btn-approve" style="background:#22c55e; color:white; border:none; border-radius:5px; padding:5px 10px; font-size:12px; cursor:pointer;"><i class="fas fa-check"></i> Accept</button>
-                        <button onclick="rejectJoinRequest('${p.userId}')" class="btn-reject" style="background:#ef4444; color:white; border:none; border-radius:5px; padding:5px 10px; font-size:12px; cursor:pointer;"><i class="fas fa-times"></i> Decline</button>
+                        <button data-uid="${uid}" data-action="approve" class="pending-action-btn btn-approve" style="background:#22c55e; color:white; border:none; border-radius:5px; padding:5px 10px; font-size:12px; cursor:pointer;"><i class="fas fa-check"></i> Accept</button>
+                        <button data-uid="${uid}" data-action="reject" class="pending-action-btn btn-reject" style="background:#ef4444; color:white; border:none; border-radius:5px; padding:5px 10px; font-size:12px; cursor:pointer;"><i class="fas fa-times"></i> Decline</button>
                     </div>
                 </div>
             `;
@@ -826,6 +829,20 @@ function renderParticipants(list, pending = [], hostId = null) {
     }
     
     container.innerHTML = html;
+
+    // Wire approve/reject via event delegation — avoids inline onclick & undefined userId bugs
+    container.querySelectorAll('.pending-action-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const uid = this.getAttribute('data-uid');
+            const action = this.getAttribute('data-action');
+            if (!uid || uid === 'undefined' || uid === 'null') {
+                toast('Error: missing participant ID. Please refresh.');
+                return;
+            }
+            if (action === 'approve') approveJoinRequest(uid);
+            else rejectJoinRequest(uid);
+        });
+    });
 }
 
 // Approve join request

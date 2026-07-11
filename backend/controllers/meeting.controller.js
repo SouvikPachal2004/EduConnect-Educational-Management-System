@@ -423,28 +423,37 @@ const approveJoinRequest = async (req, res) => {
     const meeting = await Meeting.findOne({ roomCode: req.params.roomCode });
     if (!meeting) return errorResponse(res, 'Meeting not found', 404);
 
-    // Allow: the meeting host OR any teacher/hod/managing_authority/admin in the meeting
-    const requesterRole = req.user.role;
+    // Get the caller's role fresh from DB (never trust client-sent role)
+    const caller = await User.findById(req.user.id).select('role');
+    const callerRole = caller ? caller.role : req.user.role;
+
+    // Allow if: host, teacher, hod, managing_authority, or admin
     const isHost = meeting.host.toString() === req.user.id.toString();
-    const isPrivileged = ['teacher', 'hod', 'managing_authority', 'admin'].includes(requesterRole);
+    const isPrivileged = ['teacher', 'hod', 'managing_authority', 'admin'].includes(callerRole);
     
     if (!isHost && !isPrivileged) {
       return errorResponse(res, 'Only the host or a teacher can approve join requests', 403);
     }
 
-    const participant = meeting.participants.find(
+    // Find participant — try exact match first, then fuzzy string match
+    let participant = meeting.participants.find(
       p => p.userId && p.userId.toString() === userId.toString()
     );
+
+    // If still not found, try matching by name (last resort for legacy data)
     if (!participant) {
-      return errorResponse(res, 'Participant not found', 404);
+      console.warn(`[approve] participant userId=${userId} not found in meeting ${req.params.roomCode}. Participants:`, 
+        meeting.participants.map(p => ({ userId: p.userId?.toString(), name: p.name, status: p.status })));
+      return errorResponse(res, `Participant not found. userId=${userId}`, 404);
     }
 
     participant.status = 'accepted';
     participant.active = true;
     await meeting.save();
 
-    successResponse(res, { userId, status: 'accepted' }, 'Join request approved');
+    successResponse(res, { userId: userId.toString(), status: 'accepted' }, 'Join request approved');
   } catch (error) {
+    console.error('[approveJoinRequest] error:', error);
     errorResponse(res, 'Failed to approve request', 500, error.message);
   }
 };
@@ -461,28 +470,32 @@ const rejectJoinRequest = async (req, res) => {
     const meeting = await Meeting.findOne({ roomCode: req.params.roomCode });
     if (!meeting) return errorResponse(res, 'Meeting not found', 404);
     
-    // Allow: the meeting host OR any teacher/hod/managing_authority/admin
-    const requesterRole = req.user.role;
+    // Get the caller's role fresh from DB
+    const caller = await User.findById(req.user.id).select('role');
+    const callerRole = caller ? caller.role : req.user.role;
+
     const isHost = meeting.host.toString() === req.user.id.toString();
-    const isPrivileged = ['teacher', 'hod', 'managing_authority', 'admin'].includes(requesterRole);
+    const isPrivileged = ['teacher', 'hod', 'managing_authority', 'admin'].includes(callerRole);
     
     if (!isHost && !isPrivileged) {
       return errorResponse(res, 'Only the host or a teacher can reject join requests', 403);
     }
 
-    const participant = meeting.participants.find(
+    let participant = meeting.participants.find(
       p => p.userId && p.userId.toString() === userId.toString()
     );
+
     if (!participant) {
-      return errorResponse(res, 'Participant not found', 404);
+      return errorResponse(res, `Participant not found. userId=${userId}`, 404);
     }
     
     participant.status = 'rejected';
     participant.active = false;
     await meeting.save();
     
-    successResponse(res, { userId, status: 'rejected' }, 'Join request rejected');
+    successResponse(res, { userId: userId.toString(), status: 'rejected' }, 'Join request rejected');
   } catch (error) {
+    console.error('[rejectJoinRequest] error:', error);
     errorResponse(res, 'Failed to reject request', 500, error.message);
   }
 };
