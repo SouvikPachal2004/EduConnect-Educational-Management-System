@@ -375,6 +375,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Notification dropdown is now handled by notifications.js
     // initializeNotificationDropdown(); // Disabled to prevent duplicate panels
+
+    // ── LIVE CLASS POLL ──
+    // Refresh the assigned subjects list every 5 seconds so the
+    // "Live — Join Meeting" link disappears the moment a meeting ends.
+    setInterval(() => {
+        loadHodMyClasses();
+    }, 5000);
 });
 
 // Initialize all event listeners

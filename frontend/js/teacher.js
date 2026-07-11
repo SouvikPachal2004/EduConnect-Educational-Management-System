@@ -156,6 +156,11 @@ function loadInitialData() {
     
     // Set up periodic refresh for students data
     setInterval(fetchStudentsData, 30000); // Refresh every 30 seconds
+
+    // ── LIVE CLASS POLL ──
+    // Refresh dashboard classes every 5 seconds so the "Live — Join Meeting"
+    // link disappears immediately when a meeting ends.
+    setInterval(loadDashboardClasses, 5000);
 }
 
 // Setup all event listeners

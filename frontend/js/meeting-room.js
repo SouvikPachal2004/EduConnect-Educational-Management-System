@@ -475,8 +475,14 @@ function refreshGridLayout() {
     grid.classList.toggle('single', tiles === 1);
 }
 
+// Controls wired flag — prevents duplicate listeners
+let _controlsWired = false;
+
 //  Controls 
 function wireMeetingControls() {
+    if (_controlsWired) return; // already wired — don't add duplicate listeners
+    _controlsWired = true;
+
     qs('micBtn').addEventListener('click', toggleMic);
     qs('camBtn').addEventListener('click', toggleCam);
     qs('screenBtn').addEventListener('click', toggleScreen);
