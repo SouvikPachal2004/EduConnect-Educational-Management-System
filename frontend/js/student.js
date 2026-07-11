@@ -287,8 +287,21 @@ function fetchAllStudentData() {
             const allAssignments = data.data.assignments;
             
             // Separate by submitted flag from API
+            // An assignment is completed if:
+            // 1. It has a submitted flag set to true, OR
+            // 2. It has a submission object with status 'submitted', OR
+            // 3. It has a grade/score assigned
             studentData.assignments.pending = allAssignments
-                .filter(a => !a.submitted && a.status !== 'closed')
+                .filter(a => {
+                    // Check if truly not submitted
+                    const hasSubmission = a.submitted === true;
+                    const hasSubmissionObject = a.submission && a.submission.status === 'submitted';
+                    const hasGrade = a.grade !== undefined && a.grade !== null;
+                    const isCompleted = hasSubmission || hasSubmissionObject || hasGrade;
+                    
+                    // Only show in pending if NOT completed AND not closed
+                    return !isCompleted && a.status !== 'closed';
+                })
                 .map(assignment => ({
                     id: assignment._id,
                     title: assignment.title,
@@ -305,7 +318,13 @@ function fetchAllStudentData() {
                 }));
 
             studentData.assignments.completed = allAssignments
-                .filter(a => a.submitted)
+                .filter(a => {
+                    // Check multiple conditions for completion
+                    const hasSubmission = a.submitted === true;
+                    const hasSubmissionObject = a.submission && a.submission.status === 'submitted';
+                    const hasGrade = a.grade !== undefined && a.grade !== null;
+                    return hasSubmission || hasSubmissionObject || hasGrade;
+                })
                 .map(assignment => ({
                     id: assignment._id,
                     title: assignment.title,
