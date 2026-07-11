@@ -1504,13 +1504,15 @@ async function _pollMeetingLinks() {
         const data = await res.json();
         if (!data.success || !data.data.classes) return;
 
+        const isFirstRun = Object.keys(_lastLinkSnapshot).length === 0;
         let changed = false;
+
         data.data.classes.forEach(cls => {
             const prev = _lastLinkSnapshot[cls._id];
             const curr = cls.meetingLink || '';
-            if (prev !== undefined && prev !== curr) {
+            if (!isFirstRun && prev !== undefined && prev !== curr) {
                 changed = true;
-                // A new link appeared — notify the student
+                // A new link appeared — show toast
                 if (curr && !prev) {
                     _showMeetingToast(cls.name, curr);
                 }
@@ -1518,14 +1520,8 @@ async function _pollMeetingLinks() {
             _lastLinkSnapshot[cls._id] = curr;
         });
 
-        if (changed) {
-            // Refresh both overview and classes section silently
-            updateUpcomingClasses();
-            updateStudentClassCards(data.data.classes);
-        }
-
-        // Also update on first run to populate the UI
-        if (Object.keys(_lastLinkSnapshot).length === data.data.classes.length && !changed) {
+        // Always refresh UI on first run OR when something changed
+        if (isFirstRun || changed) {
             updateUpcomingClasses();
             updateStudentClassCards(data.data.classes);
         }
