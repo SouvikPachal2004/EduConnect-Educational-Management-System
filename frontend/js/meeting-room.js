@@ -120,6 +120,10 @@ function wireLobby() {
     });
     qs('joinNowBtn').addEventListener('click', joinMeeting);
     qs('lobbyNameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinMeeting(); });
+    // Keep the lobby avatar in sync with the name the user types
+    qs('lobbyNameInput').addEventListener('input', (e) => {
+        qs('lobbyAvatar').textContent = initials(e.target.value || 'You');
+    });
 }
 
 function updateLobbyButtons() {

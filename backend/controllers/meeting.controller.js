@@ -12,9 +12,26 @@ function generateRoomCode() {
 }
 
 function buildMeetingLink(req, roomCode, title) {
-  const proto = req.headers['x-forwarded-proto'] || req.protocol;
-  const host = req.headers.host;
-  return `${proto}://${host}/meeting-room.html?room=${roomCode}&title=${encodeURIComponent(title || 'Class Meeting')}`;
+  // The meeting link MUST point to the frontend origin (where the user is logged
+  // in and their auth token lives in localStorage). Building it against the
+  // backend host breaks auth: localStorage is per-origin, so the meeting page
+  // opened on the backend domain has no token and every /api call returns 401
+  // ("Meeting Has Ended", blank participant name, etc.).
+  let base = process.env.FRONTEND_URL;
+  if (!base && req.headers.origin) {
+    base = req.headers.origin;
+  }
+  if (!base && req.headers.referer) {
+    try { base = new URL(req.headers.referer).origin; } catch (_) { /* ignore */ }
+  }
+  // Known production frontend as a safe fallback. We intentionally avoid falling
+  // back to the backend host because meeting-room.html served from the backend
+  // origin has no access to the user's auth token (localStorage is per-origin).
+  if (!base || /onrender\.com/i.test(base)) {
+    base = 'https://educonnect-2026.netlify.app';
+  }
+  base = base.replace(/\/+$/, '');
+  return `${base}/meeting-room.html?room=${roomCode}&title=${encodeURIComponent(title || 'Class Meeting')}`;
 }
 
 /**
@@ -198,26 +215,19 @@ const joinMeeting = async (req, res) => {
       const scheduledDateTime = new Date(scheduledDate);
       scheduledDateTime.setHours(hours, minutes, 0, 0);
       
-      // Allow teachers/hosts to join 15 minutes early
+      // Everyone may enter starting 15 minutes before the scheduled time
       const earlyAccessTime = new Date(scheduledDateTime.getTime() - 15 * 60 * 1000);
-      
-      const isHost = meeting.host.toString() === req.user.id;
-      const isTeacherOrHost = ['teacher', 'hod', 'managing_authority', 'admin'].includes(trustedRole) || isHost;
-      
-      // Check if trying to join too early
+
+      // Check if trying to join too early (more than 15 min before start)
       if (now < earlyAccessTime) {
         const minutesUntilAccess = Math.ceil((earlyAccessTime - now) / (60 * 1000));
         return errorResponse(res, `Meeting opens ${minutesUntilAccess} minutes before scheduled time (${scheduledTime})`, 403);
       }
-      
-      // Students need teacher approval and can only join within 15-minute window
-      if (!isTeacherOrHost && now < scheduledDateTime) {
-        // Check if host has joined yet
-        const hostParticipant = meeting.participants.find(p => p.userId && p.userId.toString() === meeting.host.toString());
-        if (!hostParticipant || !hostParticipant.active) {
-          return errorResponse(res, 'Waiting for teacher to start the meeting', 403);
-        }
-      }
+
+      // Note: once a live link exists (meeting is active), students are allowed
+      // into the room. They still go through the normal join-approval flow below
+      // instead of being hard-blocked with a "Waiting for teacher" error before
+      // the scheduled start time.
     }
 
     const existing = meeting.participants.find(p => p.userId && p.userId.toString() === req.user.id);
