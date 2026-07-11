@@ -52,21 +52,7 @@ const createMeeting = async (req, res) => {
     const host = await User.findById(req.user.id);
     if (!host) return errorResponse(res, 'User not found', 404);
 
-    // TIME RESTRICTION FOR CREATION: Teachers can create meetings starting 15 minutes before scheduled time
-    if (scheduledDate && scheduledTime) {
-      const now = new Date();
-      const [hours, minutes] = scheduledTime.split(':').map(Number);
-      const scheduledDateTime = new Date(scheduledDate);
-      scheduledDateTime.setHours(hours, minutes, 0, 0);
-      
-      // Allow creation starting 15 minutes before scheduled time
-      const earlyCreateTime = new Date(scheduledDateTime.getTime() - 15 * 60 * 1000);
-      
-      if (now < earlyCreateTime) {
-        const minutesUntilCreate = Math.ceil((earlyCreateTime - now) / (60 * 1000));
-        return errorResponse(res, `You can create this meeting ${minutesUntilCreate} minutes before the scheduled time (${scheduledTime})`, 403);
-      }
-    }
+    // NO TIME RESTRICTIONS — teachers and HODs can create a meeting at any time.
 
     // Generate a unique room code
     let roomCode;

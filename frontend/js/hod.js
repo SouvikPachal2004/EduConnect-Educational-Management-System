@@ -4208,19 +4208,7 @@ async function hodStartVirtualFromModal() {
             return;
         }
 
-        // Check 15-minute early access window
-        const now = new Date();
-        const [h, m] = scheduledTime.split(':').map(Number);
-        const sched = new Date(scheduledDate);
-        sched.setHours(h, m, 0, 0);
-        const earlyAccess = new Date(sched.getTime() - 15 * 60 * 1000);
-
-        if (now < earlyAccess) {
-            const mins = Math.ceil((earlyAccess - now) / 60000);
-            showNotification(`Class link opens 15 minutes before ${scheduledTime}. Please wait ${mins} more minute(s).`, 'info');
-            return;
-        }
-
+        // No time restrictions — HOD can create meeting at any time.
         const title = `${_hodStartClassName}  ${scheduledDate} ${scheduledTime}`;
 
         // Create the meeting room and send link to students

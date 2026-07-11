@@ -136,6 +136,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Also refresh user data periodically to get updated grades
     setInterval(fetchAllStudentData, 30000); // Refresh every 30 seconds
+
+    // ── LIVE MEETING POLL ──
+    // Polls every 5 seconds so the Join button appears the moment the teacher
+    // starts a meeting — no manual page refresh needed.
+    startLiveMeetingPoll();
 });
 
 // Fetch all student data from backend API
@@ -1469,12 +1474,172 @@ async function updateUpcomingClasses() {
     }
 }
 
-// Auto-refresh upcoming classes every 15 seconds so Join appears quickly when teacher starts
-setInterval(() => {
-    if (document.getElementById('overview') && document.getElementById('overview').classList.contains('active')) {
-        updateUpcomingClasses();
+// ─── LIVE MEETING LINK POLLING ───────────────────────────────────────────────
+// Polls /api/classes every 5 seconds. When a teacher starts a meeting the link
+// appears on the class record; this makes the Join button appear automatically
+// on the student dashboard without any page reload.
+
+let _livePollTimer   = null;   // interval handle
+let _lastLinkSnapshot = {};    // classId → meetingLink (tracks changes)
+
+function startLiveMeetingPoll() {
+    if (_livePollTimer) return; // already running
+    _pollMeetingLinks();        // immediate first run
+    _livePollTimer = setInterval(_pollMeetingLinks, 5000);
+}
+
+function stopLiveMeetingPoll() {
+    clearInterval(_livePollTimer);
+    _livePollTimer = null;
+}
+
+async function _pollMeetingLinks() {
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) return;
+
+    try {
+        const res = await fetch('/api/classes', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+        if (!data.success || !data.data.classes) return;
+
+        let changed = false;
+        data.data.classes.forEach(cls => {
+            const prev = _lastLinkSnapshot[cls._id];
+            const curr = cls.meetingLink || '';
+            if (prev !== undefined && prev !== curr) {
+                changed = true;
+                // A new link appeared — notify the student
+                if (curr && !prev) {
+                    _showMeetingToast(cls.name, curr);
+                }
+            }
+            _lastLinkSnapshot[cls._id] = curr;
+        });
+
+        if (changed) {
+            // Refresh both overview and classes section silently
+            updateUpcomingClasses();
+            updateStudentClassCards(data.data.classes);
+        }
+
+        // Also update on first run to populate the UI
+        if (Object.keys(_lastLinkSnapshot).length === data.data.classes.length && !changed) {
+            updateUpcomingClasses();
+            updateStudentClassCards(data.data.classes);
+        }
+
+    } catch (_) { /* network hiccup — retry next tick */ }
+}
+
+function _showMeetingToast(className, link) {
+    // Show a prominent "Join Now" toast notification
+    const existing = document.getElementById('meetingLiveToast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'meetingLiveToast';
+    toast.style.cssText = `
+        position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+        background:linear-gradient(135deg,#667eea,#764ba2);
+        color:#fff; padding:1rem 1.5rem; border-radius:14px;
+        box-shadow:0 8px 32px rgba(102,126,234,0.45);
+        z-index:9999; display:flex; align-items:center; gap:1rem;
+        font-size:0.95rem; font-weight:500; max-width:420px; width:90%;
+        animation: slideUpToast 0.4s ease;
+    `;
+    toast.innerHTML = `
+        <i class="fas fa-video" style="font-size:1.4rem;"></i>
+        <div>
+            <div style="font-weight:700;">${className} — Live Now!</div>
+            <div style="font-size:0.82rem;opacity:0.85;">Teacher started the class</div>
+        </div>
+        <button onclick="window.open('${link}','_blank')"
+            style="background:#fff;color:#667eea;border:none;border-radius:8px;
+                   padding:0.4rem 0.9rem;font-weight:700;cursor:pointer;white-space:nowrap;">
+            Join
+        </button>
+        <button onclick="document.getElementById('meetingLiveToast').remove()"
+            style="background:transparent;border:none;color:#fff;cursor:pointer;font-size:1.1rem;padding:0 4px;">
+            &times;
+        </button>
+    `;
+    document.body.appendChild(toast);
+
+    // Auto-dismiss after 30 seconds
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 30000);
+}
+
+// Update the My Classes card grid when we get fresh data
+function updateStudentClassCards(classes) {
+    const container = document.getElementById('studentClassCards');
+    if (!container) return;
+
+    if (!classes || classes.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8;grid-column:1/-1;text-align:center;padding:2rem;">
+            No classes enrolled yet.</p>`;
+        return;
     }
-}, 15000);
+
+    container.innerHTML = '';
+    classes.forEach(cls => {
+        const mode    = cls.mode || 'physical';
+        const link    = cls.meetingLink || '';
+        const teacher = cls.teacher?.name || 'Unknown';
+        const subject = cls.subject?.name || cls.name || 'Class';
+        const schedDate = cls.schedule?.scheduledDate || '';
+        const schedTime = cls.schedule?.scheduledTime || '';
+        const schedDisplay = schedDate && schedTime
+            ? `${schedDate} at ${schedTime}` : (schedDate || 'TBD');
+
+        // Virtual class: show Join or Waiting
+        let actionBtn = '';
+        if (mode === 'virtual' && link) {
+            actionBtn = `<button class="btn btn-primary btn-sm" onclick="window.open('${link}','_blank')" style="width:100%;margin-top:0.8rem;">
+                <i class="fas fa-video"></i> Join Meeting
+            </button>`;
+        } else if (mode === 'virtual') {
+            actionBtn = `<button class="btn btn-sm" disabled style="width:100%;margin-top:0.8rem;
+                background:#e2e8f0;color:#94a3b8;cursor:not-allowed;border-radius:8px;padding:0.5rem;font-size:0.82rem;">
+                <i class="fas fa-clock"></i> Waiting for Teacher
+            </button>`;
+        } else {
+            actionBtn = `<div style="margin-top:0.8rem;color:#64748b;font-size:0.82rem;text-align:center;">
+                <i class="fas fa-map-marker-alt"></i> In-Person
+            </div>`;
+        }
+
+        const modeBadge = mode === 'virtual'
+            ? `<span style="background:#ede9fe;color:#6d28d9;padding:0.15rem 0.55rem;border-radius:20px;font-size:0.72rem;font-weight:600;">Virtual</span>`
+            : `<span style="background:#d1fae5;color:#065f46;padding:0.15rem 0.55rem;border-radius:20px;font-size:0.72rem;font-weight:600;">Physical</span>`;
+
+        const liveDot = (mode === 'virtual' && link)
+            ? `<span style="display:inline-block;width:8px;height:8px;background:#22c55e;border-radius:50%;margin-left:6px;box-shadow:0 0 6px #22c55e;animation:livePulse 1.2s infinite;"></span>`
+            : '';
+
+        const card = document.createElement('div');
+        card.style.cssText = `background:#fff;border-radius:14px;padding:1.2rem;
+            box-shadow:0 2px 12px rgba(0,0,0,0.07);border:1px solid #e2e8f0;
+            display:flex;flex-direction:column;`;
+        card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.6rem;">
+                <div style="font-weight:700;font-size:1rem;color:#1e293b;flex:1;">${subject}${liveDot}</div>
+                ${modeBadge}
+            </div>
+            <div style="color:#64748b;font-size:0.82rem;margin-bottom:0.3rem;">
+                <i class="fas fa-user" style="width:14px;"></i> ${teacher}
+            </div>
+            ${schedDisplay ? `<div style="color:#64748b;font-size:0.82rem;margin-bottom:0.3rem;">
+                <i class="fas fa-calendar" style="width:14px;"></i> ${schedDisplay}
+            </div>` : ''}
+            ${actionBtn}
+        `;
+        container.appendChild(card);
+    });
+}
+
+// Auto-refresh upcoming classes every 5 seconds (live polling replaces old 15s interval)
 
 // Update announcements
 function updateAnnouncements() {
