@@ -1,23 +1,21 @@
-// 
-//  EduConnect Meet  Meeting Room Logic
-// 
+// EduConnect Meet — Complete Meeting Room Logic
+// Uses meet.jit.si iframe for video, backend for approval/chat/participants
 
 const MR = {
     localStream: null,
-    screenStream: null,
     micOn: true,
     camOn: true,
     handRaised: false,
-    sharing: false,
     roomCode: null,
     meetingTitle: 'Class Meeting',
-    user: null,
+    user: {},
     hostId: null,
-    joinStatus: 'pending', // 'pending', 'accepted', 'rejected'
+    joinStatus: 'pending',
     pendingRequestsCount: 0,
     chatPollTimer: null,
     participantsPollTimer: null,
     heartbeatTimer: null,
+    approvalPollTimer: null,
     lastChatCount: 0,
     unreadChat: 0,
     panelOpen: false,
@@ -25,21 +23,29 @@ const MR = {
     joined: false,
 };
 
-//  Helpers 
+let _controlsWired = false;
+let jitsiFrame = null;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function qs(id) { return document.getElementById(id); }
-
-function getParam(name) {
-    return new URLSearchParams(window.location.search).get(name);
-}
-
+function getParam(name) { return new URLSearchParams(window.location.search).get(name); }
 function getToken() { return localStorage.getItem('authToken'); }
 
-function getCurrentUser() {
-    try { return JSON.parse(localStorage.getItem('currentUser') || '{}'); }
-    catch { return {}; }
+function initials(name) {
+    if (!name) return 'U';
+    const p = name.trim().split(/\s+/);
+    return (p[0][0] + (p[1] ? p[1][0] : '')).toUpperCase();
 }
 
-// Fetch fresh user info from API to avoid stale localStorage role
+function toast(msg) {
+    const t = qs('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
 async function fetchCurrentUser() {
     try {
         const res = await fetch('/api/auth/me', {
@@ -47,49 +53,28 @@ async function fetchCurrentUser() {
         });
         const data = await res.json();
         if (data.success && data.data) {
-            // Always return with a consistent `id` field
-            const user = data.data;
-            user.id = user._id || user.id; // normalise _id → id
-            return user;
+            const u = data.data;
+            u.id = u._id || u.id;
+            return u;
         }
-    } catch (err) { /* fallback */ }
-    const local = getCurrentUser();
-    local.id = local._id || local.id;
-    return local;
+    } catch (_) {}
+    try {
+        const local = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        local.id = local._id || local.id;
+        return local;
+    } catch (_) { return {}; }
 }
 
-function initials(name) {
-    if (!name) return 'U';
-    const parts = name.trim().split(/\s+/);
-    return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
-}
-
-function toast(msg) {
-    const t = qs('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), 2600);
-}
-
-//  Init 
+// ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-    // Get server-authoritative user info (not stale localStorage)
     MR.user = await fetchCurrentUser();
-    
-    // If user name is still empty (e.g., opened on wrong domain without localStorage),
-    // try to extract from URL parameter or meeting record as a fallback
-    if (!MR.user.name || !MR.user.name.trim()) {
+    if (!MR.user.name?.trim()) {
         const urlName = getParam('name');
-        if (urlName) {
-            MR.user.name = decodeURIComponent(urlName);
-        }
+        if (urlName) MR.user.name = decodeURIComponent(urlName);
     }
-    
     MR.roomCode = getParam('room') || generateRoomCode();
     MR.meetingTitle = decodeURIComponent(getParam('title') || 'Class Meeting');
 
-    // Lobby setup - always populate with the best available name
     qs('lobbyMeetingTitle').textContent = MR.meetingTitle;
     qs('lobbyMeetingMeta').textContent = `Room code: ${MR.roomCode}`;
     qs('lobbyNameInput').value = MR.user.name || '';
@@ -100,24 +85,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function generateRoomCode() {
-    const chars = 'abcdefghijklmnopqrstuvwxyz';
-    const seg = (n) => Array.from({length:n}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
-    return `${seg(3)}-${seg(4)}-${seg(3)}`;
+    const c = 'abcdefghijklmnopqrstuvwxyz';
+    const s = n => Array.from({length:n}, () => c[Math.floor(Math.random()*c.length)]).join('');
+    return `${s(3)}-${s(4)}-${s(3)}`;
 }
 
-//  Lobby preview 
+// ─── Lobby Preview ────────────────────────────────────────────────────────────
 async function startLobbyPreview() {
     try {
-        MR.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        MR.localStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
         qs('lobbyVideo').srcObject = MR.localStream;
         qs('lobbyCamOff').style.display = 'none';
     } catch (err) {
-        console.warn('Media access denied or unavailable:', err);
-        MR.camOn = false;
-        MR.micOn = false;
+        MR.camOn = false; MR.micOn = false;
         qs('lobbyCamOff').style.display = 'flex';
         updateLobbyButtons();
-        toast('Camera/mic not available  you can still join');
+        toast('Camera/mic not available — you can still join');
     }
 }
 
@@ -134,103 +117,152 @@ function wireLobby() {
         updateLobbyButtons();
     });
     qs('joinNowBtn').addEventListener('click', joinMeeting);
-    qs('lobbyNameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinMeeting(); });
-    // Keep the lobby avatar in sync with the name the user types
-    qs('lobbyNameInput').addEventListener('input', (e) => {
+    qs('lobbyNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') joinMeeting(); });
+    qs('lobbyNameInput').addEventListener('input', e => {
         qs('lobbyAvatar').textContent = initials(e.target.value || 'You');
     });
 }
 
 function updateLobbyButtons() {
-    const micBtn = qs('lobbyMicBtn');
-    const camBtn = qs('lobbyCamBtn');
-    micBtn.className = 'ctrl-btn' + (MR.micOn ? '' : ' off');
-    micBtn.innerHTML = `<i class="fas fa-microphone${MR.micOn ? '' : '-slash'}"></i>`;
-    camBtn.className = 'ctrl-btn' + (MR.camOn ? '' : ' off');
-    camBtn.innerHTML = `<i class="fas fa-video${MR.camOn ? '' : '-slash'}"></i>`;
+    const m = qs('lobbyMicBtn'), v = qs('lobbyCamBtn');
+    m.className = 'ctrl-btn' + (MR.micOn ? '' : ' off');
+    m.innerHTML = `<i class="fas fa-microphone${MR.micOn ? '' : '-slash'}"></i>`;
+    v.className = 'ctrl-btn' + (MR.camOn ? '' : ' off');
+    v.innerHTML = `<i class="fas fa-video${MR.camOn ? '' : '-slash'}"></i>`;
 }
 
-//  Join meeting 
+// ─── Join Meeting ─────────────────────────────────────────────────────────────
 async function joinMeeting() {
     const name = qs('lobbyNameInput').value.trim() || MR.user.name || 'Guest';
     MR.user.name = name;
 
-    // Check if meeting is still active before joining
+    // 1. Check meeting is active
     try {
-        const checkRes = await fetch(`/api/meetings/${MR.roomCode}`, {
+        const r = await fetch(`/api/meetings/${MR.roomCode}`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
-        const checkData = await checkRes.json();
-        
-        if (!checkData.success || !checkData.data.isActive) {
-            // Meeting has ended or doesn't exist
-            qs('lobby').style.display = 'none';
-            const leftCard = qs('leftScreen').querySelector('.left-card');
-            if (leftCard) {
-                leftCard.innerHTML = `
-                    <i class="fas fa-times-circle" style="font-size:3.5rem; color:#ef4444; margin-bottom:1.5rem;"></i>
-                    <h2>Meeting Has Ended</h2>
-                    <p style="color:#94a3b8; margin-bottom:2rem;">${MR.meetingTitle}</p>
-                    <p style="color:#64748b; font-size:0.9rem; margin-bottom:2rem;">This meeting link has expired. Please ask the host to generate a new meeting room.</p>
-                    <div class="left-actions">
-                        <button class="left-btn primary" onclick="goHome()"><i class="fas fa-home"></i> Return to Dashboard</button>
-                    </div>
-                `;
-            }
-            qs('leftScreen').style.display = 'flex';
+        const d = await r.json();
+        if (!d.success || !d.data.isActive) {
+            showEndedScreen('This meeting has ended or does not exist.');
             return;
         }
-
-        // Store host ID to check if current user is host
-        MR.hostId = checkData.data.hostId;
-        
+        MR.hostId = d.data.hostId ? String(d.data.hostId) : null;
     } catch (err) {
-        console.error('Error checking meeting status:', err);
-        toast('Error checking meeting status. Please try again.');
+        toast('Cannot reach server. Check your connection.');
         return;
     }
 
-    // Try to join the meeting
+    // 2. POST /join
     try {
-        const joinRes = await fetch(`/api/meetings/${MR.roomCode}/join`, {
+        const r = await fetch(`/api/meetings/${MR.roomCode}/join`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: MR.user.name, micOn: MR.micOn, camOn: MR.camOn })
+            body: JSON.stringify({ name, micOn: MR.micOn, camOn: MR.camOn })
         });
-        const joinData = await joinRes.json();
-        
-        if (!joinData.success) {
-            // Show error message
-            toast(joinData.message || 'Failed to join meeting');
-            return;
-        }
-        
-        MR.joinStatus = joinData.data.status || 'accepted';
-        // Ensure user id is set (from join response or from fetchCurrentUser earlier)
-        MR.user.id = MR.user.id || joinData.data.userId || MR.user._id;
-        
-        // If status is pending, show waiting screen
+        const d = await r.json();
+        if (!d.success) { toast(d.message || 'Failed to join'); return; }
+
+        MR.joinStatus = d.data.status || 'accepted';
+        MR.user.id = MR.user.id || d.data.userId || MR.user._id;
+        if (d.data.userId) MR.user.id = String(d.data.userId);
+
         if (MR.joinStatus === 'pending') {
             qs('lobby').style.display = 'none';
             showWaitingScreen();
-            // Poll for approval
             startApprovalPolling();
             return;
         }
-        
-        // If rejected, show error
         if (MR.joinStatus === 'rejected') {
-            toast('Your join request was declined by the teacher');
+            toast('Your join request was declined.');
             return;
         }
-        
     } catch (err) {
-        console.error('Error joining meeting:', err);
-        toast('Failed to join meeting. Please try again.');
+        toast('Failed to join. Please try again.');
         return;
     }
 
+    enterMeetingRoom();
+}
+
+function showEndedScreen(msg) {
+    qs('lobby').style.display = 'none';
+    const c = qs('leftScreen').querySelector('.left-card');
+    if (c) c.innerHTML = `
+        <i class="fas fa-times-circle" style="font-size:3.5rem;color:#ef4444;margin-bottom:1.5rem;"></i>
+        <h2>Meeting Ended</h2>
+        <p style="color:#94a3b8;margin-bottom:2rem;">${msg}</p>
+        <div class="left-actions">
+            <button class="left-btn primary" onclick="goHome()"><i class="fas fa-home"></i> Return to Dashboard</button>
+        </div>`;
+    qs('leftScreen').style.display = 'flex';
+}
+
+function showWaitingScreen() {
+    const c = qs('leftScreen').querySelector('.left-card');
+    if (c) c.innerHTML = `
+        <i class="fas fa-hourglass-half fa-spin" style="font-size:3.5rem;color:#3b82f6;margin-bottom:1.5rem;"></i>
+        <h2>Waiting for Approval</h2>
+        <p style="color:#94a3b8;margin-bottom:2rem;">${MR.meetingTitle}</p>
+        <p style="color:#64748b;font-size:0.9rem;margin-bottom:2rem;">Your request has been sent to the host. Please wait...</p>
+        <div class="left-actions">
+            <button class="left-btn secondary" onclick="cancelJoinRequest()"><i class="fas fa-times"></i> Cancel</button>
+        </div>`;
+    qs('leftScreen').style.display = 'flex';
+}
+
+// ─── Approval Polling ─────────────────────────────────────────────────────────
+function startApprovalPolling() {
+    MR.approvalPollTimer = setInterval(async () => {
+        try {
+            const r = await fetch(`/api/meetings/${MR.roomCode}/participants`, {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            const d = await r.json();
+            if (!d.success) return;
+
+            // Check accepted list
+            const myId = String(MR.user.id || '');
+            const accepted = (d.data.participants || []).find(p =>
+                p.userId && String(p.userId) === myId
+            );
+            if (accepted && accepted.status === 'accepted') {
+                clearInterval(MR.approvalPollTimer);
+                MR.joinStatus = 'accepted';
+                qs('leftScreen').style.display = 'none';
+                toast('Approved! Joining meeting...');
+                enterMeetingRoom();
+                return;
+            }
+
+            // Check if rejected
+            // (backend marks rejected participants inactive — they won't appear in active list)
+            // If meeting ended while waiting:
+            const meetRes = await fetch(`/api/meetings/${MR.roomCode}`, {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            const meetD = await meetRes.json();
+            if (meetD.success && !meetD.data.isActive) {
+                clearInterval(MR.approvalPollTimer);
+                showEndedScreen('The meeting has ended.');
+            }
+        } catch (_) {}
+    }, 3000);
+}
+
+function cancelJoinRequest() {
+    clearInterval(MR.approvalPollTimer);
+    goHome();
+}
+
+// ─── Enter Meeting Room ───────────────────────────────────────────────────────
+function enterMeetingRoom() {
     MR.joined = true;
+
+    // Stop local lobby preview
+    if (MR.localStream) {
+        MR.localStream.getTracks().forEach(t => t.stop());
+        MR.localStream = null;
+    }
 
     qs('lobby').style.display = 'none';
     qs('meetingRoom').style.display = 'flex';
@@ -239,276 +271,116 @@ async function joinMeeting() {
     qs('roomCodeText').textContent = MR.roomCode;
     qs('leftMeetingName').textContent = MR.meetingTitle;
 
-    // Load Jitsi Meet for real video conferencing
     loadJitsiMeet();
-
-    updateControlButtons();
     startClock();
     wireMeetingControls();
-
-    // Register presence + start polling chat/participants from backend
-    await registerPresence();
+    registerPresence();
     startPolling();
-
-    toast('You joined the meeting');
 }
 
-// Show waiting screen for pending approval
-function showWaitingScreen() {
-    const leftCard = qs('leftScreen').querySelector('.left-card');
-    if (leftCard) {
-        leftCard.innerHTML = `
-            <i class="fas fa-hourglass-half fa-spin" style="font-size:3.5rem; color:#3b82f6; margin-bottom:1.5rem;"></i>
-            <h2>Waiting for Teacher Approval</h2>
-            <p style="color:#94a3b8; margin-bottom:2rem;">${MR.meetingTitle}</p>
-            <p style="color:#64748b; font-size:0.9rem; margin-bottom:2rem;">Your join request has been sent to the teacher. Please wait for approval...</p>
-            <div class="left-actions">
-                <button class="left-btn secondary" onclick="cancelJoinRequest()"><i class="fas fa-times"></i> Cancel</button>
-            </div>
-        `;
-    }
-    qs('leftScreen').style.display = 'flex';
-}
-
-// Poll for approval status
-function startApprovalPolling() {
-    MR.approvalPollTimer = setInterval(async () => {
-        try {
-            const res = await fetch(`/api/meetings/${MR.roomCode}/participants`, {
-                headers: { 'Authorization': `Bearer ${getToken()}` }
-            });
-            const data = await res.json();
-            
-            if (data.success && data.data.participants) {
-                // Check if current user is in accepted participants
-                // Compare as strings to avoid ObjectId vs string mismatch
-                const myId = String(MR.user.id || '');
-                const accepted = data.data.participants.find(p => 
-                    p.userId && String(p.userId) === myId
-                );
-                if (accepted && accepted.status === 'accepted') {
-                    clearInterval(MR.approvalPollTimer);
-                    MR.joinStatus = 'accepted';
-                    MR.joined = true;
-                    
-                    // Hide waiting screen and show meeting room
-                    qs('leftScreen').style.display = 'none';
-                    qs('meetingRoom').style.display = 'flex';
-                    
-                    // Setup meeting UI
-                    qs('meetTitle').textContent = MR.meetingTitle;
-                    qs('roomCodeText').textContent = MR.roomCode;
-                    qs('leftMeetingName').textContent = MR.meetingTitle;
-                    
-                    // Load Jitsi - this will join the meeting automatically
-                    loadJitsiMeet();
-                    
-                    updateControlButtons();
-                    startClock();
-                    wireMeetingControls();
-                    await registerPresence();
-                    startPolling();
-                    
-                    toast('Teacher approved your request. Joining meeting...');
-                }
-            }
-        } catch (err) {
-            console.error('Error polling approval:', err);
-        }
-    }, 3000);
-}
-
-// Cancel join request
-function cancelJoinRequest() {
-    if (MR.approvalPollTimer) {
-        clearInterval(MR.approvalPollTimer);
-    }
-    goHome();
-}
-
-//  Jitsi Meet Integration 
-let jitsiAPI = null;
-
+// ─── Jitsi iframe ─────────────────────────────────────────────────────────────
 function loadJitsiMeet() {
     const container = qs('videoGrid');
-    container.innerHTML = ''; // Clear any existing content
-    
-    // Use direct iframe embed — avoids meet.jit.si API auth issues
-    // The hash config parameters bypass the pre-join screen
-    const roomName = `EduConnect${MR.roomCode.replace(/-/g, '')}`;
+    container.innerHTML = '';
+
+    // Clean room name — alphanumeric only for Jitsi
+    const roomName = 'EduConnect' + MR.roomCode.replace(/-/g, '');
     const displayName = encodeURIComponent(MR.user.name || 'User');
-    
-    const jitsiURL = `https://meet.jit.si/${roomName}#` +
-        `userInfo.displayName="${MR.user.name || 'User'}"` +
+
+    // Build Jitsi URL with hash config (bypasses pre-join, no external_api.js needed)
+    const src = `https://meet.jit.si/${roomName}` +
+        `#userInfo.displayName="${MR.user.name || 'User'}"` +
         `&config.prejoinPageEnabled=false` +
         `&config.startWithAudioMuted=${!MR.micOn}` +
         `&config.startWithVideoMuted=${!MR.camOn}` +
         `&config.disableDeepLinking=true` +
         `&config.enableWelcomePage=false` +
+        `&config.disableInviteFunctions=true` +
+        `&config.toolbarButtons=["microphone","camera","desktop","fullscreen","hangup","raisehand","tileview"]` +
         `&interfaceConfig.SHOW_JITSI_WATERMARK=false` +
-        `&interfaceConfig.SHOW_WATERMARK_FOR_GUESTS=false` +
         `&interfaceConfig.MOBILE_APP_PROMO=false`;
 
-    const iframe = document.createElement('iframe');
-    iframe.src = jitsiURL;
-    iframe.allow = 'camera *; microphone *; fullscreen *; display-capture *; autoplay *; clipboard-write';
-    iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:12px;';
-    iframe.setAttribute('allowfullscreen', '');
-    container.appendChild(iframe);
-    
-    // Store reference for disposal
-    jitsiAPI = { iframe, dispose: () => { iframe.src = 'about:blank'; iframe.remove(); } };
-    
+    jitsiFrame = document.createElement('iframe');
+    jitsiFrame.src = src;
+    jitsiFrame.allow = 'camera *; microphone *; fullscreen *; display-capture *; autoplay *';
+    jitsiFrame.style.cssText = 'width:100%;height:100%;border:none;border-radius:12px;position:absolute;top:0;left:0;';
+    jitsiFrame.setAttribute('allowfullscreen', '');
+    container.appendChild(jitsiFrame);
+
     toast('Joining video conference...');
 }
 
-//  Local video tile (legacy - now replaced by Jitsi) 
-function renderLocalTile() {
-    const grid = qs('videoGrid');
-    let tile = qs('tile-local');
-    if (!tile) {
-        tile = document.createElement('div');
-        tile.id = 'tile-local';
-        tile.className = 'video-tile local';
-        grid.appendChild(tile);
-    }
-    tile.innerHTML = `
-        <video id="localVideo" autoplay muted playsinline></video>
-        <div class="video-tile-avatar" id="localAvatar" style="display:none;">
-            <div class="avatar-circle">${initials(MR.user.name)}</div>
-        </div>
-        <div class="video-tile-name"><i class="fas fa-microphone${MR.micOn?'':'-slash'}" id="localMicIcon"></i> ${MR.user.name} (You)</div>
-        <div class="video-tile-badges" id="localBadges"></div>
-    `;
-    if (MR.localStream) qs('localVideo').srcObject = MR.localStream;
-    updateLocalTileVisual();
-    refreshGridLayout();
-}
-
-function updateLocalTileVisual() {
-    const vid = qs('localVideo');
-    const av = qs('localAvatar');
-    if (!vid || !av) return;
-    if (MR.camOn && MR.localStream) { vid.style.display = 'block'; av.style.display = 'none'; }
-    else { vid.style.display = 'none'; av.style.display = 'flex'; }
-
-    const micIcon = qs('localMicIcon');
-    if (micIcon) micIcon.className = `fas fa-microphone${MR.micOn ? '' : '-slash'}`;
-
-    const badges = qs('localBadges');
-    if (badges) {
-        badges.innerHTML = '';
-        if (!MR.micOn) badges.innerHTML += '<div class="tile-badge muted"><i class="fas fa-microphone-slash"></i></div>';
-        if (MR.handRaised) badges.innerHTML += '<div class="tile-badge hand"><i class="fas fa-hand"></i></div>';
-    }
-}
-
-function refreshGridLayout() {
-    const grid = qs('videoGrid');
-    const tiles = grid.querySelectorAll('.video-tile').length;
-    grid.classList.toggle('single', tiles === 1);
-}
-
-// Controls wired flag — prevents duplicate listeners
-let _controlsWired = false;
-
-//  Controls 
+// ─── Controls ─────────────────────────────────────────────────────────────────
 function wireMeetingControls() {
-    if (_controlsWired) return; // already wired — don't add duplicate listeners
+    if (_controlsWired) return;
     _controlsWired = true;
 
-    qs('micBtn').addEventListener('click', toggleMic);
-    qs('camBtn').addEventListener('click', toggleCam);
-    qs('screenBtn').addEventListener('click', toggleScreen);
-    qs('handBtn').addEventListener('click', toggleHand);
+    qs('micBtn').addEventListener('click', () => {
+        MR.micOn = !MR.micOn;
+        updateControlButtons();
+        updatePresence();
+        toast(MR.micOn ? 'Mic on' : 'Mic off — use Jitsi toolbar to mute/unmute');
+    });
+    qs('camBtn').addEventListener('click', () => {
+        MR.camOn = !MR.camOn;
+        updateControlButtons();
+        updatePresence();
+        toast(MR.camOn ? 'Camera on' : 'Camera off — use Jitsi toolbar');
+    });
+    qs('screenBtn').addEventListener('click', () => {
+        toast('Use the screen share button inside the video window');
+    });
+    qs('handBtn').addEventListener('click', () => {
+        MR.handRaised = !MR.handRaised;
+        updateControlButtons();
+        updatePresence();
+        toast(MR.handRaised ? 'Hand raised' : 'Hand lowered');
+    });
     qs('leaveBtn').addEventListener('click', leaveMeeting);
     qs('chatBtn').addEventListener('click', () => togglePanel('chat'));
     qs('participantsBtn').addEventListener('click', () => togglePanel('participants'));
     qs('closePanelBtn').addEventListener('click', closePanel);
     qs('chatSendBtn').addEventListener('click', sendChat);
-    qs('chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
+    qs('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
     qs('copyLinkBtn').addEventListener('click', copyMeetingLink);
+    qs('rejoinBtn').addEventListener('click', () => window.location.reload());
+    qs('homeBtn').addEventListener('click', goHome);
 
-    // End Meeting button  show for host (teacher or hod role)
+    // End button — visible only to host/teacher/hod
     const endBtn = qs('endMeetingBtn');
     if (endBtn) {
-        const isHost = (MR.hostId && MR.user.id === MR.hostId)
-            || MR.user.role === 'teacher'
-            || MR.user.role === 'hod';
+        const isHost = (MR.hostId && MR.user.id && String(MR.user.id) === String(MR.hostId))
+            || ['teacher','hod','managing_authority','admin'].includes(MR.user.role);
         if (isHost) {
             endBtn.style.display = 'flex';
             endBtn.addEventListener('click', endMeetingForAll);
-        } else {
-            endBtn.style.display = 'none';
         }
     }
-
-    // Left screen actions
-    qs('rejoinBtn').addEventListener('click', () => window.location.reload());
-    qs('homeBtn').addEventListener('click', goHome);
-}
-
-function toggleMic() {
-    MR.micOn = !MR.micOn;
-    if (MR.localStream) MR.localStream.getAudioTracks().forEach(t => t.enabled = MR.micOn);
-    // Note: with iframe Jitsi, mic control is inside the iframe - user uses Jitsi's own toolbar
-    updateControlButtons();
-    updatePresence();
-}
-
-function toggleCam() {
-    MR.camOn = !MR.camOn;
-    if (MR.localStream) MR.localStream.getVideoTracks().forEach(t => t.enabled = MR.camOn);
-    // Note: with iframe Jitsi, cam control is inside the iframe - user uses Jitsi's own toolbar
-    updateControlButtons();
-    updatePresence();
-}
-
-async function toggleScreen() {
-    toast('Use the screen share button inside the Jitsi window');
-}
-
-function stopScreenShare() {
-    if (MR.screenStream) MR.screenStream.getTracks().forEach(t => t.stop());
-    MR.screenStream = null;
-    MR.sharing = false;
-    updateControlButtons();
-}
-
-function toggleHand() {
-    MR.handRaised = !MR.handRaised;
-    updateControlButtons();
-    updatePresence();
-    toast(MR.handRaised ? 'Hand raised (visible to teacher in participants list)' : 'Hand lowered');
 }
 
 function updateControlButtons() {
-    const mic = qs('micBtn');
-    mic.className = 'ctrl-btn' + (MR.micOn ? '' : ' off');
-    mic.innerHTML = `<i class="fas fa-microphone${MR.micOn ? '' : '-slash'}"></i>`;
+    const m = qs('micBtn');
+    m.className = 'ctrl-btn' + (MR.micOn ? '' : ' off');
+    m.innerHTML = `<i class="fas fa-microphone${MR.micOn ? '' : '-slash'}"></i>`;
 
-    const cam = qs('camBtn');
-    cam.className = 'ctrl-btn' + (MR.camOn ? '' : ' off');
-    cam.innerHTML = `<i class="fas fa-video${MR.camOn ? '' : '-slash'}"></i>`;
+    const v = qs('camBtn');
+    v.className = 'ctrl-btn' + (MR.camOn ? '' : ' off');
+    v.innerHTML = `<i class="fas fa-video${MR.camOn ? '' : '-slash'}"></i>`;
 
-    const screen = qs('screenBtn');
-    screen.className = 'ctrl-btn' + (MR.sharing ? ' active-toggle' : '');
-
-    const hand = qs('handBtn');
-    hand.className = 'ctrl-btn' + (MR.handRaised ? ' active-toggle' : '');
+    qs('handBtn').className = 'ctrl-btn' + (MR.handRaised ? ' active-toggle' : '');
 }
 
-//  Clock 
+// ─── Clock ────────────────────────────────────────────────────────────────────
 function startClock() {
     const update = () => {
-        const now = new Date();
-        qs('meetClock').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const n = new Date();
+        qs('meetClock').textContent = n.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
     };
     update();
     setInterval(update, 30000);
 }
 
-//  Side Panel (chat / participants) 
+// ─── Panel ────────────────────────────────────────────────────────────────────
 function togglePanel(which) {
     if (MR.panelOpen && MR.activePanel === which) { closePanel(); return; }
     MR.panelOpen = true;
@@ -522,22 +394,19 @@ function togglePanel(which) {
         qs('chatBadge').style.display = 'none';
         setTimeout(() => qs('chatInput').focus(), 100);
     }
-    refreshGridLayout();
 }
 
 function closePanel() {
     MR.panelOpen = false;
     qs('meetPanel').style.display = 'none';
-    refreshGridLayout();
 }
 
-//  Chat (backend-backed) 
+// ─── Chat ─────────────────────────────────────────────────────────────────────
 async function sendChat() {
     const input = qs('chatInput');
     const text = input.value.trim();
     if (!text) return;
     input.value = '';
-
     try {
         await fetch(`/api/meetings/${MR.roomCode}/chat`, {
             method: 'POST',
@@ -545,99 +414,78 @@ async function sendChat() {
             body: JSON.stringify({ message: text, senderName: MR.user.name })
         });
         await fetchChat();
-    } catch (err) {
-        // Fallback: show locally even if backend fails
-        appendChatMessage({ senderName: MR.user.name, message: text, createdAt: new Date().toISOString(), self: true });
+    } catch (_) {
+        appendChatMsg({ senderName: MR.user.name, message: text, createdAt: new Date().toISOString(), self: true });
     }
 }
 
 async function fetchChat() {
     try {
-        const res = await fetch(`/api/meetings/${MR.roomCode}/chat`, {
+        const r = await fetch(`/api/meetings/${MR.roomCode}/chat`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
-        const data = await res.json();
-        const messages = data.success ? (data.data?.messages || []) : [];
-        renderChat(messages);
-    } catch (err) { /* offline-friendly */ }
+        const d = await r.json();
+        renderChat(d.success ? (d.data?.messages || []) : []);
+    } catch (_) {}
 }
 
 function renderChat(messages) {
-    const container = qs('chatMessages');
+    const box = qs('chatMessages');
     const empty = qs('chatEmpty');
-
-    if (messages.length === 0) { if (empty) empty.style.display = 'block'; return; }
+    if (!messages.length) { if (empty) empty.style.display = 'block'; return; }
     if (empty) empty.style.display = 'none';
-
-    // Only re-render if count changed
     if (messages.length === MR.lastChatCount) return;
-
-    // New messages arrived while chat closed
     if (messages.length > MR.lastChatCount && (!MR.panelOpen || MR.activePanel !== 'chat')) {
-        MR.unreadChat += (messages.length - MR.lastChatCount);
-        const badge = qs('chatBadge');
-        badge.textContent = MR.unreadChat;
-        badge.style.display = 'flex';
+        MR.unreadChat += messages.length - MR.lastChatCount;
+        const b = qs('chatBadge');
+        b.textContent = MR.unreadChat;
+        b.style.display = 'flex';
     }
     MR.lastChatCount = messages.length;
-
-    container.querySelectorAll('.chat-msg').forEach(n => n.remove());
-    messages.forEach(m => appendChatMessage({
-        senderName: m.senderName,
-        message: m.message,
-        createdAt: m.createdAt,
-        self: m.senderName === MR.user.name
+    box.querySelectorAll('.chat-msg').forEach(n => n.remove());
+    messages.forEach(m => appendChatMsg({
+        senderName: m.senderName, message: m.message,
+        createdAt: m.createdAt, self: m.senderName === MR.user.name
     }, false));
-    container.scrollTop = container.scrollHeight;
+    box.scrollTop = box.scrollHeight;
 }
 
-function appendChatMessage(m, scroll = true) {
-    const container = qs('chatMessages');
-    const empty = qs('chatEmpty');
-    if (empty) empty.style.display = 'none';
+function appendChatMsg(m, scroll = true) {
+    const box = qs('chatMessages');
+    if (qs('chatEmpty')) qs('chatEmpty').style.display = 'none';
     const div = document.createElement('div');
     div.className = 'chat-msg' + (m.self ? ' self' : '');
-    const time = new Date(m.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const t = new Date(m.createdAt).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
     div.innerHTML = `
         <div class="chat-msg-head">
-            <span class="chat-msg-author">${m.self ? 'You' : escapeHtml(m.senderName)}</span>
-            <span class="chat-msg-time">${time}</span>
+            <span class="chat-msg-author">${m.self ? 'You' : esc(m.senderName)}</span>
+            <span class="chat-msg-time">${t}</span>
         </div>
-        <div class="chat-msg-text">${escapeHtml(m.message)}</div>
-    `;
-    container.appendChild(div);
-    if (scroll) container.scrollTop = container.scrollHeight;
+        <div class="chat-msg-text">${esc(m.message)}</div>`;
+    box.appendChild(div);
+    if (scroll) box.scrollTop = box.scrollHeight;
 }
 
-function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function esc(s) {
+    return String(s).replace(/[&<>"']/g, c =>
+        ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
-//  Presence / participants (backend-backed) 
+// ─── Presence / Participants ──────────────────────────────────────────────────
 async function registerPresence() {
     try {
-        const res = await fetch(`/api/meetings/${MR.roomCode}/join`, {
+        const r = await fetch(`/api/meetings/${MR.roomCode}/join`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: MR.user.name, micOn: MR.micOn, camOn: MR.camOn })
         });
-        const data = await res.json();
-        // Update local user info with server-authoritative role + name
-        if (data.success && data.data) {
-            if (data.data.role) MR.user.role = data.data.role;
-            if (data.data.name) MR.user.name = data.data.name;
-            // Update display name in the local tile
-            const nameEl = document.querySelector('#tile-local .video-tile-name');
-            if (nameEl) nameEl.innerHTML = `<i class="fas fa-microphone${MR.micOn?'':'-slash'}"></i> ${MR.user.name} (You)`;
-            
-            // Check if current user is host and show End button accordingly
-            const endBtn = qs('endMeetingBtn');
-            if (endBtn && MR.hostId && MR.user.id === MR.hostId) {
-                endBtn.style.display = 'flex';
-                endBtn.addEventListener('click', endMeetingForAll);
-            }
+        const d = await r.json();
+        if (d.success && d.data) {
+            if (d.data.role) MR.user.role = d.data.role;
+            if (d.data.name) MR.user.name = d.data.name;
+            if (d.data.userId) MR.user.id = String(d.data.userId);
         }
-    } catch (err) { /* offline-friendly */ }
+    } catch (_) {}
     await fetchParticipants();
 }
 
@@ -648,210 +496,161 @@ async function updatePresence() {
             headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: MR.user.name, micOn: MR.micOn, camOn: MR.camOn, handRaised: MR.handRaised })
         });
-    } catch (err) { /* offline-friendly */ }
+    } catch (_) {}
 }
 
 async function fetchParticipants() {
     try {
-        const res = await fetch(`/api/meetings/${MR.roomCode}/participants`, {
+        const r = await fetch(`/api/meetings/${MR.roomCode}/participants`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
-        const data = await res.json();
-        const list = data.success ? (data.data?.participants || []) : [];
-        const pending = data.success ? (data.data?.pendingRequests || []) : [];
-        const hostId = data.success ? data.data?.hostId : null;
-        
+        const d = await r.json();
+        const list = d.success ? (d.data?.participants || []) : [];
+        const pending = d.success ? (d.data?.pendingRequests || []) : [];
+        const hostId = d.success ? d.data?.hostId : null;
         MR.pendingRequestsCount = pending.length;
-        
-        // Update badge on participants button
         updatePendingBadge();
-        
         renderParticipants(list, pending, hostId);
-    } catch (err) {
-        // At least show self
-        renderParticipants([{ name: MR.user.name, role: MR.user.role, micOn: MR.micOn, camOn: MR.camOn, status: 'accepted' }], [], null);
+    } catch (_) {
+        renderParticipants([{ name: MR.user.name, role: MR.user.role, micOn: MR.micOn, camOn: MR.camOn }], [], null);
     }
 }
 
 function updatePendingBadge() {
-    const badge = document.createElement('span');
-    badge.id = 'pendingBadge';
-    badge.className = 'pending-badge';
-    badge.textContent = MR.pendingRequestsCount;
-    badge.style.cssText = 'position:absolute; top:-5px; right:-5px; background:#ef4444; color:white; border-radius:50%; width:20px; height:20px; font-size:11px; display:flex; align-items:center; justify-content:center; font-weight:bold;';
-    
-    const participantsBtn = qs('participantsBtn');
-    if (participantsBtn) {
-        const existingBadge = qs('pendingBadge');
-        if (existingBadge) existingBadge.remove();
-        
-        if (MR.pendingRequestsCount > 0 && (MR.user.id === MR.hostId || MR.user.role === 'teacher' || MR.user.role === 'hod')) {
-            participantsBtn.style.position = 'relative';
-            participantsBtn.appendChild(badge);
-        }
+    const btn = qs('participantsBtn');
+    if (!btn) return;
+    const old = qs('pendingBadge');
+    if (old) old.remove();
+    const isHost = ['teacher','hod','managing_authority','admin'].includes(MR.user.role)
+        || (MR.hostId && MR.user.id && String(MR.user.id) === String(MR.hostId));
+    if (MR.pendingRequestsCount > 0 && isHost) {
+        const b = document.createElement('span');
+        b.id = 'pendingBadge';
+        b.style.cssText = 'position:absolute;top:-5px;right:-5px;background:#ef4444;color:white;border-radius:50%;width:20px;height:20px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:bold;';
+        b.textContent = MR.pendingRequestsCount;
+        btn.style.position = 'relative';
+        btn.appendChild(b);
     }
 }
 
-function renderParticipants(list, pending = [], hostId = null) {
-    // Ensure self is in the list
-    if (!list.some(p => p.name === MR.user.name || (p.userId && MR.user.id && p.userId === MR.user.id))) {
-        list.unshift({ userId: MR.user.id, name: MR.user.name, role: MR.user.role, micOn: MR.micOn, camOn: MR.camOn, status: 'accepted' });
+function renderParticipants(list, pending, hostId) {
+    // Make sure self is in list
+    const myId = String(MR.user.id || '');
+    if (!list.some(p => (p.userId && String(p.userId) === myId) || p.name === MR.user.name)) {
+        list.unshift({ userId: myId, name: MR.user.name, role: MR.user.role, micOn: MR.micOn, camOn: MR.camOn });
     }
-    
-    const totalCount = list.length + pending.length;
-    qs('participantCount').textContent = totalCount;
+    qs('participantCount').textContent = list.length + pending.length;
 
-    const container = qs('participantsList');
-    const isHost = MR.user.id === hostId || MR.user.role === 'teacher' || MR.user.role === 'hod';
-    
+    const isHost = ['teacher','hod','managing_authority','admin'].includes(MR.user.role)
+        || (hostId && myId && myId === String(hostId));
+
     let html = '';
-    
-    // Show accepted participants
     list.forEach(p => {
-        const isSelf = p.name === MR.user.name || (p.userId && MR.user.id && p.userId === MR.user.id);
-        const roleLabel = p.role === 'hod' ? 'HOD' : p.role === 'teacher' ? 'Teacher'
-            : p.role === 'managing_authority' ? 'Principal' : p.role === 'student' ? 'Student' : '';
-        html += `
-            <div class="participant-item">
+        const isSelf = (p.userId && String(p.userId) === myId) || p.name === MR.user.name;
+        const role = { hod:'HOD', teacher:'Teacher', managing_authority:'Principal', student:'Student' }[p.role] || p.role || '';
+        html += `<div class="participant-item">
+            <div class="participant-avatar">${initials(p.name)}</div>
+            <div class="participant-info">
+                <div class="participant-name">${esc(p.name)}${isSelf ? ' (You)' : ''}</div>
+                <div class="participant-role">${role}</div>
+            </div>
+            <div class="participant-icons">
+                <i class="fas fa-microphone${p.micOn ? '' : '-slash'}"></i>
+                <i class="fas fa-video${p.camOn ? '' : '-slash'}"></i>
+                ${p.handRaised ? '<i class="fas fa-hand" style="color:#fbbc04;"></i>' : ''}
+            </div>
+        </div>`;
+    });
+
+    if (isHost && pending.length > 0) {
+        html += `<div style="border-top:1px solid #334155;margin:10px 0;padding-top:10px;">
+            <h4 style="color:#94a3b8;font-size:0.85rem;margin-bottom:10px;">Pending Requests (${pending.length})</h4></div>`;
+        pending.forEach(p => {
+            const uid = p.userId ? String(p.userId) : '';
+            if (!uid) return;
+            html += `<div class="participant-item pending-item" style="background:#1e293b;">
                 <div class="participant-avatar">${initials(p.name)}</div>
                 <div class="participant-info">
-                    <div class="participant-name">${escapeHtml(p.name)}${isSelf ? ' (You)' : ''}</div>
-                    <div class="participant-role">${roleLabel}</div>
+                    <div class="participant-name">${esc(p.name)}</div>
+                    <div class="participant-role">${p.role === 'student' ? 'Student' : (p.role || '')}</div>
                 </div>
-                <div class="participant-icons">
-                    <i class="fas fa-microphone${p.micOn ? '' : '-slash'}"></i>
-                    <i class="fas fa-video${p.camOn ? '' : '-slash'}"></i>
-                    ${p.handRaised ? '<i class="fas fa-hand" style="color:#fbbc04;"></i>' : ''}
+                <div class="participant-actions" style="display:flex;gap:5px;">
+                    <button data-uid="${uid}" data-action="approve" class="pending-action-btn" style="background:#22c55e;color:white;border:none;border-radius:5px;padding:5px 10px;font-size:12px;cursor:pointer;"><i class="fas fa-check"></i> Accept</button>
+                    <button data-uid="${uid}" data-action="reject" class="pending-action-btn" style="background:#ef4444;color:white;border:none;border-radius:5px;padding:5px 10px;font-size:12px;cursor:pointer;"><i class="fas fa-times"></i> Decline</button>
                 </div>
-            </div>
-        `;
-    });
-    
-    // Show pending requests if user is host
-    if (isHost && pending.length > 0) {
-        html += '<div style="border-top:1px solid #334155; margin:10px 0; padding-top:10px;"><h4 style="color:#94a3b8; font-size:0.85rem; margin-bottom:10px;">Pending Requests (' + pending.length + ')</h4></div>';
-        
-        pending.forEach(p => {
-            // Use data- attributes instead of inline onclick to avoid string injection issues
-            const uid = p.userId ? String(p.userId) : '';
-            if (!uid || uid === 'undefined' || uid === 'null') return; // skip invalid
-            html += `
-                <div class="participant-item pending-item" style="background:#1e293b;">
-                    <div class="participant-avatar">${initials(p.name)}</div>
-                    <div class="participant-info">
-                        <div class="participant-name">${escapeHtml(p.name)}</div>
-                        <div class="participant-role">${p.role === 'student' ? 'Student' : p.role}</div>
-                    </div>
-                    <div class="participant-actions" style="display:flex; gap:5px;">
-                        <button data-uid="${uid}" data-action="approve" class="pending-action-btn btn-approve" style="background:#22c55e; color:white; border:none; border-radius:5px; padding:5px 10px; font-size:12px; cursor:pointer;"><i class="fas fa-check"></i> Accept</button>
-                        <button data-uid="${uid}" data-action="reject" class="pending-action-btn btn-reject" style="background:#ef4444; color:white; border:none; border-radius:5px; padding:5px 10px; font-size:12px; cursor:pointer;"><i class="fas fa-times"></i> Decline</button>
-                    </div>
-                </div>
-            `;
+            </div>`;
         });
     }
-    
+
+    const container = qs('participantsList');
     container.innerHTML = html;
 
-    // Wire approve/reject via event delegation — avoids inline onclick & undefined userId bugs
+    // Wire approve/reject buttons
     container.querySelectorAll('.pending-action-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', async function() {
             const uid = this.getAttribute('data-uid');
             const action = this.getAttribute('data-action');
-            if (!uid || uid === 'undefined' || uid === 'null') {
-                toast('Error: missing participant ID. Please refresh.');
-                return;
-            }
-            if (action === 'approve') approveJoinRequest(uid);
-            else rejectJoinRequest(uid);
+            if (!uid) return;
+            await handleApproval(uid, action === 'approve');
         });
     });
 }
 
-// Approve join request
-async function approveJoinRequest(userId) {
+// ─── Approve / Reject ─────────────────────────────────────────────────────────
+async function handleApproval(userId, approve) {
+    const endpoint = approve ? 'approve' : 'reject';
     try {
-        const res = await fetch(`/api/meetings/${MR.roomCode}/approve`, {
+        const r = await fetch(`/api/meetings/${MR.roomCode}/${endpoint}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId })
         });
-        const data = await res.json();
-        if (data.success) {
-            toast('Join request approved');
+        const d = await r.json();
+        if (d.success) {
+            toast(approve ? 'Student approved — they will join now' : 'Request declined');
             await fetchParticipants();
         } else {
-            toast('Failed to approve request');
+            toast(`Error: ${d.message}`);
+            console.error('Approval failed:', d);
         }
     } catch (err) {
-        console.error('Error approving request:', err);
-        toast('Error approving request');
+        toast('Network error — please try again');
+        console.error('Approval error:', err);
     }
 }
 
-// Reject join request
-async function rejectJoinRequest(userId) {
-    try {
-        const res = await fetch(`/api/meetings/${MR.roomCode}/reject`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId })
-        });
-        const data = await res.json();
-        if (data.success) {
-            toast('Join request declined');
-            await fetchParticipants();
-        } else {
-            toast('Failed to decline request');
-        }
-    } catch (err) {
-        console.error('Error declining request:', err);
-        toast('Error declining request');
-    }
-}
-
-//  Polling 
+// ─── Polling ──────────────────────────────────────────────────────────────────
 function startPolling() {
     fetchChat();
     fetchParticipants();
     MR.chatPollTimer = setInterval(fetchChat, 3000);
-    MR.participantsPollTimer = setInterval(checkMeetingAndParticipants, 5000);
-    // Heartbeat every 10s to keep presence active
+    MR.participantsPollTimer = setInterval(checkMeetingStatus, 5000);
     MR.heartbeatTimer = setInterval(updatePresence, 10000);
 }
 
-// Poll meeting status  auto-kick non-host if host ended meeting
-async function checkMeetingAndParticipants() {
+async function checkMeetingStatus() {
     try {
-        const res = await fetch(`/api/meetings/${MR.roomCode}`, {
+        const r = await fetch(`/api/meetings/${MR.roomCode}`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
-        const data = await res.json();
-
-        // If meeting ended (host clicked End), force all participants to leave
-        if (data.success && !data.data.isActive && MR.joined) {
+        const d = await r.json();
+        if (d.success && !d.data.isActive && MR.joined) {
             stopPolling();
             MR.joined = false;
-            if (MR.localStream) MR.localStream.getTracks().forEach(t => t.stop());
             qs('meetingRoom').style.display = 'none';
-
-            // Show "Class Completed" screen
-            const leftCard = qs('leftScreen').querySelector('.left-card');
-            if (leftCard) {
-                leftCard.innerHTML = `
-                    <i class="fas fa-check-circle" style="font-size:3.5rem; color:#22c55e; margin-bottom:1.5rem;"></i>
-                    <h2>Class Completed</h2>
-                    <p style="color:#94a3b8; margin-bottom:2rem;">${MR.meetingTitle}</p>
-                    <p style="color:#64748b; font-size:0.9rem; margin-bottom:2rem;">The teacher has ended the class. See you next time!</p>
-                    <div class="left-actions">
-                        <button class="left-btn primary" onclick="goHome()"><i class="fas fa-home"></i> Return to Dashboard</button>
-                    </div>
-                `;
-            }
+            const c = qs('leftScreen').querySelector('.left-card');
+            if (c) c.innerHTML = `
+                <i class="fas fa-check-circle" style="font-size:3.5rem;color:#22c55e;margin-bottom:1.5rem;"></i>
+                <h2>Class Completed</h2>
+                <p style="color:#94a3b8;margin-bottom:2rem;">${MR.meetingTitle}</p>
+                <p style="color:#64748b;font-size:0.9rem;margin-bottom:2rem;">The teacher has ended the class.</p>
+                <div class="left-actions">
+                    <button class="left-btn primary" onclick="goHome()"><i class="fas fa-home"></i> Return to Dashboard</button>
+                </div>`;
             qs('leftScreen').style.display = 'flex';
-            return; // skip participants fetch
+            return;
         }
-    } catch (err) { /* ignore  keep polling */ }
+    } catch (_) {}
     await fetchParticipants();
 }
 
@@ -861,95 +660,55 @@ function stopPolling() {
     clearInterval(MR.heartbeatTimer);
 }
 
-//  Copy link 
-function copyMeetingLink() {
-    const link = `${window.location.origin}/meeting-room.html?room=${MR.roomCode}&title=${encodeURIComponent(MR.meetingTitle)}`;
-    navigator.clipboard.writeText(link).then(() => toast('Meeting link copied to clipboard'))
-        .catch(() => toast('Could not copy link'));
+// ─── Leave / End ──────────────────────────────────────────────────────────────
+async function leaveMeeting() {
+    stopPolling();
+    if (jitsiFrame) { jitsiFrame.src = 'about:blank'; jitsiFrame.remove(); jitsiFrame = null; }
+    try {
+        await fetch(`/api/meetings/${MR.roomCode}/leave`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }
+        });
+    } catch (_) {}
+    qs('meetingRoom').style.display = 'none';
+    qs('leftScreen').style.display = 'flex';
 }
 
-//  End Meeting (host only) 
 async function endMeetingForAll() {
-    if (!confirm('End the meeting for everyone? The join link will expire and cannot be reused.')) return;
-
+    if (!confirm('End the meeting for everyone?')) return;
     stopPolling();
-    
-    // Dispose Jitsi iframe
-    if (jitsiAPI) {
-        jitsiAPI.dispose();
-        jitsiAPI = null;
-    }
-    
+    if (jitsiFrame) { jitsiFrame.src = 'about:blank'; jitsiFrame.remove(); jitsiFrame = null; }
     try {
         await fetch(`/api/meetings/${MR.roomCode}/end`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }
         });
-        toast('Meeting ended. The join link has been expired.');
-    } catch (err) {
-        console.error('endMeeting error:', err);
-    }
-
-    if (MR.localStream) MR.localStream.getTracks().forEach(t => t.stop());
-    if (MR.screenStream) MR.screenStream.getTracks().forEach(t => t.stop());
-
+    } catch (_) {}
     qs('meetingRoom').style.display = 'none';
-
-    // Show a special "ended" left screen
-    const leftCard = qs('leftScreen').querySelector('.left-card');
-    if (leftCard) {
-        leftCard.innerHTML = `
-            <i class="fas fa-stop-circle" style="font-size:3.5rem; color:#ef4444; margin-bottom:1.5rem;"></i>
-            <h2>Meeting Ended</h2>
-            <p id="leftMeetingName" style="color:#94a3b8; margin-bottom:2rem;">${MR.meetingTitle}</p>
-            <p style="color:#64748b; font-size:0.9rem; margin-bottom:2rem;">The join link has been expired. Generate a new meeting room for your next class.</p>
-            <div class="left-actions">
-                <button class="left-btn primary" onclick="goHome()"><i class="fas fa-home"></i> Return to Dashboard</button>
-            </div>
-        `;
-    }
+    const c = qs('leftScreen').querySelector('.left-card');
+    if (c) c.innerHTML = `
+        <i class="fas fa-stop-circle" style="font-size:3.5rem;color:#ef4444;margin-bottom:1.5rem;"></i>
+        <h2>Meeting Ended</h2>
+        <p style="color:#64748b;font-size:0.9rem;margin-bottom:2rem;">The join link has expired.</p>
+        <div class="left-actions">
+            <button class="left-btn primary" onclick="goHome()"><i class="fas fa-home"></i> Return to Dashboard</button>
+        </div>`;
     qs('leftScreen').style.display = 'flex';
 }
 
-//  Leave 
-async function leaveMeeting() {
-    stopPolling();
-    
-    // Dispose Jitsi iframe
-    if (jitsiAPI) {
-        jitsiAPI.dispose();
-        jitsiAPI = null;
-    }
-    
-    try {
-        await fetch(`/api/meetings/${MR.roomCode}/leave`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: MR.user.name })
-        });
-    } catch (err) { /* ignore */ }
-
-    if (MR.localStream) MR.localStream.getTracks().forEach(t => t.stop());
-    if (MR.screenStream) MR.screenStream.getTracks().forEach(t => t.stop());
-
-    qs('meetingRoom').style.display = 'none';
-    qs('leftScreen').style.display = 'flex';
+// ─── Copy Link ────────────────────────────────────────────────────────────────
+function copyMeetingLink() {
+    const link = `${window.location.origin}/meeting-room.html?room=${MR.roomCode}&title=${encodeURIComponent(MR.meetingTitle)}`;
+    navigator.clipboard.writeText(link).then(() => toast('Link copied!')).catch(() => toast('Could not copy'));
 }
 
+// ─── Go Home ──────────────────────────────────────────────────────────────────
 function goHome() {
-    const role = MR.user.role;
-    const dashboards = {
-        'student': 'student-dashboard.html',
-        'teacher': 'teacher-dashboard.html',
-        'hod': 'HOD-dashboard.html',
-        'managing_authority': 'managing-authority.html',
-        'admin': 'admin-dashboard.html'
-    };
-    window.location.href = dashboards[role] || 'index.html';
+    const map = { student:'student-dashboard.html', teacher:'teacher-dashboard.html',
+        hod:'HOD-dashboard.html', managing_authority:'managing-authority.html', admin:'admin-dashboard.html' };
+    window.location.href = map[MR.user.role] || 'index.html';
 }
 
-// Clean up media on unload
 window.addEventListener('beforeunload', () => {
-    if (MR.localStream) MR.localStream.getTracks().forEach(t => t.stop());
-    if (MR.screenStream) MR.screenStream.getTracks().forEach(t => t.stop());
+    if (jitsiFrame) { jitsiFrame.src = 'about:blank'; }
 });
