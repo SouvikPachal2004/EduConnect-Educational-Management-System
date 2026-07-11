@@ -457,26 +457,50 @@ const approveJoinRequest = async (req, res) => {
     const meeting = await Meeting.findOne({ roomCode: req.params.roomCode });
     if (!meeting) return errorResponse(res, 'Meeting not found', 404);
 
-    // Get the caller's role fresh from DB (never trust client-sent role)
-    const caller = await User.findById(req.user.id).select('role');
-    const callerRole = caller ? caller.role : req.user.role;
-
-    // Allow if: host, teacher, hod, managing_authority, or admin
-    const isHost = meeting.host.toString() === req.user.id.toString();
-    const isPrivileged = ['teacher', 'hod', 'managing_authority', 'admin'].includes(callerRole);
+    // Get the caller's role and info fresh from DB (never trust client-sent role)
+    const caller = await User.findById(req.user.id).select('role name');
+    if (!caller) {
+      return errorResponse(res, 'User not found', 404);
+    }
     
-    if (!isHost && !isPrivileged) {
-      return errorResponse(res, 'Only the host or a teacher can approve join requests', 403);
+    const callerRole = caller.role;
+
+    // NEW LOGIC: Allow approval from:
+    // 1. Meeting host (original creator)
+    // 2. Any teacher, HOD, managing_authority, or admin
+    // 3. Anyone already in the meeting with accepted status (collaborative meetings)
+    const isHost = meeting.host && meeting.host.toString() === req.user.id.toString();
+    const isPrivileged = ['teacher', 'hod', 'managing_authority', 'admin'].includes(callerRole);
+    const isAcceptedParticipant = meeting.participants.some(
+      p => p.userId && p.userId.toString() === req.user.id.toString() && p.status === 'accepted'
+    );
+    
+    const canApprove = isHost || isPrivileged || isAcceptedParticipant;
+    
+    // Debug logging
+    console.log('[approveJoinRequest] Authorization check:', {
+      callerId: req.user.id,
+      callerName: caller.name,
+      callerRole: callerRole,
+      isHost,
+      isPrivileged,
+      isAcceptedParticipant,
+      canApprove,
+      meetingHost: meeting.host ? meeting.host.toString() : 'none'
+    });
+    
+    if (!canApprove) {
+      return errorResponse(res, `Permission denied. You cannot approve join requests. Your role: ${callerRole}`, 403);
     }
 
-    // Find participant — try exact match first, then fuzzy string match
+    // Find participant — try exact match first
     let participant = meeting.participants.find(
       p => p.userId && p.userId.toString() === userId.toString()
     );
 
-    // If still not found, try matching by name (last resort for legacy data)
+    // If still not found, log error with details
     if (!participant) {
-      console.warn(`[approve] participant userId=${userId} not found in meeting ${req.params.roomCode}. Participants:`, 
+      console.error(`[approve] participant userId=${userId} not found in meeting ${req.params.roomCode}. Participants:`, 
         meeting.participants.map(p => ({ userId: p.userId?.toString(), name: p.name, status: p.status })));
       return errorResponse(res, `Participant not found. userId=${userId}`, 404);
     }
@@ -485,6 +509,7 @@ const approveJoinRequest = async (req, res) => {
     participant.active = true;
     await meeting.save();
 
+    console.log(`[approveJoinRequest] SUCCESS: ${caller.name} (${callerRole}) approved ${participant.name}`);
     successResponse(res, { userId: userId.toString(), status: 'accepted' }, 'Join request approved');
   } catch (error) {
     console.error('[approveJoinRequest] error:', error);
@@ -504,15 +529,40 @@ const rejectJoinRequest = async (req, res) => {
     const meeting = await Meeting.findOne({ roomCode: req.params.roomCode });
     if (!meeting) return errorResponse(res, 'Meeting not found', 404);
     
-    // Get the caller's role fresh from DB
-    const caller = await User.findById(req.user.id).select('role');
-    const callerRole = caller ? caller.role : req.user.role;
-
-    const isHost = meeting.host.toString() === req.user.id.toString();
-    const isPrivileged = ['teacher', 'hod', 'managing_authority', 'admin'].includes(callerRole);
+    // Get the caller's role and info fresh from DB
+    const caller = await User.findById(req.user.id).select('role name');
+    if (!caller) {
+      return errorResponse(res, 'User not found', 404);
+    }
     
-    if (!isHost && !isPrivileged) {
-      return errorResponse(res, 'Only the host or a teacher can reject join requests', 403);
+    const callerRole = caller.role;
+
+    // Allow rejection from:
+    // 1. Meeting host
+    // 2. Any teacher, HOD, managing_authority, or admin
+    // 3. Anyone already in the meeting with accepted status
+    const isHost = meeting.host && meeting.host.toString() === req.user.id.toString();
+    const isPrivileged = ['teacher', 'hod', 'managing_authority', 'admin'].includes(callerRole);
+    const isAcceptedParticipant = meeting.participants.some(
+      p => p.userId && p.userId.toString() === req.user.id.toString() && p.status === 'accepted'
+    );
+    
+    const canReject = isHost || isPrivileged || isAcceptedParticipant;
+    
+    // Debug logging
+    console.log('[rejectJoinRequest] Authorization check:', {
+      callerId: req.user.id,
+      callerName: caller.name,
+      callerRole: callerRole,
+      isHost,
+      isPrivileged,
+      isAcceptedParticipant,
+      canReject,
+      meetingHost: meeting.host ? meeting.host.toString() : 'none'
+    });
+    
+    if (!canReject) {
+      return errorResponse(res, `Permission denied. You cannot reject join requests. Your role: ${callerRole}`, 403);
     }
 
     let participant = meeting.participants.find(
@@ -520,6 +570,7 @@ const rejectJoinRequest = async (req, res) => {
     );
 
     if (!participant) {
+      console.error(`[reject] participant userId=${userId} not found in meeting ${req.params.roomCode}`);
       return errorResponse(res, `Participant not found. userId=${userId}`, 404);
     }
     
@@ -527,6 +578,7 @@ const rejectJoinRequest = async (req, res) => {
     participant.active = false;
     await meeting.save();
     
+    console.log(`[rejectJoinRequest] SUCCESS: ${caller.name} (${callerRole}) rejected ${participant.name}`);
     successResponse(res, { userId: userId.toString(), status: 'rejected' }, 'Join request rejected');
   } catch (error) {
     console.error('[rejectJoinRequest] error:', error);
