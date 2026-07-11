@@ -42,12 +42,31 @@ function buildMeetingLink(req, roomCode, title) {
  * POST /api/meetings
  * Body: { title, classId?, audience, scheduledDate?, scheduledTime? }
  *   audience: 'class-students' | 'all-hods' | 'department-teachers'
+ * 
+ * Teachers can create meetings 15 minutes before the scheduled class time.
+ * Once created, anyone can join immediately (no time restrictions on joining).
  */
 const createMeeting = async (req, res) => {
   try {
     const { title, classId, audience = 'class-students', scheduledDate, scheduledTime } = req.body;
     const host = await User.findById(req.user.id);
     if (!host) return errorResponse(res, 'User not found', 404);
+
+    // TIME RESTRICTION FOR CREATION: Teachers can create meetings starting 15 minutes before scheduled time
+    if (scheduledDate && scheduledTime) {
+      const now = new Date();
+      const [hours, minutes] = scheduledTime.split(':').map(Number);
+      const scheduledDateTime = new Date(scheduledDate);
+      scheduledDateTime.setHours(hours, minutes, 0, 0);
+      
+      // Allow creation starting 15 minutes before scheduled time
+      const earlyCreateTime = new Date(scheduledDateTime.getTime() - 15 * 60 * 1000);
+      
+      if (now < earlyCreateTime) {
+        const minutesUntilCreate = Math.ceil((earlyCreateTime - now) / (60 * 1000));
+        return errorResponse(res, `You can create this meeting ${minutesUntilCreate} minutes before the scheduled time (${scheduledTime})`, 403);
+      }
+    }
 
     // Generate a unique room code
     let roomCode;
@@ -208,29 +227,9 @@ const joinMeeting = async (req, res) => {
       return errorResponse(res, 'Meeting has ended', 403);
     }
 
-    // Check time restrictions
-    const now = new Date();
-    const scheduledDate = meeting.scheduledDate;
-    const scheduledTime = meeting.scheduledTime;
-    
-    if (scheduledDate && scheduledTime) {
-      const [hours, minutes] = scheduledTime.split(':').map(Number);
-      const scheduledDateTime = new Date(scheduledDate);
-      scheduledDateTime.setHours(hours, minutes, 0, 0);
-      
-      const isHost = meeting.host.toString() === req.user.id;
-      const isTeacherOrAbove = ['teacher', 'hod', 'managing_authority', 'admin'].includes(trustedRole);
-      
-      // Teachers/hosts can join anytime. Students can join starting 15 minutes early.
-      if (!isHost && !isTeacherOrAbove) {
-        const earlyAccessTime = new Date(scheduledDateTime.getTime() - 15 * 60 * 1000);
-        
-        if (now < earlyAccessTime) {
-          const minutesUntilAccess = Math.ceil((earlyAccessTime - now) / (60 * 1000));
-          return errorResponse(res, `Meeting opens ${minutesUntilAccess} minutes before scheduled time (${scheduledTime})`, 403);
-        }
-      }
-    }
+    // NO TIME RESTRICTIONS FOR JOINING
+    // Anyone can join anytime after the meeting link is created
+    // Time restrictions only apply to meeting CREATION (handled in createMeeting)
 
     const existing = meeting.participants.find(p => p.userId && p.userId.toString() === req.user.id);
     

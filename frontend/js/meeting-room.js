@@ -279,19 +279,27 @@ function startApprovalPolling() {
                 if (accepted && accepted.status === 'accepted') {
                     clearInterval(MR.approvalPollTimer);
                     MR.joinStatus = 'accepted';
-                    qs('leftScreen').style.display = 'none';
-                    // Now actually join
                     MR.joined = true;
+                    
+                    // Hide waiting screen and show meeting room
+                    qs('leftScreen').style.display = 'none';
                     qs('meetingRoom').style.display = 'flex';
+                    
+                    // Setup meeting UI
                     qs('meetTitle').textContent = MR.meetingTitle;
                     qs('roomCodeText').textContent = MR.roomCode;
+                    qs('leftMeetingName').textContent = MR.meetingTitle;
+                    
+                    // Load Jitsi - this will join the meeting automatically
                     loadJitsiMeet();
+                    
                     updateControlButtons();
                     startClock();
                     wireMeetingControls();
                     await registerPresence();
                     startPolling();
-                    toast('Teacher approved your request. Welcome to the meeting!');
+                    
+                    toast('Teacher approved your request. Joining meeting...');
                 }
             }
         } catch (err) {
@@ -315,51 +323,73 @@ function loadJitsiMeet() {
     const container = qs('videoGrid');
     container.innerHTML = ''; // Clear any existing content
     
+    // Show instruction overlay for 5 seconds
+    const instructionOverlay = document.createElement('div');
+    instructionOverlay.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(102, 126, 234, 0.95);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 500;
+        z-index: 1000;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        pointer-events: none;
+    `;
+    instructionOverlay.innerHTML = `
+        <i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 10px;"></i><br>
+        When Jitsi loads, click <strong>"Join meeting"</strong> to enter the video conference
+    `;
+    container.parentElement.appendChild(instructionOverlay);
+    
+    // Remove instruction after 5 seconds
+    setTimeout(() => {
+        instructionOverlay.style.transition = 'opacity 0.5s';
+        instructionOverlay.style.opacity = '0';
+        setTimeout(() => instructionOverlay.remove(), 500);
+    }, 5000);
+    
     // Jitsi Meet configuration
     const domain = 'meet.jit.si';
     const options = {
-        roomName: `EduConnect_${MR.roomCode}`, // Use your room code as the Jitsi room name
+        roomName: `EduConnect_${MR.roomCode}`,
         width: '100%',
         height: '100%',
         parentNode: container,
         configOverwrite: {
             startWithAudioMuted: !MR.micOn,
             startWithVideoMuted: !MR.camOn,
-            prejoinPageEnabled: false, // Skip Jitsi's lobby since we have our own
+            prejoinPageEnabled: false,
             enableWelcomePage: false,
             disableDeepLinking: true,
-            enableClosePage: false,
-            hideConferenceSubject: true,
-            hideConferenceTimer: false,
-            // Disable Jitsi's chat so users only use our backend-synced chat
             toolbarButtons: [
                 'microphone', 'camera', 'desktop', 'fullscreen',
-                'hangup', 'raisehand', 'settings',
-                'videoquality', 'tileview', 'stats'
-                // Removed 'chat' so users use our side panel instead
+                'hangup', 'raisehand', 'settings', 'tileview'
             ],
         },
         interfaceConfigOverwrite: {
-            TOOLBAR_BUTTONS: [
-                'microphone', 'camera', 'desktop', 'fullscreen',
-                'hangup', 'raisehand', 'settings',
-                'videoquality', 'tileview', 'stats'
-            ],
             SHOW_JITSI_WATERMARK: false,
             SHOW_WATERMARK_FOR_GUESTS: false,
-            DEFAULT_BACKGROUND: '#2a1f3d',
-            DISABLE_VIDEO_BACKGROUND: false,
-            FILM_STRIP_MAX_HEIGHT: 120,
-            // Hide Jitsi's participant panel so users use ours (shows pending approvals)
-            DISABLE_DOMINANT_SPEAKER_INDICATOR: false,
+            MOBILE_APP_PROMO: false,
         },
         userInfo: {
-            displayName: MR.user.name,
+            displayName: MR.user.name
         }
     };
     
     // Load Jitsi Meet API
     jitsiAPI = new JitsiMeetExternalAPI(domain, options);
+    
+    // Wait for conference join
+    jitsiAPI.addEventListener('videoConferenceJoined', () => {
+        console.log('Jitsi conference joined');
+        toast('Connected to meeting');
+    });
     
     // Sync controls with Jitsi
     jitsiAPI.addEventListener('audioMuteStatusChanged', (e) => {
@@ -375,7 +405,7 @@ function loadJitsiMeet() {
     });
     
     jitsiAPI.addEventListener('participantJoined', () => {
-        fetchParticipants(); // Refresh our participant list
+        fetchParticipants();
     });
     
     jitsiAPI.addEventListener('participantLeft', () => {

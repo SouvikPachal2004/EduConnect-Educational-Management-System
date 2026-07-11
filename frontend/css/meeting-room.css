@@ -239,16 +239,27 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     align-content: center;
     justify-items: center;
+    position: relative;
 }
 .video-grid.single { grid-template-columns: 1fr; }
 
 /* Jitsi iframe takes full grid space */
 .video-grid > iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
     border-radius: 12px;
     overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* Hide Jitsi's pre-join overlay if it appears */
+.video-grid iframe::part(prejoin) {
+    display: none !important;
 }
 
 .video-tile {
