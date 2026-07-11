@@ -229,8 +229,13 @@ function startApprovalPolling() {
                 clearInterval(MR.approvalPollTimer);
                 MR.joinStatus = 'accepted';
                 qs('leftScreen').style.display = 'none';
-                toast('Approved! Joining meeting...');
-                enterMeetingRoom();
+                toast('Approved! Joining meeting in 2 seconds...');
+                
+                // CRITICAL FIX: Wait 2 seconds before entering
+                // This gives host time to reload their Jitsi iframe for peer connection
+                setTimeout(() => {
+                    enterMeetingRoom();
+                }, 2000);
                 return;
             }
 
@@ -287,6 +292,9 @@ function loadJitsiMeet() {
     const roomName = 'EduConnect' + MR.roomCode.replace(/-/g, '');
     const displayName = encodeURIComponent(MR.user.name || 'User');
 
+    // Add timestamp to force Jitsi to establish fresh connections
+    const timestamp = Date.now();
+
     // Build Jitsi URL with hash config (bypasses pre-join, no external_api.js needed)
     const src = `https://meet.jit.si/${roomName}` +
         `#userInfo.displayName="${MR.user.name || 'User'}"` +
@@ -296,16 +304,34 @@ function loadJitsiMeet() {
         `&config.disableDeepLinking=true` +
         `&config.enableWelcomePage=false` +
         `&config.disableInviteFunctions=true` +
+        `&config.enableNoAudioDetection=false` +
+        `&config.enableNoisyMicDetection=false` +
         `&config.toolbarButtons=["microphone","camera","desktop","fullscreen","hangup","raisehand","tileview"]` +
         `&interfaceConfig.SHOW_JITSI_WATERMARK=false` +
-        `&interfaceConfig.MOBILE_APP_PROMO=false`;
+        `&interfaceConfig.MOBILE_APP_PROMO=false` +
+        `&_t=${timestamp}`; // Cache buster to force fresh connection
 
     jitsiFrame = document.createElement('iframe');
     jitsiFrame.src = src;
     jitsiFrame.allow = 'camera *; microphone *; fullscreen *; display-capture *; autoplay *';
     jitsiFrame.style.cssText = 'width:100%;height:100%;border:none;border-radius:12px;position:absolute;top:0;left:0;';
     jitsiFrame.setAttribute('allowfullscreen', '');
+    jitsiFrame.id = 'jitsiMeetFrame';
     container.appendChild(jitsiFrame);
+
+    // Add load event listener to show when iframe is ready
+    jitsiFrame.addEventListener('load', () => {
+        console.log('[Jitsi] Iframe loaded successfully');
+        toast('Connected to video room');
+        
+        // After 2 seconds, trigger a participant refresh to ensure connections
+        setTimeout(() => {
+            if (MR.joined) {
+                console.log('[Jitsi] Triggering participant sync');
+                updatePresence(); // Ping backend to confirm presence
+            }
+        }, 2000);
+    });
 
     toast('Joining video conference...');
 }
@@ -609,6 +635,20 @@ async function handleApproval(userId, approve) {
         if (d.success) {
             toast(approve ? 'Student approved — they will join now' : 'Request declined');
             await fetchParticipants();
+            
+            // CRITICAL FIX: When approving, reload Jitsi iframe to force peer connection
+            // This ensures the newly approved user will be visible to existing participants
+            if (approve && jitsiFrame) {
+                console.log('[Approval] Reloading Jitsi to establish connection with new participant');
+                // Wait a moment for the approved user to enter, then reload
+                setTimeout(() => {
+                    const currentSrc = jitsiFrame.src;
+                    // Remove old timestamp and add new one to force reconnection
+                    const baseSrc = currentSrc.split('&_t=')[0];
+                    jitsiFrame.src = baseSrc + '&_t=' + Date.now();
+                    toast('Refreshing connections...');
+                }, 1500); // Give the approved user time to load their iframe
+            }
         } else {
             toast(`Error: ${d.message}`);
             console.error('Approval failed:', d);
