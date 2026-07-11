@@ -310,6 +310,16 @@ const updateClassMode = async (req, res) => {
       if (meetingLink !== undefined) {
         classItem.meetingLink = meetingLink;
       } else {
+        // Updating time/date — clear the old meeting link so it shows "Online"
+        // and also expire any active meeting for this class
+        const Meeting = require('../models/Meeting');
+        if (classItem.meetingLink) {
+          // End any active meeting that uses this link
+          await Meeting.updateMany(
+            { classId: classItem._id, isActive: true },
+            { isActive: false, endedAt: new Date() }
+          );
+        }
         classItem.meetingLink = ''; // Will be set when Start Class is clicked
       }
     } else {

@@ -333,99 +333,33 @@ function loadJitsiMeet() {
     const container = qs('videoGrid');
     container.innerHTML = ''; // Clear any existing content
     
-    // Show instruction overlay for 5 seconds
-    const instructionOverlay = document.createElement('div');
-    instructionOverlay.style.cssText = `
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(102, 126, 234, 0.95);
-        color: white;
-        padding: 20px 30px;
-        border-radius: 12px;
-        font-size: 16px;
-        font-weight: 500;
-        z-index: 1000;
-        text-align: center;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        pointer-events: none;
-    `;
-    instructionOverlay.innerHTML = `
-        <i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 10px;"></i><br>
-        When Jitsi loads, click <strong>"Join meeting"</strong> to enter the video conference
-    `;
-    container.parentElement.appendChild(instructionOverlay);
+    // Use direct iframe embed — avoids meet.jit.si API auth issues
+    // The hash config parameters bypass the pre-join screen
+    const roomName = `EduConnect${MR.roomCode.replace(/-/g, '')}`;
+    const displayName = encodeURIComponent(MR.user.name || 'User');
     
-    // Remove instruction after 5 seconds
-    setTimeout(() => {
-        instructionOverlay.style.transition = 'opacity 0.5s';
-        instructionOverlay.style.opacity = '0';
-        setTimeout(() => instructionOverlay.remove(), 500);
-    }, 5000);
+    const jitsiURL = `https://meet.jit.si/${roomName}#` +
+        `userInfo.displayName="${MR.user.name || 'User'}"` +
+        `&config.prejoinPageEnabled=false` +
+        `&config.startWithAudioMuted=${!MR.micOn}` +
+        `&config.startWithVideoMuted=${!MR.camOn}` +
+        `&config.disableDeepLinking=true` +
+        `&config.enableWelcomePage=false` +
+        `&interfaceConfig.SHOW_JITSI_WATERMARK=false` +
+        `&interfaceConfig.SHOW_WATERMARK_FOR_GUESTS=false` +
+        `&interfaceConfig.MOBILE_APP_PROMO=false`;
+
+    const iframe = document.createElement('iframe');
+    iframe.src = jitsiURL;
+    iframe.allow = 'camera *; microphone *; fullscreen *; display-capture *; autoplay *; clipboard-write';
+    iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:12px;';
+    iframe.setAttribute('allowfullscreen', '');
+    container.appendChild(iframe);
     
-    // Jitsi Meet configuration
-    const domain = 'meet.jit.si';
-    const options = {
-        roomName: `EduConnect_${MR.roomCode}`,
-        width: '100%',
-        height: '100%',
-        parentNode: container,
-        configOverwrite: {
-            startWithAudioMuted: !MR.micOn,
-            startWithVideoMuted: !MR.camOn,
-            prejoinPageEnabled: false,
-            enableWelcomePage: false,
-            disableDeepLinking: true,
-            toolbarButtons: [
-                'microphone', 'camera', 'desktop', 'fullscreen',
-                'hangup', 'raisehand', 'settings', 'tileview'
-            ],
-        },
-        interfaceConfigOverwrite: {
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false,
-            MOBILE_APP_PROMO: false,
-        },
-        userInfo: {
-            displayName: MR.user.name
-        }
-    };
+    // Store reference for disposal
+    jitsiAPI = { iframe, dispose: () => { iframe.src = 'about:blank'; iframe.remove(); } };
     
-    // Load Jitsi Meet API
-    jitsiAPI = new JitsiMeetExternalAPI(domain, options);
-    
-    // Wait for conference join
-    jitsiAPI.addEventListener('videoConferenceJoined', () => {
-        console.log('Jitsi conference joined');
-        toast('Connected to meeting');
-    });
-    
-    // Sync controls with Jitsi
-    jitsiAPI.addEventListener('audioMuteStatusChanged', (e) => {
-        MR.micOn = !e.muted;
-        updateControlButtons();
-        updatePresence();
-    });
-    
-    jitsiAPI.addEventListener('videoMuteStatusChanged', (e) => {
-        MR.camOn = !e.muted;
-        updateControlButtons();
-        updatePresence();
-    });
-    
-    jitsiAPI.addEventListener('participantJoined', () => {
-        fetchParticipants();
-    });
-    
-    jitsiAPI.addEventListener('participantLeft', () => {
-        fetchParticipants();
-    });
-    
-    // When user leaves via Jitsi's hangup button
-    jitsiAPI.addEventListener('readyToClose', () => {
-        leaveMeeting();
-    });
+    toast('Joining video conference...');
 }
 
 //  Local video tile (legacy - now replaced by Jitsi) 
@@ -517,9 +451,7 @@ function wireMeetingControls() {
 function toggleMic() {
     MR.micOn = !MR.micOn;
     if (MR.localStream) MR.localStream.getAudioTracks().forEach(t => t.enabled = MR.micOn);
-    if (jitsiAPI) {
-        jitsiAPI.executeCommand('toggleAudio');
-    }
+    // Note: with iframe Jitsi, mic control is inside the iframe - user uses Jitsi's own toolbar
     updateControlButtons();
     updatePresence();
 }
@@ -527,27 +459,16 @@ function toggleMic() {
 function toggleCam() {
     MR.camOn = !MR.camOn;
     if (MR.localStream) MR.localStream.getVideoTracks().forEach(t => t.enabled = MR.camOn);
-    if (jitsiAPI) {
-        jitsiAPI.executeCommand('toggleVideo');
-    }
+    // Note: with iframe Jitsi, cam control is inside the iframe - user uses Jitsi's own toolbar
     updateControlButtons();
     updatePresence();
 }
 
 async function toggleScreen() {
-    if (jitsiAPI) {
-        // Let Jitsi handle screen sharing
-        jitsiAPI.executeCommand('toggleShareScreen');
-        toast(MR.sharing ? 'Stopped screen share' : 'Started screen share');
-        MR.sharing = !MR.sharing;
-        updateControlButtons();
-    }
+    toast('Use the screen share button inside the Jitsi window');
 }
 
 function stopScreenShare() {
-    if (jitsiAPI && MR.sharing) {
-        jitsiAPI.executeCommand('toggleShareScreen');
-    }
     if (MR.screenStream) MR.screenStream.getTracks().forEach(t => t.stop());
     MR.screenStream = null;
     MR.sharing = false;
@@ -556,13 +477,9 @@ function stopScreenShare() {
 
 function toggleHand() {
     MR.handRaised = !MR.handRaised;
-    if (jitsiAPI) {
-        // Jitsi will show the raised hand indicator
-        // Our backend tracks it separately for our participant list
-    }
     updateControlButtons();
     updatePresence();
-    toast(MR.handRaised ? 'You raised your hand' : 'You lowered your hand');
+    toast(MR.handRaised ? 'Hand raised (visible to teacher in participants list)' : 'Hand lowered');
 }
 
 function updateControlButtons() {
@@ -957,7 +874,7 @@ async function endMeetingForAll() {
 
     stopPolling();
     
-    // Dispose Jitsi instance
+    // Dispose Jitsi iframe
     if (jitsiAPI) {
         jitsiAPI.dispose();
         jitsiAPI = null;
@@ -998,7 +915,7 @@ async function endMeetingForAll() {
 async function leaveMeeting() {
     stopPolling();
     
-    // Dispose Jitsi instance
+    // Dispose Jitsi iframe
     if (jitsiAPI) {
         jitsiAPI.dispose();
         jitsiAPI = null;
