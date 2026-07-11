@@ -331,11 +331,18 @@ function loadJitsiMeet() {
             enableClosePage: false,
             hideConferenceSubject: true,
             hideConferenceTimer: false,
+            // Disable Jitsi's chat so users only use our backend-synced chat
+            toolbarButtons: [
+                'microphone', 'camera', 'desktop', 'fullscreen',
+                'hangup', 'raisehand', 'settings',
+                'videoquality', 'tileview', 'stats'
+                // Removed 'chat' so users use our side panel instead
+            ],
         },
         interfaceConfigOverwrite: {
             TOOLBAR_BUTTONS: [
                 'microphone', 'camera', 'desktop', 'fullscreen',
-                'hangup', 'chat', 'raisehand', 'settings',
+                'hangup', 'raisehand', 'settings',
                 'videoquality', 'tileview', 'stats'
             ],
             SHOW_JITSI_WATERMARK: false,
@@ -343,6 +350,8 @@ function loadJitsiMeet() {
             DEFAULT_BACKGROUND: '#2a1f3d',
             DISABLE_VIDEO_BACKGROUND: false,
             FILM_STRIP_MAX_HEIGHT: 120,
+            // Hide Jitsi's participant panel so users use ours (shows pending approvals)
+            DISABLE_DOMINANT_SPEAKER_INDICATOR: false,
         },
         userInfo: {
             displayName: MR.user.name,
