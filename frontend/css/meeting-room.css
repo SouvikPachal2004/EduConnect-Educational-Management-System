@@ -242,6 +242,15 @@ body {
 }
 .video-grid.single { grid-template-columns: 1fr; }
 
+/* Jitsi iframe takes full grid space */
+.video-grid > iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
 .video-tile {
     position: relative;
     background: var(--surface);

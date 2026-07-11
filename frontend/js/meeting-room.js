@@ -223,11 +223,12 @@ async function joinMeeting() {
     qs('roomCodeText').textContent = MR.roomCode;
     qs('leftMeetingName').textContent = MR.meetingTitle;
 
-    renderLocalTile();
+    // Load Jitsi Meet for real video conferencing
+    loadJitsiMeet();
+
     updateControlButtons();
     startClock();
     wireMeetingControls();
-    setTimeout(updateControlButtons, 400); // re-sync after stream settles
 
     // Register presence + start polling chat/participants from backend
     await registerPresence();
@@ -274,7 +275,7 @@ function startApprovalPolling() {
                     qs('meetingRoom').style.display = 'flex';
                     qs('meetTitle').textContent = MR.meetingTitle;
                     qs('roomCodeText').textContent = MR.roomCode;
-                    renderLocalTile();
+                    loadJitsiMeet();
                     updateControlButtons();
                     startClock();
                     wireMeetingControls();
@@ -297,7 +298,78 @@ function cancelJoinRequest() {
     goHome();
 }
 
-//  Local video tile 
+//  Jitsi Meet Integration 
+let jitsiAPI = null;
+
+function loadJitsiMeet() {
+    const container = qs('videoGrid');
+    container.innerHTML = ''; // Clear any existing content
+    
+    // Jitsi Meet configuration
+    const domain = 'meet.jit.si';
+    const options = {
+        roomName: `EduConnect_${MR.roomCode}`, // Use your room code as the Jitsi room name
+        width: '100%',
+        height: '100%',
+        parentNode: container,
+        configOverwrite: {
+            startWithAudioMuted: !MR.micOn,
+            startWithVideoMuted: !MR.camOn,
+            prejoinPageEnabled: false, // Skip Jitsi's lobby since we have our own
+            enableWelcomePage: false,
+            disableDeepLinking: true,
+            enableClosePage: false,
+            hideConferenceSubject: true,
+            hideConferenceTimer: false,
+        },
+        interfaceConfigOverwrite: {
+            TOOLBAR_BUTTONS: [
+                'microphone', 'camera', 'desktop', 'fullscreen',
+                'hangup', 'chat', 'raisehand', 'settings',
+                'videoquality', 'tileview', 'stats'
+            ],
+            SHOW_JITSI_WATERMARK: false,
+            SHOW_WATERMARK_FOR_GUESTS: false,
+            DEFAULT_BACKGROUND: '#2a1f3d',
+            DISABLE_VIDEO_BACKGROUND: false,
+            FILM_STRIP_MAX_HEIGHT: 120,
+        },
+        userInfo: {
+            displayName: MR.user.name,
+        }
+    };
+    
+    // Load Jitsi Meet API
+    jitsiAPI = new JitsiMeetExternalAPI(domain, options);
+    
+    // Sync controls with Jitsi
+    jitsiAPI.addEventListener('audioMuteStatusChanged', (e) => {
+        MR.micOn = !e.muted;
+        updateControlButtons();
+        updatePresence();
+    });
+    
+    jitsiAPI.addEventListener('videoMuteStatusChanged', (e) => {
+        MR.camOn = !e.muted;
+        updateControlButtons();
+        updatePresence();
+    });
+    
+    jitsiAPI.addEventListener('participantJoined', () => {
+        fetchParticipants(); // Refresh our participant list
+    });
+    
+    jitsiAPI.addEventListener('participantLeft', () => {
+        fetchParticipants();
+    });
+    
+    // When user leaves via Jitsi's hangup button
+    jitsiAPI.addEventListener('readyToClose', () => {
+        leaveMeeting();
+    });
+}
+
+//  Local video tile (legacy - now replaced by Jitsi) 
 function renderLocalTile() {
     const grid = qs('videoGrid');
     let tile = qs('tile-local');
@@ -380,52 +452,50 @@ function wireMeetingControls() {
 function toggleMic() {
     MR.micOn = !MR.micOn;
     if (MR.localStream) MR.localStream.getAudioTracks().forEach(t => t.enabled = MR.micOn);
+    if (jitsiAPI) {
+        jitsiAPI.executeCommand('toggleAudio');
+    }
     updateControlButtons();
-    updateLocalTileVisual();
     updatePresence();
 }
 
 function toggleCam() {
     MR.camOn = !MR.camOn;
     if (MR.localStream) MR.localStream.getVideoTracks().forEach(t => t.enabled = MR.camOn);
+    if (jitsiAPI) {
+        jitsiAPI.executeCommand('toggleVideo');
+    }
     updateControlButtons();
-    updateLocalTileVisual();
     updatePresence();
 }
 
 async function toggleScreen() {
-    if (!MR.sharing) {
-        try {
-            MR.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-            const vid = qs('localVideo');
-            vid.srcObject = MR.screenStream;
-            vid.style.transform = 'none';
-            MR.sharing = true;
-            MR.screenStream.getVideoTracks()[0].onended = () => stopScreenShare();
-            updateControlButtons();
-            toast('You are presenting your screen');
-        } catch (err) {
-            console.warn('Screen share cancelled', err);
-        }
-    } else {
-        stopScreenShare();
+    if (jitsiAPI) {
+        // Let Jitsi handle screen sharing
+        jitsiAPI.executeCommand('toggleShareScreen');
+        toast(MR.sharing ? 'Stopped screen share' : 'Started screen share');
+        MR.sharing = !MR.sharing;
+        updateControlButtons();
     }
 }
 
 function stopScreenShare() {
+    if (jitsiAPI && MR.sharing) {
+        jitsiAPI.executeCommand('toggleShareScreen');
+    }
     if (MR.screenStream) MR.screenStream.getTracks().forEach(t => t.stop());
     MR.screenStream = null;
     MR.sharing = false;
-    const vid = qs('localVideo');
-    if (vid) { vid.srcObject = MR.localStream; vid.style.transform = 'scaleX(-1)'; }
     updateControlButtons();
-    toast('You stopped presenting');
 }
 
 function toggleHand() {
     MR.handRaised = !MR.handRaised;
+    if (jitsiAPI) {
+        // Jitsi will show the raised hand indicator
+        // Our backend tracks it separately for our participant list
+    }
     updateControlButtons();
-    updateLocalTileVisual();
     updatePresence();
     toast(MR.handRaised ? 'You raised your hand' : 'You lowered your hand');
 }
@@ -804,6 +874,13 @@ async function endMeetingForAll() {
     if (!confirm('End the meeting for everyone? The join link will expire and cannot be reused.')) return;
 
     stopPolling();
+    
+    // Dispose Jitsi instance
+    if (jitsiAPI) {
+        jitsiAPI.dispose();
+        jitsiAPI = null;
+    }
+    
     try {
         await fetch(`/api/meetings/${MR.roomCode}/end`, {
             method: 'POST',
@@ -838,6 +915,13 @@ async function endMeetingForAll() {
 //  Leave 
 async function leaveMeeting() {
     stopPolling();
+    
+    // Dispose Jitsi instance
+    if (jitsiAPI) {
+        jitsiAPI.dispose();
+        jitsiAPI = null;
+    }
+    
     try {
         await fetch(`/api/meetings/${MR.roomCode}/leave`, {
             method: 'POST',
