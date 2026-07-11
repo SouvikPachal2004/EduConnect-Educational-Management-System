@@ -1835,7 +1835,9 @@ async function loadDashboardClasses() {
                 : `<span style="background:#d1fae5;color:#065f46;padding:0.2rem 0.6rem;border-radius:20px;font-size:0.75rem;font-weight:600;">Physical</span>`;
 
             const locationDisplay = mode === 'virtual' && meetingLink
-                ? `<span><i class="fas fa-link"></i> <a href="${meetingLink}" target="_blank" style="color:#667eea;">Join Meeting</a></span>`
+                ? `<span><i class="fas fa-video" style="color:#22c55e;"></i> <a href="${meetingLink}" target="_blank" style="color:#22c55e;font-weight:600;">Live &mdash; Join Meeting</a></span>`
+                : mode === 'virtual'
+                ? `<span><i class="fas fa-globe" style="color:#667eea;"></i> Online</span>`
                 : location ? `<span><i class="fas fa-map-marker-alt"></i> ${location}</span>` : '';
 
             const statusBadge = cls
@@ -1889,7 +1891,9 @@ async function loadDashboardClasses() {
                 : `<span style="background:#d1fae5;color:#065f46;padding:0.2rem 0.6rem;border-radius:20px;font-size:0.75rem;font-weight:600;">Physical</span>`;
 
             const locationDisplay = mode === 'virtual' && meetingLink
-                ? `<span><i class="fas fa-link"></i> <a href="${meetingLink}" target="_blank" style="color:#667eea;">Join Meeting</a></span>`
+                ? `<span><i class="fas fa-video" style="color:#22c55e;"></i> <a href="${meetingLink}" target="_blank" style="color:#22c55e;font-weight:600;">Live &mdash; Join Meeting</a></span>`
+                : mode === 'virtual'
+                ? `<span><i class="fas fa-globe" style="color:#667eea;"></i> Online</span>`
                 : location ? `<span><i class="fas fa-map-marker-alt"></i> ${location}</span>` : '';
 
             const li = document.createElement('li');

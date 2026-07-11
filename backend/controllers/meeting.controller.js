@@ -390,20 +390,35 @@ const endMeeting = async (req, res) => {
   try {
     const meeting = await Meeting.findOne({ roomCode: req.params.roomCode });
     if (!meeting) return errorResponse(res, 'Meeting not found', 404);
-    if (meeting.host.toString() !== req.user.id) {
-      return errorResponse(res, 'Only the host can end the meeting', 403);
+
+    // Allow: the original host OR any teacher/hod/managing_authority/admin
+    const caller = await User.findById(req.user.id).select('role');
+    const callerRole = caller ? caller.role : req.user.role;
+    const isHost = meeting.host.toString() === req.user.id.toString();
+    const isPrivileged = ['teacher', 'hod', 'managing_authority', 'admin'].includes(callerRole);
+
+    if (!isHost && !isPrivileged) {
+      return errorResponse(res, 'Only the host or a teacher can end the meeting', 403);
     }
+
     meeting.isActive = false;
     meeting.endedAt = new Date();
+    // Mark all participants as inactive
+    meeting.participants.forEach(p => { p.active = false; });
     await meeting.save();
 
-    // Clear the meeting link on the associated class so a new one can be generated next time
+    // Always clear the meeting link on the associated class (regardless of classId being set)
+    // so the Join button disappears everywhere immediately
     if (meeting.classId) {
-      await Class.findByIdAndUpdate(meeting.classId, {
-        meetingLink: '',
-        // Keep mode as virtual — host just needs to create a new room for next class
-      });
+      await Class.findByIdAndUpdate(meeting.classId, { meetingLink: '' });
     }
+
+    // Also clear by searching for classes that have this meetingLink stored
+    // (handles edge case where classId wasn't saved on the meeting but link was set)
+    await Class.updateMany(
+      { meetingLink: meeting.meetingLink },
+      { meetingLink: '' }
+    );
 
     successResponse(res, null, 'Meeting ended. The join link has been expired.');
   } catch (error) {
