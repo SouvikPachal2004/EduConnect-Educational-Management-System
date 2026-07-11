@@ -265,6 +265,7 @@ const joinMeeting = async (req, res) => {
       roomCode: meeting.roomCode, 
       role: trustedRole, 
       name: trustedName,
+      userId: req.user.id,
       status: participant ? participant.status : 'pending',
       isHost: isHost
     }, participant && participant.status === 'pending' ? 'Join request sent to teacher' : 'Joined meeting');
@@ -310,7 +311,7 @@ const getParticipants = async (req, res) => {
 
     successResponse(res, {
       participants: accepted.map(p => ({
-        userId: p.userId,
+        userId: p.userId ? p.userId.toString() : null,
         name: p.name, 
         role: p.role, 
         micOn: p.micOn, 
@@ -319,12 +320,12 @@ const getParticipants = async (req, res) => {
         status: p.status
       })),
       pendingRequests: pending.map(p => ({
-        userId: p.userId,
+        userId: p.userId ? p.userId.toString() : null,
         name: p.name,
         role: p.role,
         status: p.status
       })),
-      hostId: meeting.host
+      hostId: meeting.host ? meeting.host.toString() : null
     }, 'Participants fetched');
   } catch (error) {
     errorResponse(res, 'Failed to fetch participants', 500, error.message);
@@ -414,26 +415,35 @@ const endMeeting = async (req, res) => {
 const approveJoinRequest = async (req, res) => {
   try {
     const { userId } = req.body;
+    
+    if (!userId) {
+      return errorResponse(res, 'userId is required', 400);
+    }
+    
     const meeting = await Meeting.findOne({ roomCode: req.params.roomCode });
-
     if (!meeting) return errorResponse(res, 'Meeting not found', 404);
 
-    // Only the meeting host (the person who created/started it) can approve
-    if (meeting.host.toString() !== req.user.id) {
-      return errorResponse(res, 'Only the meeting host can approve join requests', 403);
+    // Allow: the meeting host OR any teacher/hod/managing_authority/admin in the meeting
+    const requesterRole = req.user.role;
+    const isHost = meeting.host.toString() === req.user.id.toString();
+    const isPrivileged = ['teacher', 'hod', 'managing_authority', 'admin'].includes(requesterRole);
+    
+    if (!isHost && !isPrivileged) {
+      return errorResponse(res, 'Only the host or a teacher can approve join requests', 403);
     }
 
     const participant = meeting.participants.find(
-      p => p.userId && p.userId.toString() === userId
+      p => p.userId && p.userId.toString() === userId.toString()
     );
     if (!participant) {
       return errorResponse(res, 'Participant not found', 404);
     }
 
     participant.status = 'accepted';
+    participant.active = true;
     await meeting.save();
 
-    successResponse(res, null, 'Join request approved');
+    successResponse(res, { userId, status: 'accepted' }, 'Join request approved');
   } catch (error) {
     errorResponse(res, 'Failed to approve request', 500, error.message);
   }
@@ -443,16 +453,26 @@ const approveJoinRequest = async (req, res) => {
 const rejectJoinRequest = async (req, res) => {
   try {
     const { userId } = req.body;
-    const meeting = await Meeting.findOne({ roomCode: req.params.roomCode });
     
+    if (!userId) {
+      return errorResponse(res, 'userId is required', 400);
+    }
+    
+    const meeting = await Meeting.findOne({ roomCode: req.params.roomCode });
     if (!meeting) return errorResponse(res, 'Meeting not found', 404);
     
-    // Only the meeting host can reject
-    if (meeting.host.toString() !== req.user.id) {
-      return errorResponse(res, 'Only the meeting host can reject join requests', 403);
+    // Allow: the meeting host OR any teacher/hod/managing_authority/admin
+    const requesterRole = req.user.role;
+    const isHost = meeting.host.toString() === req.user.id.toString();
+    const isPrivileged = ['teacher', 'hod', 'managing_authority', 'admin'].includes(requesterRole);
+    
+    if (!isHost && !isPrivileged) {
+      return errorResponse(res, 'Only the host or a teacher can reject join requests', 403);
     }
 
-    const participant = meeting.participants.find(p => p.userId && p.userId.toString() === userId);
+    const participant = meeting.participants.find(
+      p => p.userId && p.userId.toString() === userId.toString()
+    );
     if (!participant) {
       return errorResponse(res, 'Participant not found', 404);
     }
@@ -461,7 +481,7 @@ const rejectJoinRequest = async (req, res) => {
     participant.active = false;
     await meeting.save();
     
-    successResponse(res, null, 'Join request rejected');
+    successResponse(res, { userId, status: 'rejected' }, 'Join request rejected');
   } catch (error) {
     errorResponse(res, 'Failed to reject request', 500, error.message);
   }

@@ -47,10 +47,15 @@ async function fetchCurrentUser() {
         });
         const data = await res.json();
         if (data.success && data.data) {
-            return data.data; // Always has correct role from server
+            // Always return with a consistent `id` field
+            const user = data.data;
+            user.id = user._id || user.id; // normalise _id → id
+            return user;
         }
     } catch (err) { /* fallback */ }
-    return getCurrentUser(); // fallback to localStorage
+    const local = getCurrentUser();
+    local.id = local._id || local.id;
+    return local;
 }
 
 function initials(name) {
@@ -201,7 +206,8 @@ async function joinMeeting() {
         }
         
         MR.joinStatus = joinData.data.status || 'accepted';
-        MR.user.id = MR.user.id || joinData.data.userId;
+        // Ensure user id is set (from join response or from fetchCurrentUser earlier)
+        MR.user.id = MR.user.id || joinData.data.userId || MR.user._id;
         
         // If status is pending, show waiting screen
         if (MR.joinStatus === 'pending') {
@@ -275,7 +281,11 @@ function startApprovalPolling() {
             
             if (data.success && data.data.participants) {
                 // Check if current user is in accepted participants
-                const accepted = data.data.participants.find(p => p.userId === MR.user.id);
+                // Compare as strings to avoid ObjectId vs string mismatch
+                const myId = String(MR.user.id || '');
+                const accepted = data.data.participants.find(p => 
+                    p.userId && String(p.userId) === myId
+                );
                 if (accepted && accepted.status === 'accepted') {
                     clearInterval(MR.approvalPollTimer);
                     MR.joinStatus = 'accepted';
