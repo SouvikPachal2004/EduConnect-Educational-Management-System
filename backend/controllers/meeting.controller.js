@@ -218,19 +218,18 @@ const joinMeeting = async (req, res) => {
       const scheduledDateTime = new Date(scheduledDate);
       scheduledDateTime.setHours(hours, minutes, 0, 0);
       
-      // Everyone may enter starting 15 minutes before the scheduled time
-      const earlyAccessTime = new Date(scheduledDateTime.getTime() - 15 * 60 * 1000);
-
-      // Check if trying to join too early (more than 15 min before start)
-      if (now < earlyAccessTime) {
-        const minutesUntilAccess = Math.ceil((earlyAccessTime - now) / (60 * 1000));
-        return errorResponse(res, `Meeting opens ${minutesUntilAccess} minutes before scheduled time (${scheduledTime})`, 403);
+      const isHost = meeting.host.toString() === req.user.id;
+      const isTeacherOrAbove = ['teacher', 'hod', 'managing_authority', 'admin'].includes(trustedRole);
+      
+      // Teachers/hosts can join anytime. Students can join starting 15 minutes early.
+      if (!isHost && !isTeacherOrAbove) {
+        const earlyAccessTime = new Date(scheduledDateTime.getTime() - 15 * 60 * 1000);
+        
+        if (now < earlyAccessTime) {
+          const minutesUntilAccess = Math.ceil((earlyAccessTime - now) / (60 * 1000));
+          return errorResponse(res, `Meeting opens ${minutesUntilAccess} minutes before scheduled time (${scheduledTime})`, 403);
+        }
       }
-
-      // Note: once a live link exists (meeting is active), students are allowed
-      // into the room. They still go through the normal join-approval flow below
-      // instead of being hard-blocked with a "Waiting for teacher" error before
-      // the scheduled start time.
     }
 
     const existing = meeting.participants.find(p => p.userId && p.userId.toString() === req.user.id);
