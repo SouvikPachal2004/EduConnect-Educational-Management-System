@@ -367,6 +367,25 @@ function loadJitsiMeet() {
         }, 2000);
     });
 
+    // FIRST-JOIN FIX: When a non-host participant (student) enters via the in-page
+    // lobby→meeting transition, the freshly-created Jitsi iframe sometimes stays
+    // blank until a manual rejoin. To fix this WITHOUT the user rejoining, we
+    // automatically refresh the iframe src once, shortly after entering — this
+    // reliably makes the Jitsi video load on the first join. Hosts don't need
+    // this (they already refresh their iframe when approving a participant).
+    const isHostUser = (MR.hostId && MR.user.id && String(MR.user.id) === String(MR.hostId))
+        || ['teacher', 'hod', 'managing_authority', 'admin'].includes(MR.user.role);
+    if (!isHostUser && !MR._studentJitsiReloaded) {
+        MR._studentJitsiReloaded = true;
+        setTimeout(() => {
+            if (jitsiFrame && MR.joined) {
+                const base = jitsiFrame.src.split('&_t=')[0];
+                jitsiFrame.src = base + '&_t=' + Date.now();
+                console.log('[Jitsi] Student first-join auto-refresh to load video');
+            }
+        }, 3000);
+    }
+
     toast('Joining video conference...');
 }
 
