@@ -49,3 +49,20 @@ window.openMeetingOnCurrentOrigin = function(rawLink) {
         + (title ? `&title=${encodeURIComponent(title)}` : '');
     window.open(url, '_blank');
 };
+
+//  Delegated click handler for meeting links 
+//  ------------------------------------------------------------------
+//  Inline onclick="openMeetingOnCurrentOrigin('<url>')" breaks when the meeting
+//  link contains an apostrophe (e.g. a class titled "OOP's using java"), because
+//  the ' terminates the JS string early. To avoid ALL quote-escaping problems,
+//  render meeting links as:  <a class="js-open-meeting" data-mlink="<url>">
+//  The URL lives in a double-quoted HTML attribute (apostrophes are safe there,
+//  and encodeURIComponent never produces a double quote), and this one listener
+//  opens it on the current origin. Works for links added dynamically too.
+document.addEventListener('click', function(e) {
+    const el = e.target.closest ? e.target.closest('.js-open-meeting') : null;
+    if (el) {
+        e.preventDefault();
+        window.openMeetingOnCurrentOrigin(el.getAttribute('data-mlink'));
+    }
+});

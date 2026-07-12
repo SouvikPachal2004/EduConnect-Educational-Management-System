@@ -3800,7 +3800,7 @@ async function loadHodMyClasses() {
                 : `<span style="background:#d1fae5;color:#065f46;padding:0.2rem 0.6rem;border-radius:20px;font-size:0.75rem;font-weight:600;">Physical</span>`;
 
             const locationDisplay = mode === 'virtual' && meetingLink
-                ? `<span><i class="fas fa-video" style="color:#22c55e;"></i> <a href="#" onclick="openMeetingOnCurrentOrigin('${meetingLink}');return false;" style="color:#22c55e;font-weight:600;cursor:pointer;">Live &mdash; Join Meeting</a></span>`
+                ? `<span><i class="fas fa-video" style="color:#22c55e;"></i> <a href="#" class="js-open-meeting" data-mlink="${meetingLink}" style="color:#22c55e;font-weight:600;cursor:pointer;">Live &mdash; Join Meeting</a></span>`
                 : mode === 'virtual'
                 ? `<span><i class="fas fa-globe" style="color:#667eea;"></i> Online</span>`
                 : location ? `<span><i class="fas fa-map-marker-alt"></i> ${location}</span>` : '';
@@ -4145,7 +4145,7 @@ async function loadHodMeetingInvites() {
                         <div style="color:#94a3b8; font-size:0.82rem;"><i class="fas fa-user"></i> from ${from} (Principal)  ${time}</div>
                     </div>
                     ${link
-                        ? `<button onclick="openMeetingOnCurrentOrigin('${link}')" style="padding:0.5rem 1.1rem; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.85rem;"><i class="fas fa-video"></i> Join</button>`
+                        ? `<button class="js-open-meeting" data-mlink="${link}" style="padding:0.5rem 1.1rem; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.85rem;"><i class="fas fa-video"></i> Join</button>`
                         : '<span style="color:#94a3b8; font-size:0.82rem;">Link unavailable</span>'}
                 </div>
             `;

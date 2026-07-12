@@ -583,8 +583,7 @@ function openStudentClassDetail(classId) {
     const locEl = document.getElementById('scdLocation');
     if (cls.mode === 'virtual') {
         if (cls.meetingLink) {
-            const safe = cls.meetingLink.replace(/'/g, "\\'");
-            locEl.innerHTML = `<a href="javascript:void(0)" onclick="openMeetingOnCurrentOrigin('${safe}')" style="color:#667eea; text-decoration:none; word-break:break-all; cursor:pointer;">Click to Join Meeting</a>`;
+            locEl.innerHTML = `<a href="#" class="js-open-meeting" data-mlink="${cls.meetingLink}" style="color:#667eea; text-decoration:none; word-break:break-all; cursor:pointer;">Click to Join Meeting</a>`;
         } else {
             locEl.textContent = 'Meeting link will appear when teacher starts';
         }
@@ -1554,7 +1553,7 @@ function _showMeetingToast(className, link) {
             <div style="font-weight:700;">${className} — Live Now!</div>
             <div style="font-size:0.82rem;opacity:0.85;">Teacher started the class</div>
         </div>
-        <button onclick="openMeetingOnCurrentOrigin('${link}')"
+        <button class="js-open-meeting" data-mlink="${link}"
             style="background:#fff;color:#667eea;border:none;border-radius:8px;
                    padding:0.4rem 0.9rem;font-weight:700;cursor:pointer;white-space:nowrap;">
             Join
