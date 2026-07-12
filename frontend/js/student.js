@@ -1510,10 +1510,19 @@ async function _pollMeetingLinks() {
             _lastLinkSnapshot[cls._id] = curr;
         });
 
-        // Always refresh UI on first run OR when something changed
+        // Always sync meetingLink into studentData.classes so modal/detail is accurate
+        data.data.classes.forEach(cls => {
+            const local = studentData.classes.find(c => c.id === cls._id);
+            if (local) local.meetingLink = cls.meetingLink || '';
+        });
+
+        // Always re-render the cards on every poll tick so the green dot
+        // appears/disappears immediately (within 5s) without needing a page refresh.
+        updateStudentClassCards(data.data.classes);
+
+        // Only update upcoming classes and show toast when something actually changed
         if (isFirstRun || changed) {
             updateUpcomingClasses();
-            updateStudentClassCards(data.data.classes);
         }
 
     } catch (_) { /* network hiccup — retry next tick */ }
