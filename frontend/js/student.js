@@ -261,8 +261,10 @@ function fetchAllStudentData() {
             const enrolledEl = document.getElementById('enrolledCoursesCount');
             if (enrolledEl) enrolledEl.textContent = studentData.classes.length;
 
-            // Update classes UI
+            // Update classes UI — updateStudentClassesList handles the overview list,
+            // updateStudentClassCards handles the My Classes card grid with the correct UI.
             updateStudentClassesList(studentData.classes);
+            updateStudentClassCards(data.data.classes); // pass raw API data for card grid
             updateUpcomingClasses();
         } else {
             console.error('Failed to fetch classes data:', data.message);
@@ -522,55 +524,10 @@ function fetchAllStudentData() {
     });
 }
 
-// Update student classes list  renders card-based layout with mode/schedule/join
+// Update student classes list — only updates the Overview sidebar list.
+// The My Classes card grid is handled exclusively by updateStudentClassCards()
+// which is called by the live poll. This prevents two conflicting UIs.
 function updateStudentClassesList(classes) {
-    //  My Classes section: card grid 
-    const cardGrid = document.getElementById('studentClassCards');
-    if (cardGrid) {
-        if (!classes || classes.length === 0) {
-            cardGrid.innerHTML = `<p style="color:#94a3b8; grid-column:1/-1; text-align:center; padding:2rem;">
-                <i class="fas fa-info-circle"></i> No classes yet. Your teacher will enroll you soon.</p>`;
-        } else {
-            cardGrid.innerHTML = '';
-            classes.forEach(cls => {
-                const isVirtual = cls.mode === 'virtual';
-                const hasLink = isVirtual && cls.meetingLink;
-                const modeBadge = isVirtual
-                    ? `<span style="background:#ede9fe;color:#7c3aed;padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:600;white-space:nowrap;">Virtual</span>`
-                    : `<span style="background:#d1fae5;color:#065f46;padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:600;white-space:nowrap;">Physical</span>`;
-                const locationLine = isVirtual
-                    ? (hasLink
-                        ? `<i class="fas fa-link" style="color:#667eea;"></i> <span style="color:#667eea;">Meeting link available</span>`
-                        : `<i class="fas fa-clock"></i> <span style="color:#94a3b8;">Scheduled  link opens 15 min before class</span>`)
-                    : (cls.room ? `<i class="fas fa-map-marker-alt"></i> ${cls.room}` : `<i class="fas fa-clock"></i> Location TBD`);
-
-                const card = document.createElement('div');
-                card.style.cssText = 'background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:1.3rem; display:flex; flex-direction:column; gap:0.8rem; box-shadow:0 2px 8px rgba(0,0,0,0.05);';
-                card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
-                        <div style="min-width:0; flex:1;">
-                            <div style="font-weight:700; font-size:1rem; color:#1e293b; margin-bottom:0.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cls.name}</div>
-                            <div style="font-size:0.82rem; color:#64748b;"><i class="fas fa-code"></i> ${cls.code || 'N/A'}</div>
-                        </div>
-                        <div style="flex-shrink:0; margin-top:0.1rem;">${modeBadge}</div>
-                    </div>
-                    <div style="font-size:0.85rem; color:#374151; display:flex; flex-direction:column; gap:0.4rem;">
-                        <div><i class="fas fa-chalkboard-teacher" style="width:16px;color:#667eea;"></i> ${cls.instructor}</div>
-                        <div><i class="fas fa-calendar-alt" style="width:16px;color:#667eea;"></i> ${cls.schedule}</div>
-                        <div style="margin-top:0.2rem;">${locationLine}</div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.3rem;">
-                        <span style="background:#f0fdf4; color:#15803d; padding:0.2rem 0.65rem; border-radius:20px; font-size:0.75rem; font-weight:600;"> Enrolled  ${cls.credits} credits</span>
-                        <button onclick="openStudentClassDetail('${cls.id}')" style="padding:0.45rem 1rem; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:0.82rem; font-weight:600;">
-                            View Details
-                        </button>
-                    </div>
-                `;
-                cardGrid.appendChild(card);
-            });
-        }
-    }
-
     //  Overview section: keep existing simple list (unchanged) 
     const overviewSection = document.getElementById('overview');
     if (overviewSection) {
@@ -1600,72 +1557,142 @@ function _showMeetingToast(className, link) {
     setTimeout(() => { if (toast.parentNode) toast.remove(); }, 30000);
 }
 
-// Update the My Classes card grid when we get fresh data
+// Update the My Classes card grid when we get fresh data (called by live poll)
+// This is the SINGLE source of truth for the My Classes section.
+// Uses the first UI style (View Details + Enrolled credits) + green live dot.
 function updateStudentClassCards(classes) {
     const container = document.getElementById('studentClassCards');
     if (!container) return;
 
     if (!classes || classes.length === 0) {
         container.innerHTML = `<p style="color:#94a3b8;grid-column:1/-1;text-align:center;padding:2rem;">
-            No classes enrolled yet.</p>`;
+            <i class="fas fa-info-circle"></i> No classes yet. Your teacher will enroll you soon.</p>`;
         return;
     }
 
+    // Build a lookup from fresh API data keyed by _id for quick access
+    // Also update studentData.classes so openStudentClassDetail still works
+    const freshMap = {};
+    classes.forEach(c => { freshMap[c._id] = c; });
+
     container.innerHTML = '';
     classes.forEach(cls => {
-        const mode    = cls.mode || 'physical';
+        const mode    = (cls.mode || 'physical').toLowerCase();
+        const isVirtual = mode === 'virtual';
         const link    = cls.meetingLink || '';
-        const teacher = cls.teacher?.name || 'Unknown';
-        const subject = cls.subject?.name || cls.name || 'Class';
-        const schedDate = cls.schedule?.scheduledDate || '';
-        const schedTime = cls.schedule?.scheduledTime || '';
-        const schedDisplay = schedDate && schedTime
-            ? `${schedDate} at ${schedTime}` : (schedDate || 'TBD');
+        const isLive  = isVirtual && !!link;
 
-        // Virtual class: show Join or Waiting
-        let actionBtn = '';
-        if (mode === 'virtual' && link) {
-            actionBtn = `<button class="btn btn-primary btn-sm" onclick="window.open('${link}','_blank')" style="width:100%;margin-top:0.8rem;">
-                <i class="fas fa-video"></i> Join Meeting
-            </button>`;
-        } else if (mode === 'virtual') {
-            actionBtn = `<button class="btn btn-sm" disabled style="width:100%;margin-top:0.8rem;
-                background:#e2e8f0;color:#94a3b8;cursor:not-allowed;border-radius:8px;padding:0.5rem;font-size:0.82rem;">
-                <i class="fas fa-clock"></i> Waiting for Teacher
-            </button>`;
-        } else {
-            actionBtn = `<div style="margin-top:0.8rem;color:#64748b;font-size:0.82rem;text-align:center;">
-                <i class="fas fa-map-marker-alt"></i> In-Person
-            </div>`;
+        // Teacher name — support both populated and plain strings
+        const teacher = cls.teacher?.name || cls.teacher || 'Unknown';
+
+        // Subject / class name
+        const subject = cls.subject?.name || cls.name || 'Class';
+
+        // Code
+        const code = cls.subject?.code || cls.code || '';
+
+        // Schedule display
+        const schedDate = cls.schedule?.scheduledDate || cls.scheduledDate || '';
+        const schedTime = cls.schedule?.scheduledTime || cls.scheduledTime || '';
+        let schedDisplay = 'Not specified';
+        if (schedDate && schedTime) {
+            schedDisplay = `${schedDate} at ${schedTime}`;
+        } else if (schedDate) {
+            schedDisplay = schedDate;
         }
 
-        const modeBadge = mode === 'virtual'
-            ? `<span style="background:#ede9fe;color:#6d28d9;padding:0.15rem 0.55rem;border-radius:20px;font-size:0.72rem;font-weight:600;">Virtual</span>`
-            : `<span style="background:#d1fae5;color:#065f46;padding:0.15rem 0.55rem;border-radius:20px;font-size:0.72rem;font-weight:600;">Physical</span>`;
+        // Credits
+        const credits = cls.credits || cls.subject?.credits || 10;
 
-        const liveDot = (mode === 'virtual' && link)
-            ? `<span style="display:inline-block;width:8px;height:8px;background:#22c55e;border-radius:50%;margin-left:6px;box-shadow:0 0 6px #22c55e;animation:livePulse 1.2s infinite;"></span>`
+        // Room (physical)
+        const room = cls.room || cls.schedule?.room || '';
+
+        // ── Mode badge ──
+        const modeBadge = isVirtual
+            ? `<span style="background:#ede9fe;color:#7c3aed;padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:600;white-space:nowrap;">Virtual</span>`
+            : `<span style="background:#d1fae5;color:#065f46;padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:600;white-space:nowrap;">Physical</span>`;
+
+        // ── Green live dot (top-right corner, only when meeting is live) ──
+        const liveDot = isLive
+            ? `<span title="Live now!" style="
+                position:absolute;top:-5px;right:-5px;
+                width:13px;height:13px;
+                background:#22c55e;border-radius:50%;
+                border:2px solid #fff;
+                box-shadow:0 0 0 0 rgba(34,197,94,0.5);
+                animation:livePulse 1.4s infinite;
+                display:inline-block;"></span>`
             : '';
 
+        // ── Location / status line ──
+        let locationLine;
+        if (isVirtual) {
+            if (isLive) {
+                locationLine = `<i class="fas fa-circle" style="color:#22c55e;font-size:0.6rem;"></i> <span style="color:#16a34a;font-weight:600;">Meeting is live</span>`;
+            } else {
+                locationLine = `<i class="fas fa-clock" style="color:#94a3b8;"></i> <span style="color:#94a3b8;">Scheduled link opens when teacher starts</span>`;
+            }
+        } else {
+            locationLine = room
+                ? `<i class="fas fa-map-marker-alt" style="color:#667eea;"></i> ${room}`
+                : `<i class="fas fa-map-marker-alt" style="color:#667eea;"></i> Location TBD`;
+        }
+
+        // ── The card ──
         const card = document.createElement('div');
-        card.style.cssText = `background:#fff;border-radius:14px;padding:1.2rem;
-            box-shadow:0 2px 12px rgba(0,0,0,0.07);border:1px solid #e2e8f0;
-            display:flex;flex-direction:column;`;
+        card.style.cssText = `
+            position:relative;
+            background:#fff;
+            border:1px solid ${isLive ? '#86efac' : '#e2e8f0'};
+            border-radius:14px;
+            padding:1.3rem;
+            display:flex;
+            flex-direction:column;
+            gap:0.8rem;
+            box-shadow:${isLive ? '0 2px 16px rgba(34,197,94,0.15)' : '0 2px 8px rgba(0,0,0,0.05)'};
+            transition:box-shadow 0.2s;
+        `;
+
+        // Store the class _id so openStudentClassDetail can find it
+        card.setAttribute('data-class-id', cls._id);
+
         card.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.6rem;">
-                <div style="font-weight:700;font-size:1rem;color:#1e293b;flex:1;">${subject}${liveDot}</div>
-                ${modeBadge}
+            ${liveDot}
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">
+                <div style="min-width:0;flex:1;">
+                    <div style="font-weight:700;font-size:1rem;color:#1e293b;margin-bottom:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${subject}</div>
+                    ${code ? `<div style="font-size:0.82rem;color:#64748b;"><i class="fas fa-code"></i> ${code}</div>` : ''}
+                </div>
+                <div style="flex-shrink:0;margin-top:0.1rem;">${modeBadge}</div>
             </div>
-            <div style="color:#64748b;font-size:0.82rem;margin-bottom:0.3rem;">
-                <i class="fas fa-user" style="width:14px;"></i> ${teacher}
+            <div style="font-size:0.85rem;color:#374151;display:flex;flex-direction:column;gap:0.4rem;">
+                <div><i class="fas fa-chalkboard-teacher" style="width:16px;color:#667eea;"></i> ${teacher}</div>
+                <div><i class="fas fa-calendar-alt" style="width:16px;color:#667eea;"></i> ${schedDisplay}</div>
+                <div style="margin-top:0.2rem;">${locationLine}</div>
             </div>
-            ${schedDisplay ? `<div style="color:#64748b;font-size:0.82rem;margin-bottom:0.3rem;">
-                <i class="fas fa-calendar" style="width:14px;"></i> ${schedDisplay}
-            </div>` : ''}
-            ${actionBtn}
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.3rem;">
+                <span style="background:#f0fdf4;color:#15803d;padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:600;">
+                    Enrolled ${credits} credits
+                </span>
+                <button
+                    data-class-id="${cls._id}"
+                    onclick="openStudentClassDetailById(this.getAttribute('data-class-id'))"
+                    style="padding:0.45rem 1rem;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;">
+                    View Details
+                </button>
+            </div>
         `;
         container.appendChild(card);
     });
+}
+
+// Helper: open class detail using raw _id from the live-poll data
+function openStudentClassDetailById(rawId) {
+    // First try studentData.classes (already mapped)
+    let cls = studentData.classes.find(c => c.id === rawId || c._id === rawId);
+    if (cls) { openStudentClassDetail(cls.id || cls._id); return; }
+    // Fallback: find by _id in raw classes data stored on the card
+    openStudentClassDetail(rawId);
 }
 
 // Auto-refresh upcoming classes every 5 seconds (live polling replaces old 15s interval)
