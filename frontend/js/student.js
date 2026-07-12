@@ -21,33 +21,8 @@ let studentData = {
 let eventListeners = [];
 let notificationInterval = null;
 
-// ─── Open a meeting on the SAME origin the student is currently using ──────────
-// The backend bakes a full URL (with its configured FRONTEND_URL domain) into
-// cls.meetingLink. If that domain differs from where the student is logged in,
-// the meeting page has NO auth token (localStorage is per-origin) and every
-// meeting API returns 401 → the room falsely shows "Meeting Ended".
-// This helper extracts the room code + title and re-opens the meeting on the
-// current origin so the student's auth token is always available.
-function openMeetingOnCurrentOrigin(rawLink) {
-    if (!rawLink) return;
-    let room = '', title = '';
-    try {
-        // rawLink may be a full URL or already a relative path
-        const u = new URL(rawLink, window.location.origin);
-        room = u.searchParams.get('room') || '';
-        title = u.searchParams.get('title') || '';
-    } catch (_) {
-        // Fallback: try a simple regex extraction
-        const m = /[?&]room=([^&]+)/.exec(rawLink);
-        if (m) room = decodeURIComponent(m[1]);
-        const t = /[?&]title=([^&]+)/.exec(rawLink);
-        if (t) title = decodeURIComponent(t[1]);
-    }
-    if (!room) { window.open(rawLink, '_blank'); return; } // last resort
-    const url = `${window.location.origin}/meeting-room.html?room=${encodeURIComponent(room)}`
-        + (title ? `&title=${encodeURIComponent(title)}` : '');
-    window.open(url, '_blank');
-}
+// openMeetingOnCurrentOrigin() is defined globally in config.js and used by all
+// dashboards so every meeting type opens on the user's current logged-in origin.
 
 // Update dashboard stats with fetched data
 function updateDashboardStats() {

@@ -19,3 +19,33 @@ window.fetch = function(url, options) {
     }
     return _originalFetch.call(this, url, options);
 };
+
+//  Open a meeting room on the SAME origin the user is currently on 
+//  ------------------------------------------------------------------
+//  The backend builds a full meeting URL using its configured FRONTEND_URL
+//  domain and stores/sends it. If that domain differs from where the user is
+//  logged in, the meeting page has NO auth token (localStorage is per-origin)
+//  and every meeting API returns 401 -> the room falsely shows "Meeting Ended".
+//
+//  This helper extracts the room code + title from ANY meeting link (full URL
+//  or relative path) and re-opens the meeting on window.location.origin, so the
+//  user's auth token is always available. Use this EVERYWHERE a meeting link is
+//  opened (student, teacher, HOD, principal — every meeting type).
+window.openMeetingOnCurrentOrigin = function(rawLink) {
+    if (!rawLink) return;
+    let room = '', title = '';
+    try {
+        const u = new URL(rawLink, window.location.origin);
+        room = u.searchParams.get('room') || '';
+        title = u.searchParams.get('title') || '';
+    } catch (_) {
+        const m = /[?&]room=([^&]+)/.exec(rawLink);
+        if (m) room = decodeURIComponent(m[1]);
+        const t = /[?&]title=([^&]+)/.exec(rawLink);
+        if (t) title = decodeURIComponent(t[1]);
+    }
+    if (!room) { window.open(rawLink, '_blank'); return; } // last resort
+    const url = `${window.location.origin}/meeting-room.html?room=${encodeURIComponent(room)}`
+        + (title ? `&title=${encodeURIComponent(title)}` : '');
+    window.open(url, '_blank');
+};
