@@ -1612,16 +1612,16 @@ function updateStudentClassCards(classes) {
             ? `<span style="background:#ede9fe;color:#7c3aed;padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:600;white-space:nowrap;">Virtual</span>`
             : `<span style="background:#d1fae5;color:#065f46;padding:0.2rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:600;white-space:nowrap;">Physical</span>`;
 
-        // ── Green live dot (top-right corner, only when meeting is live) ──
+        // ── Green live dot (top-right corner INSIDE the card) ──
+        // Placed inside the card at top:12px right:12px so it stays within the border-radius.
         const liveDot = isLive
             ? `<span title="Live now!" style="
-                position:absolute;top:-5px;right:-5px;
-                width:13px;height:13px;
+                position:absolute;top:12px;right:12px;
+                width:11px;height:11px;
                 background:#22c55e;border-radius:50%;
                 border:2px solid #fff;
-                box-shadow:0 0 0 0 rgba(34,197,94,0.5);
                 animation:livePulse 1.4s infinite;
-                display:inline-block;"></span>`
+                display:inline-block;z-index:1;"></span>`
             : '';
 
         // ── Location / status line ──
