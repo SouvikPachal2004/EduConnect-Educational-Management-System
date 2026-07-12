@@ -67,15 +67,9 @@ async function fetchCurrentUser() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-    // The meeting requires a logged-in user (all meeting APIs are auth-protected).
-    // If the visitor has no token (e.g. they opened the shared link without
-    // logging in), send them to login first and bring them right back here.
-    if (!getToken()) {
-        localStorage.setItem('postLoginRedirect', window.location.href);
-        window.location.href = 'login.html';
-        return;
-    }
-
+    // Load the logged-in user. We do NOT force a redirect to login here — the
+    // meeting page must always open. If the user is logged in (token present),
+    // their real name is used; otherwise we fall back to the URL 'name' param.
     MR.user = await fetchCurrentUser();
 
     // Always prefer the logged-in user's real name. The URL 'name' param is only
@@ -164,15 +158,6 @@ async function joinMeeting() {
         const r = await fetch(`/api/meetings/${MR.roomCode}`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
-
-        // Session expired / not authorized — send to login instead of a
-        // misleading "Meeting Ended" screen.
-        if (r.status === 401 || r.status === 403) {
-            localStorage.setItem('postLoginRedirect', window.location.href);
-            toast('Please log in to join the meeting.');
-            setTimeout(() => { window.location.href = 'login.html'; }, 1200);
-            return;
-        }
 
         const d = await r.json();
 
