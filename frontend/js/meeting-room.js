@@ -242,39 +242,45 @@ function showWaitingScreen() {
 function startApprovalPolling() {
     MR.approvalPollTimer = setInterval(async () => {
         try {
+            // KEEP-ALIVE (critical): refresh our lastSeen every tick so the backend
+            // keeps us "active" while we wait. The backend drops any participant
+            // whose lastSeen is older than 30s from BOTH the host's pending list
+            // (host could no longer approve us) AND the accepted list (we'd never
+            // detect approval). The poll runs every 3s, well within the 30s window.
+            fetch(`/api/meetings/${MR.roomCode}/presence`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ micOn: MR.micOn, camOn: MR.camOn })
+            }).catch(() => {});
+
             const r = await fetch(`/api/meetings/${MR.roomCode}/participants`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
             const d = await r.json();
             if (!d.success) return;
 
-            // Check accepted list
+            // Approved? → auto-enter the meeting (no page reload needed)
             const myId = String(MR.user.id || '');
             const accepted = (d.data.participants || []).find(p =>
-                p.userId && String(p.userId) === myId
+                p.userId && String(p.userId) === myId && p.status === 'accepted'
             );
-            if (accepted && accepted.status === 'accepted') {
+            if (accepted) {
                 clearInterval(MR.approvalPollTimer);
                 MR.joinStatus = 'accepted';
                 qs('leftScreen').style.display = 'none';
-                toast('Approved! Joining meeting in 2 seconds...');
-                
-                // CRITICAL FIX: Wait 2 seconds before entering
-                // This gives host time to reload their Jitsi iframe for peer connection
-                setTimeout(() => {
-                    enterMeetingRoom();
-                }, 2000);
+                toast('Approved! Joining meeting…');
+                // Brief delay so the host's Jitsi iframe can refresh for a clean
+                // peer connection, then we enter automatically.
+                setTimeout(() => { enterMeetingRoom(); }, 1500);
                 return;
             }
 
-            // Check if rejected
-            // (backend marks rejected participants inactive — they won't appear in active list)
-            // If meeting ended while waiting:
+            // Meeting ended while waiting?
             const meetRes = await fetch(`/api/meetings/${MR.roomCode}`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
             const meetD = await meetRes.json();
-            if (meetD.success && !meetD.data.isActive) {
+            if (meetD.success && meetD.data && meetD.data.isActive === false) {
                 clearInterval(MR.approvalPollTimer);
                 showEndedScreen('The meeting has ended.');
             }
