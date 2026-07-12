@@ -116,6 +116,17 @@ async function startLobbyPreview() {
     }
 }
 
+// Release the lobby camera/mic preview stream and clear the preview <video>.
+// Safe to call multiple times.
+function stopLobbyPreview() {
+    if (MR.localStream) {
+        try { MR.localStream.getTracks().forEach(t => t.stop()); } catch (_) {}
+        MR.localStream = null;
+    }
+    const lv = qs('lobbyVideo');
+    if (lv) { try { lv.srcObject = null; } catch (_) {} }
+}
+
 function wireLobby() {
     qs('lobbyMicBtn').addEventListener('click', () => {
         MR.micOn = !MR.micOn;
@@ -193,6 +204,13 @@ async function joinMeeting() {
         MR.joinStatus = d.data.status || 'accepted';
         MR.user.id = MR.user.id || d.data.userId || MR.user._id;
         if (d.data.userId) MR.user.id = String(d.data.userId);
+
+        // CRITICAL: release the lobby camera/mic preview NOW. If this stream
+        // keeps holding the devices while we wait for approval, Jitsi cannot
+        // acquire the camera/mic when it loads and the video stays blank on the
+        // first join (working only after a manual rejoin). Releasing it here —
+        // before the waiting screen — leaves the devices free for Jitsi.
+        stopLobbyPreview();
 
         if (MR.joinStatus === 'pending') {
             qs('lobby').style.display = 'none';
