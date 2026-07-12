@@ -449,10 +449,13 @@ function initializeEventListeners() {
         openMessageModal();
     });
 
-    // Generate report button
-    document.getElementById('generateReportBtn').addEventListener('click', function() {
-        generateReport();
-    });
+    // Generate report button (Reports section removed — guard against missing element)
+    const _genReportBtn = document.getElementById('generateReportBtn');
+    if (_genReportBtn) {
+        _genReportBtn.addEventListener('click', function() {
+            generateReport();
+        });
+    }
 
     // Course form submission
     document.getElementById('courseForm').addEventListener('submit', function(e) {
@@ -472,11 +475,14 @@ function initializeEventListeners() {
         sendMessage();
     });
 
-    // Report form submission
-    document.getElementById('reportForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        generateCustomReport();
-    });
+    // Report form submission (Reports section removed — guard against missing element)
+    const _reportForm = document.getElementById('reportForm');
+    if (_reportForm) {
+        _reportForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            generateCustomReport();
+        });
+    }
 
     // Modal close buttons
     document.querySelectorAll('.close, .cancel-btn, .close-detail').forEach(button => {
@@ -625,9 +631,90 @@ function updateFacultyList() {
     document.querySelectorAll('.view-faculty').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            showNotification('Faculty details are managed by Admin panel');
+            viewFaculty(this.getAttribute('data-id'));
         });
     });
+}
+
+// ── View faculty details in a dynamic modal ────────────────────────────────
+function viewFaculty(facultyId) {
+    const f = hodData.faculty.find(x => String(x.id) === String(facultyId));
+    if (!f) { showNotification('Faculty details not found'); return; }
+
+    const initials = (f.name || 'F').trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+    const statusColor = f.status === 'Active' ? '#16a34a' : '#dc2626';
+    const statusBg = f.status === 'Active' ? '#dcfce7' : '#fee2e2';
+
+    let modal = document.getElementById('facultyDetailModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'facultyDetailModal';
+        modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:3000;';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div style="background:#fff;border-radius:16px;width:90%;max-width:480px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:1.6rem 1.5rem;display:flex;align-items:center;gap:1rem;">
+                <div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.4rem;font-weight:700;flex-shrink:0;">${initials}</div>
+                <div style="min-width:0;">
+                    <h3 style="color:#fff;margin:0;font-size:1.25rem;">${f.name}</h3>
+                    <p style="color:rgba(255,255,255,0.85);margin:0.2rem 0 0;font-size:0.9rem;">${f.position}</p>
+                </div>
+                <button onclick="document.getElementById('facultyDetailModal').style.display='none'" style="margin-left:auto;background:rgba(255,255,255,0.2);border:none;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">&times;</button>
+            </div>
+            <div style="padding:1.5rem;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+                    <div style="background:#f8fafc;border-radius:10px;padding:0.9rem;">
+                        <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:0.3rem;">Department</div>
+                        <div style="font-weight:600;color:#1e293b;font-size:0.9rem;">${f.specialization}</div>
+                    </div>
+                    <div style="background:#f8fafc;border-radius:10px;padding:0.9rem;">
+                        <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:0.3rem;">Courses</div>
+                        <div style="font-weight:600;color:#1e293b;font-size:0.9rem;">${f.courses} assigned</div>
+                    </div>
+                    <div style="background:#f8fafc;border-radius:10px;padding:0.9rem;">
+                        <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:0.3rem;">Status</div>
+                        <div><span style="background:${statusBg};color:${statusColor};padding:0.15rem 0.6rem;border-radius:20px;font-size:0.8rem;font-weight:600;">${f.status}</span></div>
+                    </div>
+                    <div style="background:#f8fafc;border-radius:10px;padding:0.9rem;">
+                        <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:0.3rem;">Role</div>
+                        <div style="font-weight:600;color:#1e293b;font-size:0.9rem;">${f.position}</div>
+                    </div>
+                </div>
+                <div style="background:#f8fafc;border-radius:10px;padding:0.9rem;margin-bottom:1.25rem;">
+                    <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:0.3rem;">Email</div>
+                    <div style="font-weight:600;color:#1e293b;font-size:0.9rem;word-break:break-all;"><i class="fas fa-envelope" style="color:#667eea;margin-right:6px;"></i>${f.email}</div>
+                </div>
+                <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+                    <button onclick="document.getElementById('facultyDetailModal').style.display='none'" style="padding:0.55rem 1.1rem;background:#f1f5f9;color:#475569;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">Close</button>
+                    <button onclick="contactFaculty('${f.id}')" style="padding:0.55rem 1.1rem;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;"><i class="fas fa-paper-plane"></i> Send Message</button>
+                </div>
+            </div>
+        </div>`;
+    modal.style.display = 'block';
+    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+}
+
+// Open the compose modal pre-filled to message a faculty member
+function contactFaculty(facultyId) {
+    const f = hodData.faculty.find(x => String(x.id) === String(facultyId));
+    if (!f) return;
+    const fm = document.getElementById('facultyDetailModal');
+    if (fm) fm.style.display = 'none';
+
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const hodName = currentUser.name || 'HOD';
+    const hodDept = currentUser.department || 'Department';
+
+    const toEl = document.getElementById('messageTo');
+    if (toEl) toEl.value = f.id;
+    const subEl = document.getElementById('messageSubject');
+    if (subEl) subEl.value = 'Department Communication';
+    const bodyEl = document.getElementById('messageContent');
+    if (bodyEl) bodyEl.value = `Dear ${f.name},\n\n\n\nBest regards,\n${hodName}\nHOD, ${hodDept}`;
+    const mm = document.getElementById('messageModal');
+    if (mm) mm.style.display = 'block';
 }
 
 // Update courses list

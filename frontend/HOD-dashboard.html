@@ -59,7 +59,6 @@
                 <li><a href="#" data-section="students"><i class="fas fa-user-graduate"></i> Student Performance</a></li>
                 <li><a href="#" data-section="resources"><i class="fas fa-folder-open"></i> Resources</a></li>
                 <li><a href="#" data-section="announcements"><i class="fas fa-bullhorn"></i> Announcements</a></li>
-                <li><a href="#" data-section="reports"><i class="fas fa-chart-bar"></i> Reports</a></li>
                 <li><a href="#" data-section="messages"><i class="fas fa-envelope"></i> Messages</a></li>
                 <li><a href="#" data-section="events"><i class="fas fa-calendar-plus"></i> Events</a></li>
             </ul>
@@ -667,110 +666,6 @@
                 </div>
             </section>
 
-            <!-- Reports Section -->
-            <section class="content-section" id="reports">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Department Reports</h2>
-                        <a href="#" class="btn btn-primary btn-sm" id="generateReportBtn">Generate New Report</a>
-                    </div>
-                    <div class="card-body">
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-card-header">
-                                    <div class="stat-card-title">Course Completion Rate</div>
-                                    <div class="stat-card-icon teal">
-                                        <i class="fas fa-graduation-cap"></i>
-                                    </div>
-                                </div>
-                                <div class="stat-card-value">92%</div>
-                                <div class="stat-card-change positive">
-                                    <i class="fas fa-arrow-up"></i> 3% from last year
-                                </div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-card-header">
-                                    <div class="stat-card-title">Student Satisfaction</div>
-                                    <div class="stat-card-icon blue">
-                                        <i class="fas fa-smile"></i>
-                                    </div>
-                                </div>
-                                <div class="stat-card-value">4.2/5</div>
-                                <div class="stat-card-change positive">
-                                    <i class="fas fa-arrow-up"></i> 0.3 from last semester
-                                </div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-card-header">
-                                    <div class="stat-card-title">Faculty Publications</div>
-                                    <div class="stat-card-icon orange">
-                                        <i class="fas fa-file-alt"></i>
-                                    </div>
-                                </div>
-                                <div class="stat-card-value">18</div>
-                                <div class="stat-card-change positive">
-                                    <i class="fas fa-arrow-up"></i> 4 this quarter
-                                </div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-card-header">
-                                    <div class="stat-card-title">Research Grants</div>
-                                    <div class="stat-card-icon red">
-                                        <i class="fas fa-rupee-sign"></i>
-                                    </div>
-                                </div>
-                                <div class="stat-card-value">45L</div>
-                                <div class="stat-card-change positive">
-                                    <i class="fas fa-arrow-up"></i> 12L this year
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Report Generation</h3>
-                            </div>
-                            <div class="card-body">
-                                <form id="reportForm">
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label for="reportType">Report Type</label>
-                                            <select id="reportType" class="form-control">
-                                                <option value="performance">Department Performance</option>
-                                                <option value="faculty">Faculty Evaluation</option>
-                                                <option value="student">Student Analytics</option>
-                                                <option value="attendance">Attendance Summary</option>
-                                                <option value="research">Research Output</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="reportFormat">Format</label>
-                                            <select id="reportFormat" class="form-control">
-                                                <option value="pdf">PDF</option>
-                                                <option value="excel">Excel</option>
-                                                <option value="csv">CSV</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="reportDateRange">Date Range</label>
-                                            <select id="reportDateRange" class="form-control">
-                                                <option value="month">This Month</option>
-                                                <option value="quarter">This Quarter</option>
-                                                <option value="semester">This Semester</option>
-                                                <option value="year">This Year</option>
-                                                <option value="custom">Custom Range</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <button type="submit" class="btn btn-primary">Generate Report</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             <!-- Messages Section -->
             <section class="content-section" id="messages">
