@@ -67,10 +67,38 @@ async function fetchCurrentUser() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-    // Load the logged-in user. We do NOT force a redirect to login here — the
-    // meeting page must always open. If the user is logged in (token present),
-    // their real name is used; otherwise we fall back to the URL 'name' param.
-    MR.user = await fetchCurrentUser();
+    // Verify the user has a VALID session on THIS domain. The meeting APIs
+    // (join / approve / participants) are all auth-protected, so without a valid
+    // token nothing works and the name can't be fetched.
+    //  • Valid session  -> use it (name shows), no redirect.
+    //  • 401 (no/expired/invalid token) -> log in on THIS domain, then return.
+    //  • Network / server error -> DON'T redirect; fall back to cached name.
+    let me = null;
+    let authFailed = false;
+    try {
+        const res = await fetch('/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.data) {
+                me = data.data;
+                me.id = me._id || me.id;
+            }
+        } else if (res.status === 401 || res.status === 403) {
+            authFailed = true;
+        }
+    } catch (_) { /* transient network error — do not treat as auth failure */ }
+
+    if (!me && authFailed) {
+        // No valid session on this domain. Log in here, then come straight back.
+        localStorage.setItem('postLoginRedirect', window.location.href);
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // Use the verified user, or fall back to any cached identity for transient errors.
+    MR.user = me || await fetchCurrentUser();
 
     // Always prefer the logged-in user's real name. The URL 'name' param is only
     // a last-resort fallback for a truly unknown guest.
