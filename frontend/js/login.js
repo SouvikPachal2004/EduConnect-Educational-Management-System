@@ -53,7 +53,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 showAlert('Login successful! Redirecting...', 'success');
 
                 setTimeout(function() {
-                    redirectByRole(userType);
+                    // If the user was sent here from a protected page (e.g. a
+                    // meeting link opened while logged out), return them there.
+                    const redirect = localStorage.getItem('postLoginRedirect');
+                    if (redirect) {
+                        localStorage.removeItem('postLoginRedirect');
+                        window.location.href = redirect;
+                    } else {
+                        redirectByRole(userType);
+                    }
                 }, 1200);
             } else {
                 showAlert(data.message || 'Invalid credentials for the selected role.', 'danger');
@@ -104,12 +112,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // If already logged in, redirect to appropriate dashboard
+    // If already logged in, redirect to appropriate dashboard (or back to a
+    // pending protected page such as a meeting link).
     const existingToken = localStorage.getItem('authToken');
     const existingUser = localStorage.getItem('currentUser');
     if (existingToken && existingUser) {
         try {
             const user = JSON.parse(existingUser);
+            const redirect = localStorage.getItem('postLoginRedirect');
+            if (redirect) {
+                localStorage.removeItem('postLoginRedirect');
+                window.location.href = redirect;
+                return;
+            }
             const dashboards = {
                 'student': 'student-dashboard.html',
                 'teacher': 'teacher-dashboard.html',

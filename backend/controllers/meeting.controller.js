@@ -28,13 +28,16 @@ function buildMeetingLink(req, roomCode, title) {
   // back to the backend host because meeting-room.html served from the backend
   // origin has no access to the user's auth token (localStorage is per-origin).
   if (!base || /onrender\.com/i.test(base)) {
-    base = 'https://educonnect-2026.netlify.app';
+    base = 'https://educonnect-2025.netlify.app';
   }
   base = base.replace(/\/+$/, '');
-  
-  // Include the user's name in the URL so it pre-fills even if localStorage is empty
-  const userName = req.user?.name || 'Guest';
-  return `${base}/meeting-room.html?room=${roomCode}&title=${encodeURIComponent(title || 'Class Meeting')}&name=${encodeURIComponent(userName)}`;
+
+  // IMPORTANT: Do NOT bake any user's name into the shared link. This link is
+  // saved on the class record and sent to every student. If we included the
+  // creator's name, every student who opens it would see the creator's name
+  // pre-filled. Each user's real name is resolved from their own auth session
+  // inside meeting-room.html instead.
+  return `${base}/meeting-room.html?room=${roomCode}&title=${encodeURIComponent(title || 'Class Meeting')}`;
 }
 
 /**

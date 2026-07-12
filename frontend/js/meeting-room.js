@@ -67,7 +67,19 @@ async function fetchCurrentUser() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+    // The meeting requires a logged-in user (all meeting APIs are auth-protected).
+    // If the visitor has no token (e.g. they opened the shared link without
+    // logging in), send them to login first and bring them right back here.
+    if (!getToken()) {
+        localStorage.setItem('postLoginRedirect', window.location.href);
+        window.location.href = 'login.html';
+        return;
+    }
+
     MR.user = await fetchCurrentUser();
+
+    // Always prefer the logged-in user's real name. The URL 'name' param is only
+    // a last-resort fallback for a truly unknown guest.
     if (!MR.user.name?.trim()) {
         const urlName = getParam('name');
         if (urlName) MR.user.name = decodeURIComponent(urlName);
@@ -141,14 +153,30 @@ async function joinMeeting() {
         const r = await fetch(`/api/meetings/${MR.roomCode}`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
-        const d = await r.json();
-        if (!d.success || !d.data.isActive) {
-            showEndedScreen('This meeting has ended or does not exist.');
+
+        // Session expired / not authorized — send to login instead of a
+        // misleading "Meeting Ended" screen.
+        if (r.status === 401 || r.status === 403) {
+            localStorage.setItem('postLoginRedirect', window.location.href);
+            toast('Please log in to join the meeting.');
+            setTimeout(() => { window.location.href = 'login.html'; }, 1200);
             return;
         }
-        MR.hostId = d.data.hostId ? String(d.data.hostId) : null;
+
+        const d = await r.json();
+
+        // Only treat as ended when the server DEFINITIVELY says it is inactive.
+        if (d.success && d.data && d.data.isActive === false) {
+            showEndedScreen('This meeting has ended.');
+            return;
+        }
+        if (d.success && d.data) {
+            MR.hostId = d.data.hostId ? String(d.data.hostId) : null;
+        }
+        // If the meeting record isn't found yet (d.success false / 404), we still
+        // proceed to the join call below — the backend will validate and respond.
     } catch (err) {
-        toast('Cannot reach server. Check your connection.');
+        toast('Cannot reach server. Please check your connection and try again.');
         return;
     }
 
