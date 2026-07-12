@@ -289,15 +289,17 @@ function fetchAllStudentData() {
             // Separate by submitted flag from API
             // An assignment is completed if:
             // 1. It has a submitted flag set to true, OR
-            // 2. It has a submission object with status 'submitted', OR
-            // 3. It has a grade/score assigned
+            // 2. It has a submission object (means student submitted), OR
+            // 3. The submission is graded (graded = true), OR
+            // 4. The submission has points assigned
             studentData.assignments.pending = allAssignments
                 .filter(a => {
                     // Check if truly not submitted
                     const hasSubmission = a.submitted === true;
-                    const hasSubmissionObject = a.submission && a.submission.status === 'submitted';
-                    const hasGrade = a.grade !== undefined && a.grade !== null;
-                    const isCompleted = hasSubmission || hasSubmissionObject || hasGrade;
+                    const hasSubmissionObject = a.submission !== null && a.submission !== undefined;
+                    const isGraded = a.submission?.graded === true;
+                    const hasPoints = a.submission?.points !== undefined && a.submission?.points !== null;
+                    const isCompleted = hasSubmission || hasSubmissionObject || isGraded || hasPoints;
                     
                     // Only show in pending if NOT completed AND not closed
                     return !isCompleted && a.status !== 'closed';
@@ -321,9 +323,10 @@ function fetchAllStudentData() {
                 .filter(a => {
                     // Check multiple conditions for completion
                     const hasSubmission = a.submitted === true;
-                    const hasSubmissionObject = a.submission && a.submission.status === 'submitted';
-                    const hasGrade = a.grade !== undefined && a.grade !== null;
-                    return hasSubmission || hasSubmissionObject || hasGrade;
+                    const hasSubmissionObject = a.submission !== null && a.submission !== undefined;
+                    const isGraded = a.submission?.graded === true;
+                    const hasPoints = a.submission?.points !== undefined && a.submission?.points !== null;
+                    return hasSubmission || hasSubmissionObject || isGraded || hasPoints;
                 })
                 .map(assignment => ({
                     id: assignment._id,
