@@ -21,6 +21,34 @@ let studentData = {
 let eventListeners = [];
 let notificationInterval = null;
 
+// ─── Open a meeting on the SAME origin the student is currently using ──────────
+// The backend bakes a full URL (with its configured FRONTEND_URL domain) into
+// cls.meetingLink. If that domain differs from where the student is logged in,
+// the meeting page has NO auth token (localStorage is per-origin) and every
+// meeting API returns 401 → the room falsely shows "Meeting Ended".
+// This helper extracts the room code + title and re-opens the meeting on the
+// current origin so the student's auth token is always available.
+function openMeetingOnCurrentOrigin(rawLink) {
+    if (!rawLink) return;
+    let room = '', title = '';
+    try {
+        // rawLink may be a full URL or already a relative path
+        const u = new URL(rawLink, window.location.origin);
+        room = u.searchParams.get('room') || '';
+        title = u.searchParams.get('title') || '';
+    } catch (_) {
+        // Fallback: try a simple regex extraction
+        const m = /[?&]room=([^&]+)/.exec(rawLink);
+        if (m) room = decodeURIComponent(m[1]);
+        const t = /[?&]title=([^&]+)/.exec(rawLink);
+        if (t) title = decodeURIComponent(t[1]);
+    }
+    if (!room) { window.open(rawLink, '_blank'); return; } // last resort
+    const url = `${window.location.origin}/meeting-room.html?room=${encodeURIComponent(room)}`
+        + (title ? `&title=${encodeURIComponent(title)}` : '');
+    window.open(url, '_blank');
+}
+
 // Update dashboard stats with fetched data
 function updateDashboardStats() {
     // Update enrolled courses count
@@ -580,7 +608,8 @@ function openStudentClassDetail(classId) {
     const locEl = document.getElementById('scdLocation');
     if (cls.mode === 'virtual') {
         if (cls.meetingLink) {
-            locEl.innerHTML = `<a href="${cls.meetingLink}" target="_blank" style="color:#667eea; text-decoration:none; word-break:break-all;">Click to Join Meeting</a>`;
+            const safe = cls.meetingLink.replace(/'/g, "\\'");
+            locEl.innerHTML = `<a href="javascript:void(0)" onclick="openMeetingOnCurrentOrigin('${safe}')" style="color:#667eea; text-decoration:none; word-break:break-all; cursor:pointer;">Click to Join Meeting</a>`;
         } else {
             locEl.textContent = 'Meeting link will appear when teacher starts';
         }
@@ -595,7 +624,7 @@ function openStudentClassDetail(classId) {
     if (cls.mode === 'virtual' && cls.meetingLink) {
         joinBtn.style.display = 'inline-flex';
         joinBtn.innerHTML = '<i class="fas fa-play"></i> Join Class';
-        joinBtn.onclick = () => window.open(cls.meetingLink, '_blank');
+        joinBtn.onclick = () => openMeetingOnCurrentOrigin(cls.meetingLink);
     } else {
         // Physical or virtual with no link yet  no join button needed
         joinBtn.style.display = 'none';
@@ -1454,7 +1483,7 @@ async function updateUpcomingClasses() {
         classList.querySelectorAll('.join-class-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const link = this.getAttribute('data-link');
-                if (link) window.open(link, '_blank');
+                if (link) openMeetingOnCurrentOrigin(link);
             });
         });
 
@@ -1550,7 +1579,7 @@ function _showMeetingToast(className, link) {
             <div style="font-weight:700;">${className} — Live Now!</div>
             <div style="font-size:0.82rem;opacity:0.85;">Teacher started the class</div>
         </div>
-        <button onclick="window.open('${link}','_blank')"
+        <button onclick="openMeetingOnCurrentOrigin('${link}')"
             style="background:#fff;color:#667eea;border:none;border-radius:8px;
                    padding:0.4rem 0.9rem;font-weight:700;cursor:pointer;white-space:nowrap;">
             Join
