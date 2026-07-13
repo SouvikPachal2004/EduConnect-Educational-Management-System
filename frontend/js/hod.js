@@ -4218,22 +4218,56 @@ async function loadHodMeetingInvites() {
             return;
         }
 
-        container.innerHTML = invites.map(m => {
+        // Build invite items and extract each meeting's room code from its link
+        const items = invites.map(m => {
             const linkMatch = (m.content || '').match(/https?:\/\/[^\s]+meeting-room\.html[^\s]*/);
             const link = linkMatch ? linkMatch[0] : null;
-            const from = m.sender ? m.sender.name : 'Principal';
-            const time = new Date(m.createdAt).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
-            const title = (m.subject || '').replace(' Live Meeting:', '').trim();
+            let roomCode = '';
+            if (link) {
+                const rm = /[?&]room=([^&]+)/.exec(link);
+                if (rm) roomCode = decodeURIComponent(rm[1]);
+            }
+            return {
+                link,
+                roomCode,
+                from: m.sender ? m.sender.name : 'Principal',
+                time: new Date(m.createdAt).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }),
+                title: (m.subject || '').replace(' Live Meeting:', '').trim(),
+                active: false,
+            };
+        });
 
+        // Check each meeting's live status. When the Principal taps End, the
+        // meeting becomes inactive → the Join button turns into "Completed".
+        await Promise.all(items.map(async it => {
+            if (!it.roomCode) return;
+            try {
+                const r = await fetch(`/api/meetings/${it.roomCode}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (r.ok) {
+                    const d = await r.json();
+                    it.active = !!(d.success && d.data && d.data.isActive);
+                }
+            } catch (_) { /* ignore — treat as not active */ }
+        }));
+
+        container.innerHTML = items.map(it => {
+            let actionHtml;
+            if (it.link && it.active) {
+                actionHtml = `<button class="js-open-meeting" data-mlink="${it.link}" style="padding:0.5rem 1.1rem; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.85rem;"><i class="fas fa-video"></i> Join</button>`;
+            } else if (it.link && !it.active) {
+                actionHtml = `<button disabled style="padding:0.5rem 1.1rem; background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:8px; cursor:not-allowed; font-weight:600; font-size:0.85rem;"><i class="fas fa-check-circle"></i> Completed</button>`;
+            } else {
+                actionHtml = '<span style="color:#94a3b8; font-size:0.82rem;">Link unavailable</span>';
+            }
             return `
                 <div style="display:flex; justify-content:space-between; align-items:center; padding:1rem; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:0.75rem;">
                     <div>
-                        <div style="font-weight:600; color:#1e293b;">${title}</div>
-                        <div style="color:#94a3b8; font-size:0.82rem;"><i class="fas fa-user"></i> from ${from} (Principal)  ${time}</div>
+                        <div style="font-weight:600; color:#1e293b;">${it.title}</div>
+                        <div style="color:#94a3b8; font-size:0.82rem;"><i class="fas fa-user"></i> from ${it.from} (Principal)  ${it.time}</div>
                     </div>
-                    ${link
-                        ? `<button class="js-open-meeting" data-mlink="${link}" style="padding:0.5rem 1.1rem; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.85rem;"><i class="fas fa-video"></i> Join</button>`
-                        : '<span style="color:#94a3b8; font-size:0.82rem;">Link unavailable</span>'}
+                    ${actionHtml}
                 </div>
             `;
         }).join('');
@@ -4242,6 +4276,21 @@ async function loadHodMeetingInvites() {
         container.innerHTML = '<p style="color:#f44336; text-align:center; padding:1.5rem;">Failed to load invitations.</p>';
     }
 }
+
+// Auto-refresh the HOD meeting invitations every 8s so the Join button flips to
+// "Completed" shortly after the Principal ends the meeting (no manual refresh).
+let _hodInvitesPollTimer = null;
+function startHodInvitesPoll() {
+    if (_hodInvitesPollTimer) return;
+    _hodInvitesPollTimer = setInterval(() => {
+        const container = document.getElementById('hodMeetingInvites');
+        // Only poll when the invites container is actually on screen
+        if (container && container.offsetParent !== null) {
+            loadHodMeetingInvites();
+        }
+    }, 8000);
+}
+document.addEventListener('DOMContentLoaded', startHodInvitesPoll);
 
 // Wire Meeting Room nav
 document.addEventListener('DOMContentLoaded', function () {
