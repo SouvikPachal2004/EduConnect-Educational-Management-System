@@ -24,12 +24,29 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 } // 15MB
 });
 
+// Wrap multer so upload errors (e.g. file too large) return a clean JSON
+// response instead of aborting the connection (which the browser shows as a
+// confusing "Network error").
+function uploadSingle(field) {
+  return (req, res, next) => {
+    upload.single(field)(req, res, (err) => {
+      if (err) {
+        const msg = err.code === 'LIMIT_FILE_SIZE'
+          ? 'File too large. Maximum allowed size is 15MB.'
+          : `File upload failed: ${err.message}`;
+        return res.status(400).json({ success: false, message: msg });
+      }
+      next();
+    });
+  };
+}
+
 const router = express.Router();
 
 router.use(protect);
 
 // Teacher and HOD can create assignments with file upload
-router.post('/', authorize('teacher', 'admin', 'hod'), upload.single('file'), createAssignment);
+router.post('/', authorize('teacher', 'admin', 'hod'), uploadSingle('file'), createAssignment);
 
 // Anyone can get assignments (with appropriate filtering in controller)
 router.get('/', getAllAssignments);
@@ -81,13 +98,13 @@ router.get('/submissions/:id/download/:filename', async (req, res) => {
 router.get('/:id', getAssignmentById);
 
 // Teacher/HOD/Admin can update assignments with file upload
-router.put('/:id', authorize('teacher', 'admin', 'hod'), upload.single('file'), updateAssignment);
+router.put('/:id', authorize('teacher', 'admin', 'hod'), uploadSingle('file'), updateAssignment);
 
 // Teacher/HOD/Admin can delete assignments
 router.delete('/:id', authorize('teacher', 'admin', 'hod'), deleteAssignment);
 
 // Student can submit assignments with file upload
-router.post('/:id/submit', authorize('student'), upload.single('file'), submitAssignment);
+router.post('/:id/submit', authorize('student'), uploadSingle('file'), submitAssignment);
 
 // Teacher/HOD/Admin can view submissions and grade them
 router.get('/:id/submissions', authorize('teacher', 'admin', 'hod'), getSubmissionsForAssignment);
