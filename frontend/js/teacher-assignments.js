@@ -261,9 +261,10 @@ function buildAssignmentCard(a, role) {
     const attachHtml = a.attachments?.length
         ? `<div style="margin-top:0.4rem;display:flex;flex-wrap:wrap;gap:0.4rem;">
             ${a.attachments.map(att => `
-                <a href="/api/assignments/${a._id}/download/${encodeURIComponent(att.fileName)}"
-                   target="_blank"
-                   style="font-size:0.75rem;color:#667eea;background:#ede9fe;padding:0.15rem 0.5rem;border-radius:4px;text-decoration:none;">
+                <a href="#" class="js-download-file"
+                   data-url="/api/assignments/${a._id}/download/${encodeURIComponent(att.fileName)}"
+                   data-fname="${escH(att.fileName)}"
+                   style="font-size:0.75rem;color:#667eea;background:#ede9fe;padding:0.15rem 0.5rem;border-radius:4px;text-decoration:none;cursor:pointer;">
                      ${escH(att.fileName)}
                 </a>
             `).join('')}
@@ -412,13 +413,14 @@ function renderSubmissionsTable(subs, maxPoints, container, asgId, role) {
             const date   = fmtDate(sub.submittedAt);
             const att    = sub.attachments?.[0];
 
-            // File download link
+            // File download link (authenticated download so the protected endpoint accepts the JWT)
             const fileCell = att
-                ? `<a href="/api/assignments/submissions/${sub._id}/download/${encodeURIComponent(att.fileName)}"
-                      target="_blank"
+                ? `<a href="#" class="js-download-file"
+                      data-url="/api/assignments/submissions/${sub._id}/download/${encodeURIComponent(att.fileName)}"
+                      data-fname="${escH(att.fileName)}"
                       style="display:inline-flex;align-items:center;gap:0.35rem;color:#667eea;font-size:0.82rem;
-                             background:#ede9fe;padding:0.3rem 0.65rem;border-radius:6px;text-decoration:none;white-space:nowrap;">
-                        ${escH(att.fileName)}
+                             background:#ede9fe;padding:0.3rem 0.65rem;border-radius:6px;text-decoration:none;white-space:nowrap;cursor:pointer;">
+                        <i class="fas fa-file-pdf"></i> ${escH(att.fileName)}
                    </a>`
                 : `<span style="color:#94a3b8;font-size:0.8rem;font-style:italic;">${escH(sub.content?.substring(0,50) || 'No file')}</span>`;
 

@@ -1892,7 +1892,7 @@ function updateAssignments() {
                     ${assignment.attachments.map(att => `
                         <div class="attachment-item">
                             <i class="fas fa-paperclip"></i>
-                            <a href="#" onclick="downloadAssignmentFile('${assignment.id}', '${att.fileName}')">${att.fileName}</a>
+                            <a href="#" class="js-download-file" data-url="/api/assignments/${assignment.id}/download/${encodeURIComponent(att.fileName)}" data-fname="${att.fileName}" style="cursor:pointer;">${att.fileName}</a>
                             <small>(${(att.fileSize / 1024).toFixed(1)} KB)</small>
                         </div>
                     `).join('')}
@@ -1943,7 +1943,7 @@ function updateAssignments() {
                     ${assignment.submissionAttachments.map(att => `
                         <div class="attachment-item">
                             <i class="fas fa-paperclip"></i>
-                            <a href="#" onclick="downloadSubmissionFile('${assignment.submissionId}', '${att.fileName}')">${att.fileName}</a>
+                            <a href="#" class="js-download-file" data-url="/api/assignments/submissions/${assignment.submissionId}/download/${encodeURIComponent(att.fileName)}" data-fname="${att.fileName}" style="cursor:pointer;">${att.fileName}</a>
                             <small>(${(att.fileSize / 1024).toFixed(1)} KB)</small>
                         </div>
                     `).join('')}
@@ -2969,50 +2969,20 @@ function openComposeMessageModal() {
     showNotification('Compose message functionality would open here', 'info');
 }
 
-// Download assignment file
+// Download assignment file (authenticated — sends JWT so the protected endpoint accepts it)
 function downloadAssignmentFile(assignmentId, filename) {
-    const authToken = localStorage.getItem('authToken');
-    if (!authToken) {
-        showNotification('Authentication required', 'error');
-        return;
-    }
-    
-    // Create download link
-    const downloadUrl = `/api/assignments/${assignmentId}/download/${filename}`;
-    
-    // Create temporary link element
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename;
-    link.style.display = 'none';
-    
-    // Add to document, click, and remove
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    window.authedDownload(
+        `/api/assignments/${assignmentId}/download/${encodeURIComponent(filename)}`,
+        filename
+    );
 }
 
-// Download submission file
+// Download submission file (authenticated)
 function downloadSubmissionFile(submissionId, filename) {
-    const authToken = localStorage.getItem('authToken');
-    if (!authToken) {
-        showNotification('Authentication required', 'error');
-        return;
-    }
-    
-    // Create download link
-    const downloadUrl = `/api/assignments/submissions/${submissionId}/download/${filename}`;
-    
-    // Create temporary link element
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename;
-    link.style.display = 'none';
-    
-    // Add to document, click, and remove
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    window.authedDownload(
+        `/api/assignments/submissions/${submissionId}/download/${encodeURIComponent(filename)}`,
+        filename
+    );
 }
 
 //  Attendance Table Update 

@@ -30,9 +30,10 @@ const assignmentSchema = new mongoose.Schema({
   },
   attachments: [{
     fileName: String,
-    filePath: String,
+    filePath: String,          // legacy: disk path (may be wiped on server restart)
     fileType: String,
     fileSize: Number,
+    data: Buffer,              // file bytes stored in DB so it survives restarts
   }],
   status: {
     type: String,

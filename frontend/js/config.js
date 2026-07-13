@@ -66,3 +66,43 @@ document.addEventListener('click', function(e) {
         window.openMeetingOnCurrentOrigin(el.getAttribute('data-mlink'));
     }
 });
+
+//  Authenticated file download 
+//  ------------------------------------------------------------------
+//  All /api file endpoints are auth-protected. A plain <a href="/api/..."> click
+//  does NOT send the Authorization header, so the backend returns 401 and the
+//  browser shows "File wasn't available on site". This helper fetches the file
+//  WITH the JWT header, then downloads the resulting blob. Use it everywhere a
+//  protected file (assignment attachment, submission answer) is downloaded.
+window.authedDownload = async function(apiPath, filename) {
+    try {
+        const token = localStorage.getItem('authToken');
+        const res = await fetch(apiPath, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) {
+            alert('Unable to download this file. It may no longer be available on the server (files can be cleared when the server restarts). Please ask for it to be re-uploaded.');
+            return;
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'download';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+    } catch (err) {
+        alert('Download failed. Please check your connection and try again.');
+    }
+};
+
+//  Delegated handler: any element with class "js-download-file" downloads
+//  data-url (the /api path) as data-fname. Avoids quote-escaping issues in
+//  inline onclick when filenames contain special characters.
+document.addEventListener('click', function(e) {
+    const el = e.target.closest ? e.target.closest('.js-download-file') : null;
+    if (el) {
+        e.preventDefault();
+        window.authedDownload(el.getAttribute('data-url'), el.getAttribute('data-fname'));
+    }
+});

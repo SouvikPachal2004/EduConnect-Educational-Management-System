@@ -14,19 +14,15 @@ const {
 const { protect, authorize } = require('../middleware/auth.middleware');
 const multer = require('multer');
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads/';
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
+// Store uploads IN MEMORY so we can persist the bytes into MongoDB. Render's
+// free tier has an ephemeral filesystem (the uploads/ folder is wiped on every
+// restart/redeploy), which made downloaded files vanish. Storing the file in
+// the DB makes assignment/submission files survive restarts. Cap at 15MB to
+// stay under MongoDB's 16MB per-document limit.
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 } // 15MB
 });
-
-const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
 
 const router = express.Router();
 
@@ -38,6 +34,23 @@ router.post('/', authorize('teacher', 'admin', 'hod'), upload.single('file'), cr
 // Anyone can get assignments (with appropriate filtering in controller)
 router.get('/', getAllAssignments);
 
+// Helper: send an attachment from the DB buffer, falling back to disk (legacy)
+function sendAttachment(res, att) {
+  if (!att) return res.status(404).json({ message: 'File not found' });
+  res.setHeader('Content-Disposition', `attachment; filename="${att.fileName}"`);
+  res.setHeader('Content-Type', att.fileType || 'application/octet-stream');
+  // Preferred: bytes stored in MongoDB (survives server restarts)
+  if (att.data && att.data.length) {
+    return res.send(Buffer.from(att.data));
+  }
+  // Legacy fallback: file on disk (may be gone after a restart)
+  if (att.filePath) {
+    const absPath = path.resolve(att.filePath);
+    if (fs.existsSync(absPath)) return res.sendFile(absPath);
+  }
+  return res.status(404).json({ message: 'File not found on server' });
+}
+
 // Download assignment attachment — must come BEFORE /:id route
 router.get('/:id/download/:filename', async (req, res) => {
   try {
@@ -45,12 +58,7 @@ router.get('/:id/download/:filename', async (req, res) => {
     const asg = await Assignment.findById(req.params.id);
     if (!asg) return res.status(404).json({ message: 'Assignment not found' });
     const att = asg.attachments.find(a => a.fileName === req.params.filename);
-    if (!att) return res.status(404).json({ message: 'File not found' });
-    const absPath = path.resolve(att.filePath);
-    if (!fs.existsSync(absPath)) return res.status(404).json({ message: 'File not found on server' });
-    res.setHeader('Content-Disposition', `attachment; filename="${att.fileName}"`);
-    res.setHeader('Content-Type', att.fileType || 'application/octet-stream');
-    res.sendFile(absPath);
+    sendAttachment(res, att);
   } catch (err) {
     res.status(500).json({ message: 'Download failed', error: err.message });
   }
@@ -63,12 +71,7 @@ router.get('/submissions/:id/download/:filename', async (req, res) => {
     const sub = await Submission.findById(req.params.id);
     if (!sub) return res.status(404).json({ message: 'Submission not found' });
     const att = sub.attachments.find(a => a.fileName === req.params.filename);
-    if (!att) return res.status(404).json({ message: 'File not found' });
-    const absPath = path.resolve(att.filePath);
-    if (!fs.existsSync(absPath)) return res.status(404).json({ message: 'File not found on server' });
-    res.setHeader('Content-Disposition', `attachment; filename="${att.fileName}"`);
-    res.setHeader('Content-Type', att.fileType || 'application/octet-stream');
-    res.sendFile(absPath);
+    sendAttachment(res, att);
   } catch (err) {
     res.status(500).json({ message: 'Download failed', error: err.message });
   }

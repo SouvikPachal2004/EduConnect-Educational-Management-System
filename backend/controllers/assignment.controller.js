@@ -34,7 +34,7 @@ const createAssignment = async (req, res) => {
     if (req.file) {
       assignment.attachments.push({
         fileName: req.file.originalname,
-        filePath: req.file.path,
+        data: req.file.buffer,   // store bytes in DB (survives server restarts)
         fileType: req.file.mimetype,
         fileSize: req.file.size,
       });
@@ -48,7 +48,12 @@ const createAssignment = async (req, res) => {
       { path: 'teacher', select: 'name email' }
     ]);
     
-    successResponse(res, assignment, 'Assignment created successfully', 201);
+    // Strip the raw file bytes from the response (keep metadata only)
+    const createdOut = assignment.toObject();
+    if (createdOut.attachments) {
+      createdOut.attachments = createdOut.attachments.map(({ data, ...rest }) => rest);
+    }
+    successResponse(res, createdOut, 'Assignment created successfully', 201);
   } catch (error) {
     errorResponse(res, 'Failed to create assignment', 500, error.message);
   }
@@ -110,6 +115,7 @@ const getAllAssignments = async (req, res) => {
     
     // Get assignments
     const assignments = await Assignment.find(filter)
+      .select('-attachments.data')   // exclude raw file bytes from list payload
       .populate([
         { path: 'class', select: 'name code' },
         { path: 'teacher', select: 'name email department' }
@@ -128,7 +134,7 @@ const getAllAssignments = async (req, res) => {
       const submissions = await Submission.find({
         assignment: { $in: assignmentIds },
         student: req.user.id,
-      }).lean();
+      }).select('-attachments.data').lean();
 
       const submissionMap = {};
       submissions.forEach(s => {
@@ -227,7 +233,7 @@ const updateAssignment = async (req, res) => {
     if (req.file) {
       assignment.attachments.push({
         fileName: req.file.originalname,
-        filePath: req.file.path,
+        data: req.file.buffer,   // store bytes in DB (survives server restarts)
         fileType: req.file.mimetype,
         fileSize: req.file.size,
       });
@@ -260,9 +266,9 @@ const deleteAssignment = async (req, res) => {
       return errorResponse(res, 'Not authorized to delete this assignment', 403);
     }
     
-    // Delete associated files
+    // Delete associated disk files (legacy records only; new files live in the DB)
     assignment.attachments.forEach(attachment => {
-      if (fs.existsSync(attachment.filePath)) {
+      if (attachment.filePath && fs.existsSync(attachment.filePath)) {
         fs.unlinkSync(attachment.filePath);
       }
     });
@@ -336,7 +342,7 @@ const submitAssignment = async (req, res) => {
     if (req.file) {
       submission.attachments.push({
         fileName: req.file.originalname,
-        filePath: req.file.path,
+        data: req.file.buffer,   // store bytes in DB (survives server restarts)
         fileType: req.file.mimetype,
         fileSize: req.file.size,
       });
@@ -351,7 +357,12 @@ const submitAssignment = async (req, res) => {
       { path: 'class', select: 'name' }
     ]);
     
-    successResponse(res, submission, 'Assignment submitted successfully', 201);
+    // Strip the raw file bytes from the response (keep metadata only)
+    const subOut = submission.toObject();
+    if (subOut.attachments) {
+      subOut.attachments = subOut.attachments.map(({ data, ...rest }) => rest);
+    }
+    successResponse(res, subOut, 'Assignment submitted successfully', 201);
   } catch (error) {
     errorResponse(res, 'Failed to submit assignment', 500, error.message);
   }
@@ -395,6 +406,7 @@ const getSubmissionsForAssignment = async (req, res) => {
     }
     
     const submissions = await Submission.find({ assignment: req.params.id })
+      .select('-attachments.data')   // exclude raw file bytes; download uses a separate route
       .populate([
         { path: 'student', select: 'name email studentId' },
         { path: 'class', select: 'name' }
